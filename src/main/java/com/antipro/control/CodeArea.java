@@ -379,7 +379,7 @@ public class CodeArea extends CodeInputControl {
     public CodeArea(String text) {
         super(new CodeAreaContent());
 
-        getStyleClass().add("text-area");
+        getStyleClass().addAll("text-area", "code-area");
         setAccessibleRole(AccessibleRole.TEXT_AREA);
         setText(text);
     }

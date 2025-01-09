@@ -28,6 +28,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.PathElement;
 import javafx.scene.text.HitInfo;
@@ -953,8 +955,13 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         Text paragraphNode = null;
         do {
-            paragraphNode = (Text)paragraphNodes.getChildren().get(--paragraphIndex);
-            paragraphOffset -= paragraphNode.getText().length() + 1;
+            TextFlow textFlow = (TextFlow) paragraphNodes.getChildren().get(--paragraphIndex);
+            for (Node child : textFlow.getChildren()) {
+                paragraphNode = (Text)child;
+                paragraphOffset -= paragraphNode.getText().length() + 1;
+            }
+//            paragraphNode = (Text)paragraphNodes.getChildren().get(--paragraphIndex);
+//            paragraphOffset -= paragraphNode.getText().length() + 1;
         } while (index < paragraphOffset);
 
         int characterIndex = index - paragraphOffset;
@@ -1058,7 +1065,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             }
         }
         words.add(word.toString());
-        for (String w : words) {
+        for (int j = 0; j < words.size(); j++) {
+            String w = words.get(j);
             Text paragraphNode = new Text(w);
             paragraphNode.getStyleClass().add("text");
             paragraphNode.setTextOrigin(VPos.TOP);
@@ -1068,7 +1076,13 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 updateFontMetrics();
             });
             paragraphNode.fontProperty().bind(codeArea.fontProperty());
-            paragraphNode.fillProperty().bind(textFillProperty());
+//            paragraphNode.fillProperty().bind(textFillProperty());
+            // FIXME: This is a hack to test the selectionFillProperty binding
+            if (j % 2 == 0) {
+                paragraphNode.setFill(Color.BLUE);
+            } else {
+                paragraphNode.setFill(Color.RED);
+            }
             paragraphNode.selectionFillProperty().bind(highlightTextFillProperty());
             textFlow.getChildren().add(paragraphNode);
         }
@@ -1462,11 +1476,19 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
                 Text paragraphNode = null;
                 do {
+//                    paragraphNode = (Text)paragraphNodesChildren.get(--paragraphIndex);
+//                    paragraphOffset -= paragraphNode.getText().length() + 1;
                     TextFlow textFlow = (TextFlow)paragraphNodesChildren.get(--paragraphIndex);
-                    for (Node child : textFlow.getChildren()) {
-                        paragraphNode = (Text)child;
-                        paragraphOffset -= paragraphNode.getText().length() + 1;
+                    ObservableList<Node> children = textFlow.getChildren();
+                    for (int i = children.size() - 1; i >= 0; i--) {
+                        Node child = children.get(i);
+                        paragraphNode = (Text) child;
+                        paragraphOffset -= paragraphNode.getText().length();
+                        if (caretPos >= paragraphOffset) {
+                            break;
+                        }
                     }
+                    paragraphOffset -= 1;
                 } while (caretPos < paragraphOffset);
 
                 updateTextNodeCaretPos(caretPos - paragraphOffset);

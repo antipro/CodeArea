@@ -17,8 +17,8 @@ public class CodeAreaExample extends Application {
 
     @Override
     public void start(javafx.stage.Stage primaryStage) {
-        CodeArea textArea = new CodeArea();
-        textArea.setFont(Font.font("Monospace", FontWeight.NORMAL, 24));
+        CodeArea codeArea = new CodeArea();
+        codeArea.setFont(Font.font("Monospace", FontWeight.NORMAL, 24));
         String text = """
                 The quick brown fox jumps over the lazy dog
                 The quick brown fox jumps over the lazy dog
@@ -26,12 +26,11 @@ public class CodeAreaExample extends Application {
                 The quick brown fox jumps over the lazy dog
                 The quick brown fox jumps over the lazy dog
                 """;
-        textArea.setText(text);
-        textArea.setWrapText(true);
-        textArea.setPrefWidth(300);
-        textArea.setPrefHeight(250);
-
-        javafx.scene.Scene scene = new javafx.scene.Scene(textArea);
+        codeArea.setText(text);
+        codeArea.setWrapText(true);
+        codeArea.setPrefWidth(300);
+        codeArea.setPrefHeight(250);
+        javafx.scene.Scene scene = new javafx.scene.Scene(codeArea);
         primaryStage.setScene(scene);
         primaryStage.show();
         ScenicView.show(scene);

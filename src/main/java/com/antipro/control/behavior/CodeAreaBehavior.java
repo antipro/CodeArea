@@ -141,8 +141,8 @@ public class CodeAreaBehavior extends CodeInputControlBehavior<CodeArea> {
         // The only real difference is that TextFieldBehavior selects all the text when the control
         // receives focus (when not gained by mouse click), whereas CodeArea doesn't, and also the
         // CodeArea doesn't lose selection on focus lost, whereas the TextField does.
-        final CodeArea textArea = getNode();
-        if (textArea.isFocused()) {
+        final CodeArea codeArea = getNode();
+        if (codeArea.isFocused()) {
             if (!focusGainedByMouseClick) {
                 setCaretAnimating(true);
             }
