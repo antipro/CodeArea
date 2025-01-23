@@ -19,7 +19,6 @@ import javafx.geometry.*;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Group;
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.control.Control;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.ScrollPane;
@@ -163,7 +162,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         forwardBiasProperty().addListener(observable -> {
             if (control.getWidth() > 0) {
-                updateTextNodeCaretPos(control.getCaretPosition());
+                Text textNode = (Text)((TextFlow) paragraphNodes.getChildren().get(0)).getChildren().get(0);
+                updateTextNodeCaretPos(control.getCaretPosition(), textNode);
             }
         });
 
@@ -343,6 +343,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                 words.add(word.toString());
                                 for (int j = 0; j < words.size(); j++) {
                                     String s = words.get(j);
+                                    if (s.isEmpty()) {
+                                        continue;
+                                    }
                                     Text text1 = new Text(s);
                                     text1.getStyleClass().add("text");
                                     text1.setTextOrigin(VPos.TOP);
@@ -1112,7 +1115,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 //        paragraphNode.fillProperty().bind(textFillProperty());
 //        paragraphNode.selectionFillProperty().bind(highlightTextFillProperty());
         TextFlow textFlow = new TextFlow();
-        paragraphNodes.getChildren().add(i, textFlow);
+
         List<String> words = new ArrayList<>();
         StringBuilder word = new StringBuilder(32);
         for (int j = 0; j < string.length(); j++) {
@@ -1128,6 +1131,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         words.add(word.toString());
         for (int j = 0; j < words.size(); j++) {
             String w = words.get(j);
+            if (w.isEmpty()) {
+                continue;
+            }
             Text paragraphNode = new Text(w);
             paragraphNode.getStyleClass().add("text");
             paragraphNode.setTextOrigin(VPos.TOP);
@@ -1147,6 +1153,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             paragraphNode.selectionFillProperty().bind(highlightTextFillProperty());
             textFlow.getChildren().add(paragraphNode);
         }
+        if (textFlow.getChildren().isEmpty()) {
+            return;
+        }
+        paragraphNodes.getChildren().add(i, textFlow);
     }
 
     private double getScrollTopMax() {
@@ -1290,35 +1300,35 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         return (Text)textFlow.getChildren().get(0);
     }
 
-    private void updateTextNodeCaretPos(int pos) {
-        int offset = 0;
-        for (Node child : paragraphNodes.getChildren()) {
-            TextFlow textFlow = (TextFlow)child;
-            for (Node textFlowChild : textFlow.getChildren()) {
-                Text text = (Text)textFlowChild;
-                int length = text.getText().length();
-                if (pos < offset + length) {
-                    if (isForwardBias()) {
-                        text.setCaretPosition(pos - offset);
-                    } else {
-                        text.setCaretPosition(pos - offset - 1);
-                    }
-                    text.caretBiasProperty().set(isForwardBias());
-                    for (PathElement pathElement : text.getCaretShape()) {
-                        System.out.println("path element: " + pathElement);
-                    }
-                    return;
-                }
-                offset += length;
-            }
-        }
-//        Text textNode = getTextNode(0, 0);
-//        if (isForwardBias()) {
-//            textNode.setCaretPosition(pos);
-//        } else {
-//            textNode.setCaretPosition(pos - 1);
+    private void updateTextNodeCaretPos(int pos, Text textNode) {
+//        int offset = 0;
+//        for (Node child : paragraphNodes.getChildren()) {
+//            TextFlow textFlow = (TextFlow)child;
+//            for (Node textFlowChild : textFlow.getChildren()) {
+//                Text text = (Text)textFlowChild;
+//                int length = text.getText().length();
+//                if (pos < offset + length) {
+//                    if (isForwardBias()) {
+//                        text.setCaretPosition(pos - offset);
+//                    } else {
+//                        text.setCaretPosition(pos - offset - 1);
+//                    }
+//                    text.caretBiasProperty().set(isForwardBias());
+//                    for (PathElement pathElement : text.getCaretShape()) {
+//                        System.out.println("path element: " + pathElement);
+//                    }
+//                    return;
+//                }
+//                offset += length;
+//            }
 //        }
-//        textNode.caretBiasProperty().set(isForwardBias());
+//        Text textNode = getTextNode(0, 0);
+        if (isForwardBias()) {
+            textNode.setCaretPosition(pos);
+        } else {
+            textNode.setCaretPosition(pos - 1);
+        }
+        textNode.caretBiasProperty().set(isForwardBias());
     }
 
     // for testing
@@ -1475,7 +1485,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
             final List<Node> paragraphNodesChildren = paragraphNodes.getChildren();
 
-            for (int i = 0; i < paragraphNodesChildren.size(); i++) {
+            for (Node paragraphNodesChild : paragraphNodesChildren) {
 //                Node node = paragraphNodesChildren.get(i);
 //                Text paragraphNode = (Text)node;
 //                paragraphNode.setWrappingWidth(wrappingWidth);
@@ -1485,7 +1495,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 //                paragraphNode.setLayoutY(y);
 //
 //                y += bounds.getHeight();
-                TextFlow textFlow = (TextFlow)paragraphNodesChildren.get(i);
+                TextFlow textFlow = (TextFlow) paragraphNodesChild;
                 textFlow.setPrefWidth(wrappingWidth);
                 textFlow.setLayoutX(leftPadding);
                 textFlow.setLayoutY(y);
@@ -1493,7 +1503,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 double subX = 0;
                 double subY = 0;
                 for (Node child : textFlow.getChildren()) {
-                    Text paragraphNode = (Text)child;
+                    Text paragraphNode = (Text) child;
                     paragraphNode.setLayoutX(subX);
                     paragraphNode.setLayoutY(subY);
                     if (subX + paragraphNode.getLayoutBounds().getWidth() > wrappingWidth) {
@@ -1510,7 +1520,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             }
 
             if (promptNode != null) {
-                promptNode.setLayoutX(leftPadding);
+                promptNode.setLayoutX(0);
                 promptNode.setLayoutY(topPadding + promptNode.getBaselineOffset());
                 promptNode.setWrappingWidth(wrappingWidth);
             }
@@ -1540,14 +1550,25 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 // Do this before positioning the actual caret.
                 if (selection.getLength() > 0) {
                     int paragraphIndex = paragraphNodesChildren.size();
-                    int paragraphOffset = codeArea.getLength() + 1;
+                    int paragraphOffset = codeArea.getLength() - paragraphIndex;
                     Text paragraphNode = null;
+                    TextFlow textFlow;
                     do {
-                        paragraphNode = (Text)paragraphNodesChildren.get(--paragraphIndex);
-                        paragraphOffset -= paragraphNode.getText().length() + 1;
+//                        paragraphNode = (Text)paragraphNodesChildren.get(--paragraphIndex);
+//                        paragraphOffset -= paragraphNode.getText().length() + 1;
+                        textFlow = (TextFlow)paragraphNodesChildren.get(--paragraphIndex);
+                        ObservableList<Node> children = textFlow.getChildren();
+                        for (int i = children.size() - 1; i >= 0; i--) {
+                            Node child = children.get(i);
+                            paragraphNode = (Text) child;
+                            paragraphOffset -= paragraphNode.getText().length();
+                            if (anchorPos >= paragraphOffset) {
+                                break;
+                            }
+                        }
                     } while (anchorPos < paragraphOffset);
 
-                    updateTextNodeCaretPos(anchorPos - paragraphOffset);
+                    updateTextNodeCaretPos(anchorPos - paragraphOffset, paragraphNode);
                     caretPath.getElements().clear();
                     caretPath.getElements().addAll(paragraphNode.getCaretShape());
                     caretPath.setLayoutX(paragraphNode.getLayoutX());
@@ -1567,33 +1588,32 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             {
                 // Position caret
                 int paragraphIndex = paragraphNodesChildren.size();
-                int paragraphOffset = codeArea.getLength() + 1;
+                int paragraphOffset = codeArea.getLength() - paragraphIndex;
 
                 Text paragraphNode = null;
+                TextFlow textFlow;
                 do {
 //                    paragraphNode = (Text)paragraphNodesChildren.get(--paragraphIndex);
 //                    paragraphOffset -= paragraphNode.getText().length() + 1;
-                    TextFlow textFlow = (TextFlow)paragraphNodesChildren.get(--paragraphIndex);
+                    textFlow = (TextFlow)paragraphNodesChildren.get(--paragraphIndex);
                     ObservableList<Node> children = textFlow.getChildren();
                     for (int i = children.size() - 1; i >= 0; i--) {
-                        Node child = children.get(i);
-                        paragraphNode = (Text) child;
+                        paragraphNode = (Text) children.get(i);
                         paragraphOffset -= paragraphNode.getText().length();
                         if (caretPos >= paragraphOffset) {
                             break;
                         }
                     }
-                    paragraphOffset -= 1;
                 } while (caretPos < paragraphOffset);
 
-                updateTextNodeCaretPos(caretPos - paragraphOffset);
+                updateTextNodeCaretPos(caretPos - paragraphOffset, paragraphNode);
 
                 caretPath.getElements().clear();
                 caretPath.getElements().addAll(paragraphNode.getCaretShape());
-                caretPath.setLayoutX(paragraphNode.getLayoutX());
+                caretPath.setLayoutX(textFlow.getLayoutX() + paragraphNode.getLayoutX());
 
                 // TODO: Remove this temporary workaround for RT-27533
-                paragraphNode.setLayoutX(2 * paragraphNode.getLayoutX() - paragraphNode.getBoundsInParent().getMinX());
+//                paragraphNode.setLayoutX(2 * paragraphNode.getLayoutX() - paragraphNode.getBoundsInParent().getMinX());
 
                 caretPath.setLayoutY(paragraphNode.getParent().getLayoutY() + paragraphNode.getLayoutY());
                 for (PathElement pathElement : paragraphNode.getCaretShape()) {
