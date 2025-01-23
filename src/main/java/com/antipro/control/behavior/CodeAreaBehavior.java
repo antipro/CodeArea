@@ -17,7 +17,7 @@ import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.text.HitInfo;
+import com.antipro.control.skin.HitInfo;
 import javafx.stage.Screen;
 import javafx.stage.Window;
 

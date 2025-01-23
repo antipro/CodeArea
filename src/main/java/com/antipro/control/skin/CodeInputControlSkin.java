@@ -717,6 +717,9 @@ public abstract class CodeInputControlSkin<T extends CodeInputControl> extends S
      * @param event the {@code InputMethodEvent} to be handled
      */
     protected void handleInputMethodEvent(InputMethodEvent event) {
+        for (InputMethodTextRun inputMethodTextRun : event.getComposed()) {
+            System.out.println("inputMethodTextRun = " + inputMethodTextRun.getText());
+        }
         final CodeInputControl textInput = getSkinnable();
         if (textInput.isEditable() && !textInput.textProperty().isBound() && !textInput.isDisabled()) {
 

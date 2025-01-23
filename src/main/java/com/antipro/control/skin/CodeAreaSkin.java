@@ -19,6 +19,7 @@ import javafx.geometry.*;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Control;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.ScrollPane;
@@ -29,10 +30,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.PathElement;
-import javafx.scene.text.HitInfo;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
@@ -186,7 +185,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         text.fillProperty().bind(textFillProperty());
         text.selectionFillProperty().bind(highlightTextFillProperty());
         lineNumber.getChildren().add(text);
-        lineNumber.setPadding(new Insets(10, 0, 10, 0));
+        lineNumber.setPadding(new Insets(6, 0, 10, 0));
         lineNumber.setAlignment(Pos.TOP_RIGHT);
         hBox.getChildren().addAll(lineNumber, contentView);
         HBox.setHgrow(contentView, Priority.ALWAYS);
@@ -326,9 +325,45 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         } else {
                             // This is an update
                             for (int i = from, n = to; i < n; i++) {
-                                Node node = paragraphNodes.getChildren().get(i);
-                                Text paragraphNode = (Text) node;
-                                paragraphNode.setText(change.getList().get(i).toString());
+                                TextFlow textFlow = (TextFlow) paragraphNodes.getChildren().get(i);
+                                textFlow.getChildren().clear();
+                                String string = change.getList().get(i).toString();
+                                List<String> words = new ArrayList<>();
+                                StringBuilder word = new StringBuilder();
+                                for (int j = 0; j < string.length(); j++) {
+                                    char c = string.charAt(j);
+                                    if (c == ' ') {
+                                        word.append(c);
+                                        words.add(word.toString());
+                                        word = new StringBuilder();
+                                    } else {
+                                        word.append(c);
+                                    }
+                                }
+                                words.add(word.toString());
+                                for (int j = 0; j < words.size(); j++) {
+                                    String s = words.get(j);
+                                    Text text1 = new Text(s);
+                                    text1.getStyleClass().add("text");
+                                    text1.setTextOrigin(VPos.TOP);
+                                    text1.boundsTypeProperty().addListener((observable, oldValue, newValue) -> {
+                                        invalidateMetrics();
+                                        updateFontMetrics();
+                                    });
+                                    text1.fontProperty().bind(codeArea.fontProperty());
+                                    if (j % 2 == 0) {
+                                        text1.setFill(Color.BLUE);
+                                    } else {
+                                        text1.setFill(Color.RED);
+                                    }
+                                    text1.selectionFillProperty().bind(highlightTextFillProperty());
+                                    textFlow.getChildren().add(text1);
+                                }
+//                                Text paragraphNode = (Text) textFlow.getChildren().get(0);
+//                                paragraphNode.setText(change.getList().get(i).toString());
+//                                Node node = paragraphNodes.getChildren().get(i);
+//                                Text paragraphNode = (Text) node;
+//                                paragraphNode.setText(change.getList().get(i).toString());
                             }
                         }
                     } else {
@@ -392,22 +427,23 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             selectionHandle2.setOnMouseReleased(handleReleaseHandler);
 
             caretHandle.setOnMouseDragged(e -> {
-                Text textNode = getTextNode(0);
+                Text textNode = getTextNode(e.getX(), e.getY());
                 Point2D tp = textNode.localToScene(0, 0);
                 Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + caretHandle.getWidth() / 2,
                         e.getSceneY() - tp.getY() - pressY - 6);
-                HitInfo hit = textNode.hitTest(translateCaretPosition(p));
-                positionCaret(hit, false);
+                javafx.scene.text.HitInfo hit = textNode.hitTest(translateCaretPosition(p));
+                HitInfo myHit = new HitInfo(hit.getCharIndex(), hit.getInsertionIndex(), hit.isLeading());
+                positionCaret(myHit, false);
                 e.consume();
             });
 
             selectionHandle1.setOnMouseDragged(e -> {
                 CodeArea control1 = getSkinnable();
-                Text textNode = getTextNode(0);
+                Text textNode = getTextNode(e.getX(), e.getY());
                 Point2D tp = textNode.localToScene(0, 0);
                 Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + selectionHandle1.getWidth() / 2,
                         e.getSceneY() - tp.getY() - pressY + selectionHandle1.getHeight() + 5);
-                HitInfo hit = textNode.hitTest(translateCaretPosition(p));
+                javafx.scene.text.HitInfo hit = textNode.hitTest(translateCaretPosition(p));
                 if (control1.getAnchor() < control1.getCaretPosition()) {
                     // Swap caret and anchor
                     control1.selectRange(control1.getCaretPosition(), control1.getAnchor());
@@ -418,17 +454,18 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         pos = control1.getAnchor();
                     }
                 }
-                positionCaret(hit, true);
+                HitInfo myHit = new HitInfo(hit.getCharIndex(), hit.getInsertionIndex(), hit.isLeading());
+                positionCaret(myHit, true);
                 e.consume();
             });
 
             selectionHandle2.setOnMouseDragged(e -> {
                 CodeArea control1 = getSkinnable();
-                Text textNode = getTextNode(0);
+                Text textNode = getTextNode(e.getX(), e.getY());
                 Point2D tp = textNode.localToScene(0, 0);
                 Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + selectionHandle2.getWidth() / 2,
                         e.getSceneY() - tp.getY() - pressY - 6);
-                HitInfo hit = textNode.hitTest(translateCaretPosition(p));
+                javafx.scene.text.HitInfo hit = textNode.hitTest(translateCaretPosition(p));
                 if (control1.getAnchor() > control1.getCaretPosition()) {
                     // Swap caret and anchor
                     control1.selectRange(control1.getCaretPosition(), control1.getAnchor());
@@ -438,7 +475,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     if (pos <= control1.getAnchor() + 1) {
                         pos = Math.min(control1.getAnchor() + 2, control1.getLength());
                     }
-                    positionCaret(hit, true);
+                    HitInfo myHit = new HitInfo(hit.getCharIndex(), hit.getInsertionIndex(), hit.isLeading());
+                    positionCaret(myHit, true);
                 }
                 e.consume();
             });
@@ -482,13 +520,36 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
      * @param y the y coordinate of the point.
      * @return a {@code HitInfo} object describing the index and forward bias.
      */
-    public HitInfo getIndex(double x, double y) {
+    public com.antipro.control.skin.HitInfo getIndex(double x, double y) {
         // adjust the event to be in the same coordinate space as the
         // text content of the textInputControl
-        Text textNode = getTextNode(0);
-        Point2D p = new Point2D(x - textNode.getLayoutX(), y - getTextTranslateY());
-        HitInfo hit = textNode.hitTest(translateCaretPosition(p));
-        return hit;
+//        Text textNode = getTextNode(x, y);
+//        TextFlow textFlow = (TextFlow) textNode.getParent();
+//        Point2D p = new Point2D(x - (textFlow.getLayoutX() + textNode.getLayoutX()), y - getTextTranslateY());
+//        HitInfo hit = textNode.hitTest(translateCaretPosition(p));
+//        return hit;
+        int offset = 0;
+        for (Node child : paragraphNodes.getChildren()) {
+            TextFlow textFlow = (TextFlow)child;
+            for (Node textFlowChild : textFlow.getChildren()) {
+                Text text = (Text)textFlowChild;
+                Bounds bounds = text.getBoundsInLocal();
+                if (x >= textFlow.getLayoutX() + text.getLayoutX() &&
+                        x < textFlow.getLayoutX() + text.getLayoutX() + bounds.getWidth() &&
+                        y >= textFlow.getLayoutY() + text.getLayoutY() &&
+                        y < textFlow.getLayoutY() + text.getLayoutY() + bounds.getHeight()) {
+                    javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(new Point2D(x - textFlow.getLayoutX() - text.getLayoutX(),
+                            y - textFlow.getLayoutY() - text.getLayoutY())));
+
+                    return new com.antipro.control.skin.HitInfo(
+                            hit.getCharIndex() + offset,
+                            hit.getInsertionIndex() + offset,
+                            hit.isLeading());
+                }
+                offset += text.getText().length();
+            }
+        }
+        return null;
     }
 
     /** {@inheritDoc} */
@@ -567,7 +628,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             moveRight = !moveRight;
         }
 
-        Text textNode = getTextNode(0);
+        Text textNode = getTextNode(0, 0);
         Bounds caretBounds = caretPath.getLayoutBounds();
         if (caretPath.getElements().size() == 4) {
             // The caret is split
@@ -578,7 +639,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
         double hitX = moveRight ? caretBounds.getMaxX() : caretBounds.getMinX();
         double hitY = (caretBounds.getMinY() + caretBounds.getMaxY()) / 2;
-        HitInfo hit = textNode.hitTest(new Point2D(hitX, hitY));
+        javafx.scene.text.HitInfo hit = textNode.hitTest(new Point2D(hitX, hitY));
         boolean leading = hit.isLeading();
         Path charShape = new Path(textNode.rangeShape(hit.getCharIndex(), hit.getCharIndex() + 1));
         if ((moveRight && charShape.getLayoutBounds().getMaxX() > caretBounds.getMaxX()) ||
@@ -603,7 +664,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     }
 
     private void downLines(int nLines, boolean select, boolean extendSelection) {
-        Text textNode = getTextNode(0);
+        Text textNode = getTextNode(0, 0);
         Bounds caretBounds = caretPath.getLayoutBounds();
 
         // The middle y coordinate of the the line we want to go to.
@@ -617,7 +678,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         double x = (targetCaretX >= 0) ? targetCaretX : (caretBounds.getMaxX());
 
         // Find a text position for the target x,y.
-        HitInfo hit = textNode.hitTest(translateCaretPosition(new Point2D(x, targetLineMidY)));
+        javafx.scene.text.HitInfo hit = textNode.hitTest(translateCaretPosition(new Point2D(x, targetLineMidY)));
         int pos = hit.getCharIndex();
 
         // Save the old pos temporarily while testing the new one.
@@ -819,7 +880,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             case LINE_END:
             case BOUNDS_FOR_RANGE:
             case OFFSET_AT_POINT:
-                Text text = getTextNode(0);
+                Text text = getTextNode(0, 0);
                 return text.queryAccessibleAttribute(attribute, parameters);
             default: return super.queryAccessibleAttribute(attribute, parameters);
         }
@@ -1097,7 +1158,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     }
 
     private int getInsertionPoint(Text paragraphNode, double x, double y) {
-        HitInfo hitInfo = paragraphNode.hitTest(new Point2D(x, y));
+        javafx.scene.text.HitInfo hitInfo = paragraphNode.hitTest(new Point2D(x, y));
         return hitInfo.getInsertionIndex();
     }
 
@@ -1207,23 +1268,57 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     }
 
     // package for testing only!
-    Text getTextNode(int i) {
+    Text getTextNode(double x, double y) {
 //        if (USE_MULTIPLE_NODES) {
 ////            throw new IllegalArgumentException("Multiple node traversal is not yet implemented.");
 //        }
 //        return (Text)paragraphNodes.getChildren().get(0);
-        TextFlow textFlow = (TextFlow) paragraphNodes.getChildren().get(i);
-        return (Text)textFlow.getChildren().get(i);
+        for (Node child : paragraphNodes.getChildren()) {
+            TextFlow textFlow = (TextFlow)child;
+            for (Node textFlowChild : textFlow.getChildren()) {
+                Text text = (Text)textFlowChild;
+                Bounds bounds = text.getBoundsInLocal();
+                if (x >= textFlow.getLayoutX() + text.getLayoutX() &&
+                        x < textFlow.getLayoutX() + text.getLayoutX() + bounds.getWidth() &&
+                        y >= textFlow.getLayoutY() + text.getLayoutY() &&
+                        y < textFlow.getLayoutY() + text.getLayoutY() + bounds.getHeight()) {
+                    return text;
+                }
+            }
+        }
+        TextFlow textFlow = (TextFlow) paragraphNodes.getChildren().get(0);
+        return (Text)textFlow.getChildren().get(0);
     }
 
     private void updateTextNodeCaretPos(int pos) {
-        Text textNode = getTextNode(0);
-        if (isForwardBias()) {
-            textNode.setCaretPosition(pos);
-        } else {
-            textNode.setCaretPosition(pos - 1);
+        int offset = 0;
+        for (Node child : paragraphNodes.getChildren()) {
+            TextFlow textFlow = (TextFlow)child;
+            for (Node textFlowChild : textFlow.getChildren()) {
+                Text text = (Text)textFlowChild;
+                int length = text.getText().length();
+                if (pos < offset + length) {
+                    if (isForwardBias()) {
+                        text.setCaretPosition(pos - offset);
+                    } else {
+                        text.setCaretPosition(pos - offset - 1);
+                    }
+                    text.caretBiasProperty().set(isForwardBias());
+                    for (PathElement pathElement : text.getCaretShape()) {
+                        System.out.println("path element: " + pathElement);
+                    }
+                    return;
+                }
+                offset += length;
+            }
         }
-        textNode.caretBiasProperty().set(isForwardBias());
+//        Text textNode = getTextNode(0, 0);
+//        if (isForwardBias()) {
+//            textNode.setCaretPosition(pos);
+//        } else {
+//            textNode.setCaretPosition(pos - 1);
+//        }
+//        textNode.caretBiasProperty().set(isForwardBias());
     }
 
     // for testing
@@ -1395,14 +1490,14 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 textFlow.setLayoutX(leftPadding);
                 textFlow.setLayoutY(y);
 
-                double subX = leftPadding;
+                double subX = 0;
                 double subY = 0;
                 for (Node child : textFlow.getChildren()) {
                     Text paragraphNode = (Text)child;
                     paragraphNode.setLayoutX(subX);
                     paragraphNode.setLayoutY(subY);
                     if (subX + paragraphNode.getLayoutBounds().getWidth() > wrappingWidth) {
-                        subX = leftPadding;
+                        subX = 0;
                         subY += paragraphNode.getLayoutBounds().getHeight();
                     } else {
                         subX += paragraphNode.getLayoutBounds().getWidth();
@@ -1495,13 +1590,15 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
                 caretPath.getElements().clear();
                 caretPath.getElements().addAll(paragraphNode.getCaretShape());
-
                 caretPath.setLayoutX(paragraphNode.getLayoutX());
 
                 // TODO: Remove this temporary workaround for RT-27533
                 paragraphNode.setLayoutX(2 * paragraphNode.getLayoutX() - paragraphNode.getBoundsInParent().getMinX());
 
-                caretPath.setLayoutY(paragraphNode.getLayoutY());
+                caretPath.setLayoutY(paragraphNode.getParent().getLayoutY() + paragraphNode.getLayoutY());
+                for (PathElement pathElement : paragraphNode.getCaretShape()) {
+                    System.out.println("path element in layout: " + pathElement);
+                }
                 if (oldCaretBounds == null || !oldCaretBounds.equals(caretPath.getBoundsInParent())) {
                     scrollCaretToVisible();
                 }
