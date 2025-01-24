@@ -532,28 +532,154 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 //        HitInfo hit = textNode.hitTest(translateCaretPosition(p));
 //        return hit;
         int offset = 0;
-        for (Node child : paragraphNodes.getChildren()) {
-            TextFlow textFlow = (TextFlow)child;
-            for (Node textFlowChild : textFlow.getChildren()) {
-                Text text = (Text)textFlowChild;
-                Bounds bounds = text.getBoundsInLocal();
-                if (x >= textFlow.getLayoutX() + text.getLayoutX() &&
-                        x < textFlow.getLayoutX() + text.getLayoutX() + bounds.getWidth() &&
-                        y >= textFlow.getLayoutY() + text.getLayoutY() &&
-                        y < textFlow.getLayoutY() + text.getLayoutY() + bounds.getHeight()) {
-                    Point2D p = new Point2D(x - textFlow.getLayoutX() - text.getLayoutX(),
-                            y - textFlow.getLayoutY() - text.getLayoutY());
+        ObservableList<Node> paragraphNodesChildren = paragraphNodes.getChildren();
+        for (int i = 0; i < paragraphNodesChildren.size(); i++) {
+            TextFlow textFlow = (TextFlow) paragraphNodesChildren.get(i);
+            ObservableList<Node> children = textFlow.getChildren();
+            for (int j = 0; j < children.size(); j++) {
+                Text text = (Text) children.get(j);
+                Bounds textBounds = text.getBoundsInLocal();
+                // Left Top
+                if (i == 0 && j == 0 &&
+                        x < textFlow.getLayoutX() &&
+                        y < textFlow.getLayoutY()
+                ) {
+                    Point2D p = new Point2D(x - textFlow.getLayoutX(),
+                            y - textFlow.getLayoutY());
                     javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(p));
 
-                    return new com.antipro.control.skin.HitInfo(
+                    return new HitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
                             hit.isLeading());
                 }
+                // Middle Top
+                if (i == 0 &&
+                        x >= textFlow.getLayoutX() + text.getLayoutX() &&
+                        x < textFlow.getLayoutX() + text.getLayoutX() + textBounds.getWidth() &&
+                        y < textFlow.getLayoutY()
+                ) {
+                    Point2D p = new Point2D(x - textFlow.getLayoutX() - text.getLayoutX(),
+                            y - textFlow.getLayoutY());
+                    javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(p));
+
+                    return new HitInfo(
+                            hit.getCharIndex() + offset,
+                            hit.getInsertionIndex() + offset,
+                            hit.isLeading());
+                }
+                // Right Above
+                if (i == 0 && j == children.size() - 1 &&
+                        x >= textFlow.getLayoutX() + text.getLayoutX() + textBounds.getWidth() &&
+                        y < textFlow.getLayoutY()
+                ) {
+                    Point2D p = new Point2D(x - textFlow.getLayoutX() - text.getLayoutX() - textBounds.getWidth(),
+                            y - textFlow.getLayoutY());
+                    javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(p));
+
+                    return new HitInfo(
+                            hit.getCharIndex() + offset,
+                            hit.getInsertionIndex() + offset,
+                            hit.isLeading());
+                }
+                // Center Left
+                if (j == 0 &&
+                        x < textFlow.getLayoutX() &&
+                        y >= textFlow.getLayoutY() &&
+                        y < textFlow.getLayoutY() + text.getLayoutY() + textBounds.getHeight()
+                ) {
+                    Point2D p = new Point2D(x - textFlow.getLayoutX(),
+                            y - textFlow.getLayoutY());
+                    javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(p));
+
+                    return new HitInfo(
+                            hit.getCharIndex() + offset,
+                            hit.getInsertionIndex() + offset,
+                            hit.isLeading());
+                }
+                // Center
+                if (
+                        x >= textFlow.getLayoutX() + text.getLayoutX() &&
+                                x < textFlow.getLayoutX() + text.getLayoutX() + textBounds.getWidth() &&
+                                y >= textFlow.getLayoutY() + text.getLayoutY() &&
+                                y < textFlow.getLayoutY() + text.getLayoutY() + textBounds.getHeight()
+                ) {
+                    Point2D p = new Point2D(x - textFlow.getLayoutX() - text.getLayoutX(),
+                            y - textFlow.getLayoutY() - text.getLayoutY());
+                    javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(p));
+
+                    return new HitInfo(
+                            hit.getCharIndex() + offset,
+                            hit.getInsertionIndex() + offset,
+                            hit.isLeading());
+                }
+                // Center Right
+                if (j == children.size() - 1 &&
+                        x >= textFlow.getLayoutX() + text.getLayoutX() &&
+                        y >= textFlow.getLayoutY() &&
+                        y < textFlow.getLayoutY() + text.getLayoutY() + textBounds.getHeight()
+                ) {
+                    Point2D p = new Point2D(x - textFlow.getLayoutX() - text.getLayoutX(),
+                            y - textFlow.getLayoutY());
+                    javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(p));
+
+                    return new HitInfo(
+                            hit.getCharIndex() + offset,
+                            hit.getInsertionIndex() + offset,
+                            hit.isLeading());
+                }
+                // Bottom Left
+                if (i == paragraphNodesChildren.size() - 1 && j == 0 &&
+                        x < textFlow.getLayoutX() &&
+                        y >= textFlow.getLayoutY() + text.getLayoutY() + textBounds.getHeight()
+                ) {
+                    Point2D p = new Point2D(x - textFlow.getLayoutX(),
+                            y - textFlow.getLayoutY() - text.getLayoutY() - textBounds.getHeight());
+                    javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(p));
+
+                    return new HitInfo(
+                            hit.getCharIndex() + offset,
+                            hit.getInsertionIndex() + offset,
+                            hit.isLeading());
+                }
+                // Bottom Center
+                if (i == paragraphNodesChildren.size() - 1 &&
+                        x >= textFlow.getLayoutX() + text.getLayoutX() &&
+                        x < textFlow.getLayoutX() + text.getLayoutX() + textBounds.getWidth() &&
+                        y >= textFlow.getLayoutY() + text.getLayoutY() + textBounds.getHeight()
+                ) {
+                    Point2D p = new Point2D(x - textFlow.getLayoutX() - text.getLayoutX(),
+                            y - textFlow.getLayoutY() - text.getLayoutY() - textBounds.getHeight());
+                    javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(p));
+
+                    return new HitInfo(
+                            hit.getCharIndex() + offset,
+                            hit.getInsertionIndex() + offset,
+                            hit.isLeading());
+                }
+                // Bottom Right
+                if (i == paragraphNodesChildren.size() - 1 && j == children.size() - 1 &&
+                        x >= textFlow.getLayoutX() + text.getLayoutX() &&
+                        y >= textFlow.getLayoutY() + text.getLayoutY() + textBounds.getHeight()
+                ) {
+                    Point2D p = new Point2D(x - textFlow.getLayoutX() - text.getLayoutX(),
+                            y - textFlow.getLayoutY() - text.getLayoutY() - textBounds.getHeight());
+                    javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(p));
+
+                    return new HitInfo(
+                            hit.getCharIndex() + offset,
+                            hit.getInsertionIndex() + offset,
+                            hit.isLeading());
+                }
+
+
                 offset += text.getText().length();
             }
+
             // There is a \n character
             offset += 1;
+
+
         }
         return null;
     }
