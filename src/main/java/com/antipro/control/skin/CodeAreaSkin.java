@@ -541,8 +541,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         x < textFlow.getLayoutX() + text.getLayoutX() + bounds.getWidth() &&
                         y >= textFlow.getLayoutY() + text.getLayoutY() &&
                         y < textFlow.getLayoutY() + text.getLayoutY() + bounds.getHeight()) {
-                    javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(new Point2D(x - textFlow.getLayoutX() - text.getLayoutX(),
-                            y - textFlow.getLayoutY() - text.getLayoutY())));
+                    Point2D p = new Point2D(x - textFlow.getLayoutX() - text.getLayoutX(),
+                            y - textFlow.getLayoutY() - text.getLayoutY());
+                    javafx.scene.text.HitInfo hit = text.hitTest(translateCaretPosition(p));
 
                     return new com.antipro.control.skin.HitInfo(
                             hit.getCharIndex() + offset,
@@ -551,6 +552,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 }
                 offset += text.getText().length();
             }
+            // There is a \n character
+            offset += 1;
         }
         return null;
     }
@@ -1588,7 +1591,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             {
                 // Position caret
                 int paragraphIndex = paragraphNodesChildren.size();
-                int paragraphOffset = codeArea.getLength() - paragraphIndex;
+                int paragraphOffset = codeArea.getLength();
 
                 Text paragraphNode = null;
                 TextFlow textFlow;
@@ -1604,6 +1607,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                             break;
                         }
                     }
+                    paragraphOffset--;
                 } while (caretPos < paragraphOffset);
 
                 updateTextNodeCaretPos(caretPos - paragraphOffset, paragraphNode);

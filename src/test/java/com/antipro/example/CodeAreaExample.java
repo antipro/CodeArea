@@ -31,7 +31,7 @@ public class CodeAreaExample extends Application {
                 """;
         codeArea.setText(text);
         codeArea.setWrapText(true);
-        codeArea.setPrefWidth(300);
+        codeArea.setPrefWidth(700);
         codeArea.setPrefHeight(250);
         javafx.scene.Scene scene = new javafx.scene.Scene(codeArea);
         primaryStage.setScene(scene);
