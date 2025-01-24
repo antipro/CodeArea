@@ -29,6 +29,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import javafx.scene.shape.FillRule;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.PathElement;
 import javafx.scene.text.Text;
@@ -162,7 +164,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         forwardBiasProperty().addListener(observable -> {
             if (control.getWidth() > 0) {
-                Text textNode = (Text)((TextFlow) paragraphNodes.getChildren().get(0)).getChildren().get(0);
+                Text textNode = (Text)((TextFlow) paragraphNodes.getChildren().getFirst()).getChildren().getFirst();
                 updateTextNodeCaretPos(control.getCaretPosition(), textNode);
             }
         });
@@ -378,7 +380,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         } else {
             registerInvalidationListener(control.textProperty(), e -> {
                 invalidateMetrics();
-                ((Text)paragraphNodes.getChildren().get(0)).setText(control.textProperty().getValueSafe());
+                ((Text)paragraphNodes.getChildren().getFirst()).setText(control.textProperty().getValueSafe());
                 contentView.requestLayout();
             });
         }
@@ -512,6 +514,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         for (Node node : selectionHighlightGroup.getChildren()) {
             Path selectionHighlightPath = (Path)node;
             selectionHighlightPath.setFill(highlightFillProperty().get());
+            selectionHighlightPath.setFillRule(FillRule.NON_ZERO);
+            selectionHighlightPath.setStroke(highlightFillProperty().get());
         }
     }
 
@@ -1032,7 +1036,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     /** {@inheritDoc} */
     @Override public double computeBaselineOffset(double topInset, double rightInset, double bottomInset, double leftInset) {
-        Text firstParagraph = (Text) paragraphNodes.getChildren().get(0);
+        Text firstParagraph = (Text) paragraphNodes.getChildren().getFirst();
         return Utils.getAscent(getSkinnable().getFont(), firstParagraph.getBoundsType())
                 + contentView.snappedTopInset() + codeArea.snappedTopInset();
     }
@@ -1070,7 +1074,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         if (n > 0) {
             if (y < contentView.snappedTopInset()) {
                 // Select the character at x in the first row
-                Text paragraphNode = (Text)paragraphNodes.getChildren().get(0);
+                Text paragraphNode = (Text)paragraphNodes.getChildren().getFirst();
                 index = getNextInsertionPoint(paragraphNode, x, -1, VerticalDirection.DOWN);
             } else if (y > contentView.snappedTopInset() + contentView.getHeight()) {
                 // Select the character at x in the last row
@@ -1384,8 +1388,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     }
 
     private void updateFontMetrics() {
-        TextFlow textFlow = (TextFlow) paragraphNodes.getChildren().get(0);
-        Text firstParagraph = (Text)textFlow.getChildren().get(0);
+        TextFlow textFlow = (TextFlow) paragraphNodes.getChildren().getFirst();
+        Text firstParagraph = (Text)textFlow.getChildren().getFirst();
         lineHeight = Utils.getLineHeight(getSkinnable().getFont(), firstParagraph.getBoundsType());
         characterWidth = fontMetrics.get().getCharWidth('W');
     }
@@ -1425,8 +1429,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 }
             }
         }
-        TextFlow textFlow = (TextFlow) paragraphNodes.getChildren().get(0);
-        return (Text)textFlow.getChildren().get(0);
+        TextFlow textFlow = (TextFlow) paragraphNodes.getChildren().getFirst();
+        return (Text)textFlow.getChildren().getFirst();
     }
 
     private void updateTextNodeCaretPos(int pos, Text textNode) {
@@ -1518,7 +1522,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
                 for (Node node : paragraphNodes.getChildren()) {
                     TextFlow textFlow = (TextFlow)node;
-                    Text paragraphNode = (Text)textFlow.getChildren().get(0);
+                    Text paragraphNode = (Text)textFlow.getChildren().getFirst();
                     String text = textFlow.getChildren().stream()
                             .map(n -> ((Text)n).getText())
                             .collect(Collectors.joining());
@@ -1563,7 +1567,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 //                            wrappingWidth,
 //                            paragraphNode.getBoundsType());
                     TextFlow textFlow = (TextFlow)node;
-                    Text paragraphNode = (Text)textFlow.getChildren().get(0);
+                    Text paragraphNode = (Text)textFlow.getChildren().getFirst();
                     String text = textFlow.getChildren().stream()
                             .map(n -> ((Text)n).getText())
                             .collect(Collectors.joining());
@@ -1679,7 +1683,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 // Do this before positioning the actual caret.
                 if (selection.getLength() > 0) {
                     int paragraphIndex = paragraphNodesChildren.size();
-                    int paragraphOffset = codeArea.getLength() - paragraphIndex;
+                    int paragraphOffset = codeArea.getLength();
                     Text paragraphNode = null;
                     TextFlow textFlow;
                     do {
@@ -1746,9 +1750,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 //                paragraphNode.setLayoutX(2 * paragraphNode.getLayoutX() - paragraphNode.getBoundsInParent().getMinX());
 
                 caretPath.setLayoutY(paragraphNode.getParent().getLayoutY() + paragraphNode.getLayoutY());
-                for (PathElement pathElement : paragraphNode.getCaretShape()) {
-                    System.out.println("path element in layout: " + pathElement);
-                }
+
                 if (oldCaretBounds == null || !oldCaretBounds.equals(caretPath.getBoundsInParent())) {
                     scrollCaretToVisible();
                 }
@@ -1760,33 +1762,39 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             for (int i = 0, max = paragraphNodesChildren.size(); i < max; i++) {
                 TextFlow textFlow = (TextFlow)paragraphNodesChildren.get(i);
                 for (int j = 0; j < textFlow.getChildren().size(); j++) {
-                    Node paragraphNode = textFlow.getChildren().get(j);
-                    Text textNode = (Text)paragraphNode;
-                    int paragraphLength = textNode.getText().length() + 1;
+                    Text textNode = (Text) textFlow.getChildren().get(j);
+                    int paragraphLength = textNode.getText().length();
                     if (end > start && start < paragraphLength) {
                         textNode.setSelectionStart(start);
                         textNode.setSelectionEnd(Math.min(end, paragraphLength));
 
                         Path selectionHighlightPath = new Path();
+                        selectionHighlightPath.setLayoutX(textNode.getLayoutX());
+                        selectionHighlightPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
                         selectionHighlightPath.setManaged(false);
-                        selectionHighlightPath.setStroke(null);
                         PathElement[] selectionShape = textNode.getSelectionShape();
                         if (selectionShape != null) {
                             selectionHighlightPath.getElements().addAll(selectionShape);
                         }
                         selectionHighlightGroup.getChildren().add(selectionHighlightPath);
-                        selectionHighlightGroup.setVisible(true);
-                        selectionHighlightPath.setLayoutX(textNode.getLayoutX());
-                        selectionHighlightPath.setLayoutY(textNode.getLayoutY());
+
+//                        selectionHighlightGroup.setVisible(true);
                         updateHighlightFill();
                     } else {
                         textNode.setSelectionStart(-1);
                         textNode.setSelectionEnd(-1);
-                        selectionHighlightGroup.setVisible(false);
+//                        selectionHighlightGroup.setVisible(false);
                     }
                     start = Math.max(0, start - paragraphLength);
                     end   = Math.max(0, end   - paragraphLength);
                 }
+                start = Math.max(0, start - 1);
+                end   = Math.max(0, end   - 1);
+            }
+            if (!selectionHighlightGroup.getChildren().isEmpty()) {
+                selectionHighlightGroup.setLayoutX(paragraphNodes.getBoundsInLocal().getMinX());
+//                selectionHighlightGroup.setLayoutY(paragraphNodes.getBoundsInLocal().getMinY());
+                selectionHighlightGroup.setVisible(true);
             }
 
             if (SHOW_HANDLES) {
