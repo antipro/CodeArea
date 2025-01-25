@@ -1531,17 +1531,17 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     void addLineNumber(int no, double prefHeight) {
         if (no < lineNumber.getChildren().size()) {
-            Label text = (Label)lineNumber.getChildren().get(no);
-            text.setPrefHeight(prefHeight);
+            Label label = (Label)lineNumber.getChildren().get(no);
+            label.setPrefHeight(prefHeight);
         } else {
-            Label text = new Label(String.valueOf(no + 1));
-            text.setAlignment(Pos.TOP_CENTER);
-            text.getStyleClass().add("text");
-            text.setPrefHeight(prefHeight);
-            text.setOnContextMenuRequested(Event::consume);
-            text.fontProperty().bind(codeArea.fontProperty());
-            text.textFillProperty().bind(textFillProperty());
-            lineNumber.getChildren().add(text);
+            Label label = new Label(String.valueOf(no + 1));
+            label.setAlignment(Pos.TOP_CENTER);
+            label.setPrefHeight(prefHeight);
+            label.setMinWidth(Region.USE_PREF_SIZE);
+            label.setOnContextMenuRequested(Event::consume);
+            label.fontProperty().bind(codeArea.fontProperty());
+            label.textFillProperty().bind(textFillProperty());
+            lineNumber.getChildren().add(label);
         }
     }
 
