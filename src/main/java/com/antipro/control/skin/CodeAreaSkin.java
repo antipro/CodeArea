@@ -84,7 +84,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     private double lineHeight;
 
     private ContentView contentView = new ContentView();
-    private VBox lineNumber = new VBox();
+    private final VBox lineNoBar = new VBox();
     private Group paragraphNodes = new Group();
 
     private Text promptNode;
@@ -176,9 +176,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         scrollPane = new ScrollPane();
         scrollPane.setFitToWidth(control.isWrapText());
         HBox hBox = new HBox();
-        lineNumber.setPadding(new Insets(6, 0, 10, 0));
-        lineNumber.setAlignment(Pos.TOP_RIGHT);
-        hBox.getChildren().addAll(lineNumber, contentView);
+        lineNoBar.setPadding(new Insets(6, 0, 10, 0));
+        lineNoBar.setAlignment(Pos.TOP_RIGHT);
+        hBox.getChildren().addAll(lineNoBar, contentView);
         HBox.setHgrow(contentView, Priority.ALWAYS);
         scrollPane.setContent(hBox);
         getChildren().add(scrollPane);
@@ -1530,8 +1530,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     }
 
     void addLineNumber(int no, double prefHeight) {
-        if (no < lineNumber.getChildren().size()) {
-            Label label = (Label)lineNumber.getChildren().get(no);
+        if (no < lineNoBar.getChildren().size()) {
+            Label label = (Label) lineNoBar.getChildren().get(no);
             label.setPrefHeight(prefHeight);
         } else {
             Label label = new Label(String.valueOf(no + 1));
@@ -1541,7 +1541,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             label.setOnContextMenuRequested(Event::consume);
             label.fontProperty().bind(codeArea.fontProperty());
             label.textFillProperty().bind(textFillProperty());
-            lineNumber.getChildren().add(label);
+            lineNoBar.getChildren().add(label);
         }
     }
 
@@ -1737,10 +1737,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 y += paragraphNode.getPrefHeight();
                 addLineNumber(no++, paragraphNode.getPrefHeight());
             }
-            int diff = no - lineNumber.getChildren().size();
+            int diff = no - lineNoBar.getChildren().size();
             if (diff < 0) {
                 // Clear the extra line numbers
-                lineNumber.getChildren().remove(no, lineNumber.getChildren().size());
+                lineNoBar.getChildren().remove(no, lineNoBar.getChildren().size());
             }
 
             if (promptNode != null) {
