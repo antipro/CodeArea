@@ -332,22 +332,26 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                 String string = change.getList().get(i).toString();
                                 List<String> words = new ArrayList<>();
                                 StringBuilder word = new StringBuilder();
-                                for (int j = 0; j < string.length(); j++) {
-                                    char c = string.charAt(j);
-                                    if (c == ' ') {
-                                        word.append(c);
-                                        words.add(word.toString());
-                                        word = new StringBuilder();
-                                    } else {
-                                        word.append(c);
+                                if (!string.isEmpty()) {
+                                    for (int j = 0; j < string.length(); j++) {
+                                        char c = string.charAt(j);
+                                        if (c == ' ') {
+                                            word.append(c);
+                                            words.add(word.toString());
+                                            word = new StringBuilder();
+                                        } else {
+                                            word.append(c);
+                                        }
                                     }
+                                } else {
+                                    words.add(string);
                                 }
                                 words.add(word.toString());
                                 for (int j = 0; j < words.size(); j++) {
                                     String s = words.get(j);
-                                    if (s.isEmpty()) {
-                                        continue;
-                                    }
+//                                    if (s.isEmpty()) {
+//                                        continue;
+//                                    }
                                     Text text1 = new Text(s);
                                     text1.getStyleClass().add("text");
                                     text1.setTextOrigin(VPos.TOP);
@@ -527,7 +531,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
      * @param y the y coordinate of the point.
      * @return a {@code HitInfo} object describing the index and forward bias.
      */
-    public com.antipro.control.skin.HitInfo getIndex(double x, double y) {
+    public HitInfo getIndex(double x, double y) {
         // adjust the event to be in the same coordinate space as the
         // text content of the textInputControl
 //        Text textNode = getTextNode(x, y);
@@ -936,14 +940,29 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     @Override protected PathElement[] getUnderlineShape(int start, int end) {
         int pStart = 0;
         for (Node node : paragraphNodes.getChildren()) {
-            Text p = (Text)node;
-            int pEnd = pStart + p.textProperty().getValueSafe().length();
-            if (pEnd >= start) {
-                return p.underlineShape(start - pStart, end - pStart);
+            // TODO 需要定位到具体的 Text
+            TextFlow textFlow = (TextFlow)node;
+            for (Node child : textFlow.getChildren()) {
+                Text text = (Text) child;
+                int pEnd = pStart + text.textProperty().getValueSafe().length();
+                if (pEnd >= start) {
+                    return text.underlineShape(start - pStart, end - pStart);
+                }
+                pStart = pEnd;
             }
-            pStart = pEnd + 1;
+            pStart += 1;
         }
         return null;
+//        int pStart = 0;
+//        for (Node node : paragraphNodes.getChildren()) {
+//            Text p = (Text)node;
+//            int pEnd = pStart + p.textProperty().getValueSafe().length();
+//            if (pEnd >= start) {
+//                return p.underlineShape(start - pStart, end - pStart);
+//            }
+//            pStart = pEnd + 1;
+//        }
+//        return null;
     }
 
     /** {@inheritDoc} */
@@ -964,20 +983,34 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     @Override protected void addHighlight(List<? extends Node> nodes, int start) {
         int pStart = 0;
         Text paragraphNode = null;
+//        for (Node node : paragraphNodes.getChildren()) {
+//            Text p = (Text)node;
+//            int pEnd = pStart + p.textProperty().getValueSafe().length();
+//            if (pEnd >= start) {
+//                paragraphNode = p;
+//                break;
+//            }
+//            pStart = pEnd + 1;
+//        }
+        TextFlow textFlow = null;
         for (Node node : paragraphNodes.getChildren()) {
-            Text p = (Text)node;
-            int pEnd = pStart + p.textProperty().getValueSafe().length();
-            if (pEnd >= start) {
-                paragraphNode = p;
-                break;
+            textFlow = (TextFlow)node;
+            for (Node child : textFlow.getChildren()) {
+                Text text = (Text) child;
+                int pEnd = pStart + text.textProperty().getValueSafe().length();
+                if (pEnd >= start) {
+                    paragraphNode = text;
+                    break;
+                }
+                pStart = pEnd;
             }
-            pStart = pEnd + 1;
+            pStart += 1;
         }
 
-        if (paragraphNode != null) {
+        if (textFlow != null && paragraphNode != null) {
             for (Node node : nodes) {
-                node.setLayoutX(paragraphNode.getLayoutX());
-                node.setLayoutY(paragraphNode.getLayoutY());
+                node.setLayoutX(textFlow.getLayoutX() + paragraphNode.getLayoutX());
+                node.setLayoutY(textFlow.getLayoutY() + paragraphNode.getLayoutY());
             }
         }
         contentView.getChildren().addAll(nodes);
@@ -1049,15 +1082,27 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         String paragraph = null;
         while (paragraphIndex < n) {
-            Text paragraphNode = (Text)paragraphNodes.getChildren().get(paragraphIndex);
-            paragraph = paragraphNode.getText();
-            int count = paragraph.length() + 1;
+            TextFlow textFlow = (TextFlow)paragraphNodes.getChildren().get(paragraphIndex);
+            for (Node child : textFlow.getChildren()) {
+                Text text = (Text) child;
+                paragraph = text.getText();
+                int count = paragraph.length() + 1;
 
-            if (offset < count) {
-                break;
+                if (offset < count) {
+                    break;
+                }
+
+                offset -= count;
             }
-
-            offset -= count;
+//            Text paragraphNode = (Text)paragraphNodes.getChildren().get(paragraphIndex);
+//            paragraph = paragraphNode.getText();
+//            int count = paragraph.length() + 1;
+//
+//            if (offset < count) {
+//                break;
+//            }
+//
+//            offset -= count;
             paragraphIndex++;
         }
 
@@ -1074,21 +1119,22 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         if (n > 0) {
             if (y < contentView.snappedTopInset()) {
                 // Select the character at x in the first row
-                Text paragraphNode = (Text)paragraphNodes.getChildren().getFirst();
+//                Text paragraphNode = (Text)paragraphNodes.getChildren().getFirst();
+                Text paragraphNode = getTextNode(x, y);
                 index = getNextInsertionPoint(paragraphNode, x, -1, VerticalDirection.DOWN);
             } else if (y > contentView.snappedTopInset() + contentView.getHeight()) {
                 // Select the character at x in the last row
                 int lastParagraphIndex = n - 1;
-                Text lastParagraphView = (Text)paragraphNodes.getChildren().get(lastParagraphIndex);
-
+//                Text lastParagraphView = (Text)paragraphNodes.getChildren().get(lastParagraphIndex);
+                Text lastParagraphView = getTextNode(x, y);
                 index = getNextInsertionPoint(lastParagraphView, x, -1, VerticalDirection.UP)
                         + (codeArea.getLength() - lastParagraphView.getText().length());
             } else {
                 // Select the character at x in the row at y
                 int paragraphOffset = 0;
                 for (int i = 0; i < n; i++) {
-                    Text paragraphNode = (Text)paragraphNodes.getChildren().get(i);
-
+//                    Text paragraphNode = (Text)paragraphNodes.getChildren().get(i);
+                    Text paragraphNode = getTextNode(x, y);
                     Bounds bounds = paragraphNode.getBoundsInLocal();
                     double paragraphViewY = paragraphNode.getLayoutY() + bounds.getMinY();
                     if (y >= paragraphViewY
@@ -1151,12 +1197,18 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         int paragraphOffset = codeArea.getLength() + 1;
 
         Text paragraphNode = null;
+        TextFlow textFlow;
         do {
-            TextFlow textFlow = (TextFlow) paragraphNodes.getChildren().get(--paragraphIndex);
-            for (Node child : textFlow.getChildren()) {
-                paragraphNode = (Text)child;
-                paragraphOffset -= paragraphNode.getText().length() + 1;
+            textFlow = (TextFlow) paragraphNodes.getChildren().get(--paragraphIndex);
+            ObservableList<Node> children = textFlow.getChildren();
+            for (int i = children.size() - 1; i >= 0; i--) {
+                paragraphNode = (Text) children.get(i);
+                paragraphOffset -= paragraphNode.getText().length();
+                if (index >= paragraphOffset) {
+                    break;
+                }
             }
+            paragraphOffset--;
 //            paragraphNode = (Text)paragraphNodes.getChildren().get(--paragraphIndex);
 //            paragraphOffset -= paragraphNode.getText().length() + 1;
         } while (index < paragraphOffset);
@@ -1171,10 +1223,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         characterBoundingPath.getElements().clear();
         characterBoundingPath.getElements().addAll(paragraphNode.rangeShape(characterIndex, characterIndex + 1));
-        characterBoundingPath.setLayoutX(paragraphNode.getLayoutX());
-        characterBoundingPath.setLayoutY(paragraphNode.getLayoutY());
+        characterBoundingPath.setLayoutX(textFlow.getLayoutX() + paragraphNode.getLayoutX());
+        characterBoundingPath.setLayoutY(textFlow.getLayoutY() + paragraphNode.getLayoutY());
 
-        Bounds bounds = characterBoundingPath.getBoundsInLocal();
+        Bounds bounds = characterBoundingPath.getBoundsInParent();
 
         double x = bounds.getMinX() + paragraphNode.getLayoutX() - codeArea.getScrollLeft();
         double y = bounds.getMinY() + paragraphNode.getLayoutY() - codeArea.getScrollTop();
@@ -1251,22 +1303,26 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         List<String> words = new ArrayList<>();
         StringBuilder word = new StringBuilder(32);
-        for (int j = 0; j < string.length(); j++) {
-            char c = string.charAt(j);
-            if (c == ' ') {
-                word.append(c);
-                words.add(word.toString());
-                word = new StringBuilder(32);
-            } else {
-                word.append(c);
+        if (!string.isEmpty()) {
+            for (int j = 0; j < string.length(); j++) {
+                char c = string.charAt(j);
+                if (c == ' ') {
+                    word.append(c);
+                    words.add(word.toString());
+                    word = new StringBuilder(32);
+                } else {
+                    word.append(c);
+                }
             }
+        } else {
+            words.add(string);
         }
         words.add(word.toString());
         for (int j = 0; j < words.size(); j++) {
             String w = words.get(j);
-            if (w.isEmpty()) {
-                continue;
-            }
+//            if (w.isEmpty()) {
+//                continue;
+//            }
             Text paragraphNode = new Text(w);
             paragraphNode.getStyleClass().add("text");
             paragraphNode.setTextOrigin(VPos.TOP);
@@ -1313,7 +1369,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     private void scrollCaretToVisible() {
         CodeArea codeArea = getSkinnable();
-        Bounds bounds = caretPath.getLayoutBounds();
+//        Bounds bounds = caretPath.getLayoutBounds();
+        Bounds bounds = caretPath.getBoundsInParent();
         double x = bounds.getMinX() - codeArea.getScrollLeft();
         double y = bounds.getMinY() - codeArea.getScrollTop();
         double w = bounds.getWidth();
@@ -1683,7 +1740,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 // Do this before positioning the actual caret.
                 if (selection.getLength() > 0) {
                     int paragraphIndex = paragraphNodesChildren.size();
-                    int paragraphOffset = codeArea.getLength();
+                    int paragraphOffset = codeArea.getLength() + 1;
                     Text paragraphNode = null;
                     TextFlow textFlow;
                     do {
@@ -1699,6 +1756,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                 break;
                             }
                         }
+                        paragraphOffset--;
                     } while (anchorPos < paragraphOffset);
 
                     updateTextNodeCaretPos(anchorPos - paragraphOffset, paragraphNode);
@@ -1721,7 +1779,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             {
                 // Position caret
                 int paragraphIndex = paragraphNodesChildren.size();
-                int paragraphOffset = codeArea.getLength();
+                int paragraphOffset = codeArea.getLength() + 1;
 
                 Text paragraphNode = null;
                 TextFlow textFlow;

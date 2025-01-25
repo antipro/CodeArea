@@ -97,6 +97,7 @@ public class CodeArea extends CodeInputControl {
                     char c = text.charAt(i);
 
                     if (c == '\n') {
+//                        line.append(c);
                         lines.add(line);
                         line = new StringBuilder(DEFAULT_PARAGRAPH_CAPACITY);
                     } else {
