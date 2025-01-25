@@ -1685,6 +1685,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             final List<Node> paragraphNodesChildren = paragraphNodes.getChildren();
 
             int no = 0;
+            double oneLineHeight = 0;
             for (Node paragraphNodesChild : paragraphNodesChildren) {
 
 //                Node node = paragraphNodesChildren.get(i);
@@ -1703,28 +1704,36 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
                 double subX = 0;
                 double subY = 0;
-                for (Node child : paragraphNode.getChildren()) {
+                ObservableList<Node> children = paragraphNode.getChildren();
+                for (int i = 0; i < children.size(); i++) {
+                    Node child = children.get(i);
                     Text textNode = (Text) child;
+                    if (oneLineHeight == 0) {
+                        oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "A", 0, textNode.getBoundsType());
+                    }
+                    double unwrapWidth = Utils.computeTextWidth(textNode.getFont(), textNode.getText(), 0);
+                    if (i > 0 && subX + unwrapWidth > wrappingWidth) {
+                        // Not first of line and exceed the border. Move to new line
+                        subY += oneLineHeight;
+                        subX = 0;
+                    }
                     textNode.setLayoutX(subX);
                     textNode.setLayoutY(subY);
-                    double realWidth = Utils.computeTextWidth(textNode.getFont(), textNode.getText(), 0);
-                    if (realWidth >= wrappingWidth) {
+                    if (subX + unwrapWidth > wrappingWidth) {
+                        // Single Text Node exceeds wrapping width
                         textNode.setWrappingWidth(wrappingWidth);
-                    } else {
-                        textNode.setWrappingWidth(0);
-                    }
-                    if (subX + textNode.getBoundsInParent().getWidth() > wrappingWidth) {
                         subX = 0;
                         subY += textNode.getBoundsInParent().getHeight();
-                        textNode.setLayoutX(subX);
-                        textNode.setLayoutY(subY);
-                    }
-                    subX += textNode.getBoundsInParent().getWidth();
-                    if (paragraphNode.getPrefHeight() < subY + textNode.getBoundsInParent().getHeight()) {
-                        paragraphNode.setPrefHeight(subY + textNode.getBoundsInParent().getHeight());
+                    } else {
+                        textNode.setWrappingWidth(0);
+                        subX += unwrapWidth;
                     }
                 }
-
+                if (subX == 0) {
+                    paragraphNode.setPrefHeight(subY);
+                } else {
+                    paragraphNode.setPrefHeight(subY + oneLineHeight);
+                }
                 y += paragraphNode.getPrefHeight();
                 addLineNumber(no++, paragraphNode.getPrefHeight());
             }
