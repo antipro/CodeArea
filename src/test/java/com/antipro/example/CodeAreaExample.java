@@ -40,6 +40,6 @@ public class CodeAreaExample extends Application {
         primaryStage.setX(100);
         primaryStage.setY(100);
         primaryStage.show();
-        ScenicView.show(scene);
+//        ScenicView.show(scene);
     }
 }
