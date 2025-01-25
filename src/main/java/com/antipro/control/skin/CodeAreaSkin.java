@@ -1705,7 +1705,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     Text textNode = (Text) child;
                     textNode.setLayoutX(subX);
                     textNode.setLayoutY(subY);
-                    if (textNode.getBoundsInParent().getWidth() >= wrappingWidth) {
+                    double realWidth = Utils.computeTextWidth(textNode.getFont(), textNode.getText(), 0);
+                    if (realWidth >= wrappingWidth) {
                         textNode.setWrappingWidth(wrappingWidth);
                     } else {
                         textNode.setWrappingWidth(0);
