@@ -1705,7 +1705,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     Text textNode = (Text) child;
                     textNode.setLayoutX(subX);
                     textNode.setLayoutY(subY);
-                    if (textNode.getBoundsInParent().getWidth() > wrappingWidth) {
+                    if (textNode.getBoundsInParent().getWidth() >= wrappingWidth) {
                         textNode.setWrappingWidth(wrappingWidth);
                     } else {
                         textNode.setWrappingWidth(0);
@@ -1717,8 +1717,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         textNode.setLayoutY(subY);
                     }
                     subX += textNode.getBoundsInParent().getWidth();
+                    if (paragraphNode.getPrefHeight() < subY + textNode.getBoundsInParent().getHeight()) {
+                        paragraphNode.setPrefHeight(subY + textNode.getBoundsInParent().getHeight());
+                    }
                 }
-
 
                 y += paragraphNode.getPrefHeight();
                 addLineNumber(no++, paragraphNode.getPrefHeight());
