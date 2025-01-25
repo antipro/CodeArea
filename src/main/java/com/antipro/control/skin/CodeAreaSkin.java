@@ -332,10 +332,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                             word.append(c);
                                         }
                                     }
+                                    words.add(word.toString());
                                 } else {
                                     words.add(string);
                                 }
-                                words.add(word.toString());
                                 for (int j = 0; j < words.size(); j++) {
                                     String s = words.get(j);
 //                                    if (s.isEmpty()) {
@@ -1307,10 +1307,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     word.append(c);
                 }
             }
+            words.add(word.toString());
         } else {
             words.add(string);
         }
-        words.add(word.toString());
         for (int j = 0; j < words.size(); j++) {
             String w = words.get(j);
 //            if (w.isEmpty()) {
@@ -1730,7 +1730,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     }
                 }
                 if (subX == 0) {
-                    paragraphNode.setPrefHeight(subY);
+                    paragraphNode.setPrefHeight(Math.max(subY, oneLineHeight));
                 } else {
                     paragraphNode.setPrefHeight(subY + oneLineHeight);
                 }
