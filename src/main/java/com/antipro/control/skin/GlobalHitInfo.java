@@ -1,23 +1,28 @@
 package com.antipro.control.skin;
 
+import javafx.scene.text.Text;
+
 /**
  * @author antipro
  */
-public class HitInfo {
+public class GlobalHitInfo {
     private final int charIndex;
     private final boolean leading;
     private final int insertionIndex;
+    private final Text textNode;
 
     /**
      * Create a HitInfo object representing a text index and forward bias.
      *
      * @param charIndex the character index.
-     * @param leading whether the hit is on the leading edge of the character. If it is false, it represents the trailing edge.
+     * @param leading   whether the hit is on the leading edge of the character. If it is false, it represents the trailing edge.
+     * @param textNode the text node.
      */
-    public HitInfo(int charIndex, int insertionIndex, boolean leading) {
+    public GlobalHitInfo(int charIndex, int insertionIndex, boolean leading, Text textNode) {
         this.charIndex = charIndex;
         this.leading = leading;
         this.insertionIndex = insertionIndex;
+        this.textNode = textNode;
     }
 
     /**
@@ -50,4 +55,9 @@ public class HitInfo {
     public String toString() {
         return "charIndex: " + charIndex + ", isLeading: " + leading + ", insertionIndex: " + insertionIndex;
     }
+
+    public Text getTextNode() {
+        return textNode;
+    }
+
 }

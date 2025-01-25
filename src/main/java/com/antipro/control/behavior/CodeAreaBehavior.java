@@ -17,7 +17,7 @@ import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import com.antipro.control.skin.HitInfo;
+import com.antipro.control.skin.GlobalHitInfo;
 import javafx.stage.Screen;
 import javafx.stage.Window;
 
@@ -231,7 +231,7 @@ public class CodeAreaBehavior extends CodeInputControlBehavior<CodeArea> {
 
             // if the primary button was pressed
             if (e.getButton() == MouseButton.PRIMARY && !(e.isMiddleButtonDown() || e.isSecondaryButtonDown())) {
-                HitInfo hit = skin.getIndex(e.getX(), e.getY());
+                GlobalHitInfo hit = skin.getIndex(e.getX(), e.getY());
                 int i = hit.getInsertionIndex();
                 final int anchor = codeArea.getAnchor();
                 final int caretPosition = codeArea.getCaretPosition();
@@ -375,7 +375,7 @@ public class CodeAreaBehavior extends CodeInputControlBehavior<CodeArea> {
         skin.setCaretAnimating(play);
     }
 
-    protected void mouseDoubleClick(HitInfo hit) {
+    protected void mouseDoubleClick(GlobalHitInfo hit) {
         final CodeArea textArea = getNode();
         textArea.previousWord();
         if (isWindows()) {
@@ -385,7 +385,7 @@ public class CodeAreaBehavior extends CodeInputControlBehavior<CodeArea> {
         }
     }
 
-    protected void mouseTripleClick(HitInfo hit) {
+    protected void mouseTripleClick(GlobalHitInfo hit) {
         // select the line
         skin.moveCaret(CodeInputControlSkin.TextUnit.PARAGRAPH, CodeInputControlSkin.Direction.BEGINNING, false);
         skin.moveCaret(CodeInputControlSkin.TextUnit.PARAGRAPH, CodeInputControlSkin.Direction.END, true);

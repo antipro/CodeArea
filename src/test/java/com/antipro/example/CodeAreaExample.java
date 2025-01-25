@@ -8,6 +8,8 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import org.scenicview.ScenicView;
 
+import java.util.Objects;
+
 /**
  * @author antipro
  */
@@ -21,7 +23,7 @@ public class CodeAreaExample extends Application {
     public void start(javafx.stage.Stage primaryStage) {
         CodeArea codeArea = new CodeArea();
 //        TextArea codeArea = new TextArea();
-        codeArea.setFont(Font.font("Monospace", FontWeight.NORMAL, 36));
+        codeArea.setFont(Font.font("Monospace", FontWeight.NORMAL, 24));
         String text = """
                 The quick brown fox jumps over the lazy dog
                 敏捷的棕色狐狸跳过懒狗
