@@ -21,6 +21,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.IndexRange;
+import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
@@ -29,11 +30,12 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
 import javafx.scene.shape.FillRule;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.PathElement;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.scene.text.TextBoundsType;
 import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
 
@@ -175,18 +177,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         scrollPane = new ScrollPane();
         scrollPane.setFitToWidth(control.isWrapText());
         HBox hBox = new HBox();
-        Text text = new Text("1");
-        text.setTextOrigin(VPos.TOP);
-        text.getStyleClass().add("text");
-        text.boundsTypeProperty().addListener((observable, oldValue, newValue) -> {
-            invalidateMetrics();
-            updateFontMetrics();
-        });
-        text.setOnContextMenuRequested(Event::consume);
-        text.fontProperty().bind(codeArea.fontProperty());
-        text.fillProperty().bind(textFillProperty());
-        text.selectionFillProperty().bind(highlightTextFillProperty());
-        lineNumber.getChildren().add(text);
         lineNumber.setPadding(new Insets(6, 0, 10, 0));
         lineNumber.setAlignment(Pos.TOP_RIGHT);
         hBox.getChildren().addAll(lineNumber, contentView);
@@ -355,6 +345,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                     Text text1 = new Text(s);
                                     text1.getStyleClass().add("text");
                                     text1.setTextOrigin(VPos.TOP);
+                                    text1.setManaged(false);
                                     text1.boundsTypeProperty().addListener((observable, oldValue, newValue) -> {
                                         invalidateMetrics();
                                         updateFontMetrics();
@@ -1536,6 +1527,22 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         return promptNode;
     }
 
+    void addLineNumber(int no, double prefHeight) {
+        if (no < lineNumber.getChildren().size()) {
+            Label text = (Label)lineNumber.getChildren().get(no);
+            text.setPrefHeight(prefHeight);
+        } else {
+            Label text = new Label(String.valueOf(no + 1));
+            text.setAlignment(Pos.TOP_CENTER);
+            text.getStyleClass().add("text");
+            text.setPrefHeight(prefHeight);
+            text.setOnContextMenuRequested(Event::consume);
+            text.fontProperty().bind(codeArea.fontProperty());
+            text.textFillProperty().bind(textFillProperty());
+            lineNumber.getChildren().add(text);
+        }
+    }
+
     /* ************************************************************************
      *
      * Support classes
@@ -1675,7 +1682,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
             final List<Node> paragraphNodesChildren = paragraphNodes.getChildren();
 
+            int no = 0;
             for (Node paragraphNodesChild : paragraphNodesChildren) {
+
 //                Node node = paragraphNodesChildren.get(i);
 //                Text paragraphNode = (Text)node;
 //                paragraphNode.setWrappingWidth(wrappingWidth);
@@ -1685,28 +1694,39 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 //                paragraphNode.setLayoutY(y);
 //
 //                y += bounds.getHeight();
-                TextFlow textFlow = (TextFlow) paragraphNodesChild;
-                textFlow.setPrefWidth(wrappingWidth);
-                textFlow.setLayoutX(leftPadding);
-                textFlow.setLayoutY(y);
+                TextFlow paragraphNode = (TextFlow) paragraphNodesChild;
+                paragraphNode.setPrefWidth(wrappingWidth);
+                paragraphNode.setLayoutX(leftPadding);
+                paragraphNode.setLayoutY(y);
 
                 double subX = 0;
                 double subY = 0;
-                for (Node child : textFlow.getChildren()) {
-                    Text paragraphNode = (Text) child;
-                    paragraphNode.setLayoutX(subX);
-                    paragraphNode.setLayoutY(subY);
-                    if (subX + paragraphNode.getLayoutBounds().getWidth() > wrappingWidth) {
-                        subX = 0;
-                        subY += paragraphNode.getLayoutBounds().getHeight();
+                for (Node child : paragraphNode.getChildren()) {
+                    Text textNode = (Text) child;
+                    textNode.setLayoutX(subX);
+                    textNode.setLayoutY(subY);
+                    if (textNode.getBoundsInParent().getWidth() > wrappingWidth) {
+                        textNode.setWrappingWidth(wrappingWidth);
                     } else {
-                        subX += paragraphNode.getLayoutBounds().getWidth();
+                        textNode.setWrappingWidth(0);
                     }
+                    if (subX + textNode.getBoundsInParent().getWidth() > wrappingWidth) {
+                        subX = 0;
+                        subY += textNode.getBoundsInParent().getHeight();
+                        textNode.setLayoutX(subX);
+                        textNode.setLayoutY(subY);
+                    }
+                    subX += textNode.getBoundsInParent().getWidth();
                 }
 
 
-                y += textFlow.getPrefHeight();
-
+                y += paragraphNode.getPrefHeight();
+                addLineNumber(no++, paragraphNode.getPrefHeight());
+            }
+            int diff = no - lineNumber.getChildren().size();
+            if (diff < 0) {
+                // Clear the extra line numbers
+                lineNumber.getChildren().remove(no, lineNumber.getChildren().size());
             }
 
             if (promptNode != null) {
