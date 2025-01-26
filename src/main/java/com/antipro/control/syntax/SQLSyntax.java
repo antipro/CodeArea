@@ -118,6 +118,9 @@ public class SQLSyntax extends SyntaxHighlighter {
                 textNodes.add(textNode);
 
                 // Check for block comment start/end
+                // FIXME should remember the state if the block comment is broken.
+                //  the context should be represented by the SyntaxHighlighter instance
+                //  if the text is no in the block . it should not be impacted.
                 if (styleGroup.equals("comment")) {
                     if (matcher.group().startsWith("/*")) {
                         inBlockComment = true;
