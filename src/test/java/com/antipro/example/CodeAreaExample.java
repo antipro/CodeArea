@@ -2,16 +2,14 @@ package com.antipro.example;
 
 import com.antipro.control.CodeArea;
 import com.antipro.control.syntax.DemoSyntax;
+import com.antipro.control.syntax.SQLSyntax;
 import javafx.application.Application;
 import javafx.scene.control.Button;
 import javafx.scene.control.Spinner;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.ToolBar;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
 import org.scenicview.ScenicView;
 
 import java.util.Objects;
@@ -59,7 +57,11 @@ public class CodeAreaExample extends Application {
             codeArea.setSyntaxHighlighter(new DemoSyntax(codeArea));
         });
         toolBar.getItems().add(demoSyntaxButton);
-
+        Button sqlSyntaxButton = new Button("SQL Syntax");
+        sqlSyntaxButton.setOnAction(event -> {
+            codeArea.setSyntaxHighlighter(new SQLSyntax(codeArea));
+        });
+        toolBar.getItems().add(sqlSyntaxButton);
 
         Button printButton = new Button("Print");
         printButton.setOnAction(event -> {

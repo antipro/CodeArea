@@ -37,6 +37,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -312,6 +313,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                 addParagraphNode(i, change.getList().get(i).toString());
                             }
                         } else {
+//                            if (from < paragraphNodes.getChildren().size() - 1
+//                                    || to >= paragraphNodes.getChildren().size()) {
+//                                return;
+//                            }
+//                            List<TextFlow> removedNodes = new ArrayList<>();
                             // This is an update
                             for (int i = from, n = to; i < n; i++) {
                                 TextFlow paragraphNode = (TextFlow) paragraphNodes.getChildren().get(i);
@@ -327,6 +333,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                         codeArea.fontProperty(),
                                         highlightTextFillProperty()
                                 );
+//                                if (texts.isEmpty()) {
+//                                    removedNodes.add(paragraphNode);
+//                                    continue;
+//                                }
                                 paragraphNode.getChildren().addAll(texts);
 //                                Text paragraphNode = (Text) textFlow.getChildren().get(0);
 //                                paragraphNode.setText(change.getList().get(i).toString());
@@ -334,6 +344,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 //                                Text paragraphNode = (Text) node;
 //                                paragraphNode.setText(change.getList().get(i).toString());
                             }
+//                            paragraphNodes.getChildren().removeAll(removedNodes);
                         }
                     } else {
                         // This is a remove
