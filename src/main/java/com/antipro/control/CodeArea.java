@@ -1,6 +1,7 @@
 package com.antipro.control;
 
 import com.antipro.control.skin.CodeAreaSkin;
+import com.antipro.control.syntax.SyntaxHighlighter;
 import com.sun.javafx.collections.ListListenerHelper;
 import com.sun.javafx.collections.NonIterableChange;
 import javafx.beans.InvalidationListener;
@@ -134,7 +135,7 @@ public class CodeArea extends CodeInputControl {
 
                     // Append the first line to the intersecting paragraph and
                     // append the trailing text to the last line
-                    StringBuilder first = lines.get(0);
+                    StringBuilder first = lines.getFirst();
                     paragraph.insert(start, first);
                     line.append(trailingText);
                     fireParagraphListChangeEvent(paragraphIndex, paragraphIndex + 1,
@@ -425,6 +426,11 @@ public class CodeArea extends CodeInputControl {
     public final BooleanProperty wrapTextProperty() { return wrapText; }
     public final boolean isWrapText() { return wrapText.getValue(); }
     public final void setWrapText(boolean value) { wrapText.setValue(value); }
+
+    private final ObjectProperty<SyntaxHighlighter> syntaxHighlighter = new SimpleObjectProperty<>();
+    public final ObjectProperty<SyntaxHighlighter> syntaxHighlighterProperty() { return syntaxHighlighter; }
+    public final SyntaxHighlighter getSyntaxHighlighter() { return syntaxHighlighter.get(); }
+    public final void setSyntaxHighlighter(SyntaxHighlighter value) { syntaxHighlighter.set(value); }
 
     private IntegerProperty tabSize = new SimpleIntegerProperty(this, "tabSize", 4);
 
