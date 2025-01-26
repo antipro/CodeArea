@@ -4,10 +4,7 @@ import com.antipro.control.skin.CodeAreaSkin;
 import com.sun.javafx.collections.ListListenerHelper;
 import com.sun.javafx.collections.NonIterableChange;
 import javafx.beans.InvalidationListener;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.*;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.*;
@@ -428,6 +425,19 @@ public class CodeArea extends CodeInputControl {
     public final BooleanProperty wrapTextProperty() { return wrapText; }
     public final boolean isWrapText() { return wrapText.getValue(); }
     public final void setWrapText(boolean value) { wrapText.setValue(value); }
+
+    private IntegerProperty tabSize = new SimpleIntegerProperty(this, "tabSize", 4);
+
+    public final IntegerProperty tabSizeProperty() {
+        return tabSize;
+    }
+
+    public final void setTabSize(int tabSize) {
+        if (tabSize < 1) {
+            throw new IllegalArgumentException("tabSize cannot be less than 1.");
+        }
+        this.tabSize.set(tabSize);
+    }
 
 
     /**

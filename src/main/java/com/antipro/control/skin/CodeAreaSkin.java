@@ -316,8 +316,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         } else {
                             // This is an update
                             for (int i = from, n = to; i < n; i++) {
-                                TextFlow textFlow = (TextFlow) paragraphNodes.getChildren().get(i);
-                                textFlow.getChildren().clear();
+                                TextFlow paragraphNode = (TextFlow) paragraphNodes.getChildren().get(i);
+                                paragraphNode.getChildren().clear();
                                 String string = change.getList().get(i).toString();
                                 List<String> words = new ArrayList<>();
                                 StringBuilder word = new StringBuilder();
@@ -337,26 +337,22 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                     words.add(string);
                                 }
                                 for (int j = 0; j < words.size(); j++) {
-                                    String s = words.get(j);
-//                                    if (s.isEmpty()) {
-//                                        continue;
-//                                    }
-                                    Text text1 = new Text(s);
-                                    text1.getStyleClass().add("text");
-                                    text1.setTextOrigin(VPos.TOP);
-                                    text1.setManaged(false);
-                                    text1.boundsTypeProperty().addListener((observable, oldValue, newValue) -> {
+                                    Text textNode = new Text(words.get(j));
+                                    textNode.setTextOrigin(VPos.TOP);
+                                    textNode.setManaged(false);
+                                    textNode.tabSizeProperty().bind(codeArea.tabSizeProperty());
+                                    textNode.boundsTypeProperty().addListener((observable, oldValue, newValue) -> {
                                         invalidateMetrics();
                                         updateFontMetrics();
                                     });
-                                    text1.fontProperty().bind(codeArea.fontProperty());
+                                    textNode.fontProperty().bind(codeArea.fontProperty());
                                     if (j % 2 == 0) {
-                                        text1.setFill(Color.BLUE);
+                                        textNode.setFill(Color.BLUE);
                                     } else {
-                                        text1.setFill(Color.RED);
+                                        textNode.setFill(Color.RED);
                                     }
-                                    text1.selectionFillProperty().bind(highlightTextFillProperty());
-                                    textFlow.getChildren().add(text1);
+                                    textNode.selectionFillProperty().bind(highlightTextFillProperty());
+                                    paragraphNode.getChildren().add(textNode);
                                 }
 //                                Text paragraphNode = (Text) textFlow.getChildren().get(0);
 //                                paragraphNode.setText(change.getList().get(i).toString());
@@ -1292,7 +1288,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 //        paragraphNode.fontProperty().bind(codeArea.fontProperty());
 //        paragraphNode.fillProperty().bind(textFillProperty());
 //        paragraphNode.selectionFillProperty().bind(highlightTextFillProperty());
-        TextFlow textFlow = new TextFlow();
+        TextFlow paragraphNode = new TextFlow();
 
         List<String> words = new ArrayList<>();
         StringBuilder word = new StringBuilder(32);
@@ -1312,33 +1308,29 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             words.add(string);
         }
         for (int j = 0; j < words.size(); j++) {
-            String w = words.get(j);
-//            if (w.isEmpty()) {
-//                continue;
-//            }
-            Text paragraphNode = new Text(w);
-            paragraphNode.getStyleClass().add("text");
-            paragraphNode.setTextOrigin(VPos.TOP);
-            paragraphNode.setManaged(false);
-            paragraphNode.boundsTypeProperty().addListener((observable, oldValue, newValue) -> {
+            Text textNode = new Text(words.get(j));
+            textNode.setTextOrigin(VPos.TOP);
+            textNode.setManaged(false);
+            textNode.tabSizeProperty().bind(codeArea.tabSizeProperty());
+            textNode.boundsTypeProperty().addListener((observable, oldValue, newValue) -> {
                 invalidateMetrics();
                 updateFontMetrics();
             });
-            paragraphNode.fontProperty().bind(codeArea.fontProperty());
+            textNode.fontProperty().bind(codeArea.fontProperty());
 //            paragraphNode.fillProperty().bind(textFillProperty());
             // FIXME: This is a hack to test the selectionFillProperty binding
             if (j % 2 == 0) {
-                paragraphNode.setFill(Color.BLUE);
+                textNode.setFill(Color.BLUE);
             } else {
-                paragraphNode.setFill(Color.RED);
+                textNode.setFill(Color.RED);
             }
-            paragraphNode.selectionFillProperty().bind(highlightTextFillProperty());
-            textFlow.getChildren().add(paragraphNode);
+            textNode.selectionFillProperty().bind(highlightTextFillProperty());
+            paragraphNode.getChildren().add(textNode);
         }
-        if (textFlow.getChildren().isEmpty()) {
+        if (paragraphNode.getChildren().isEmpty()) {
             return;
         }
-        paragraphNodes.getChildren().add(i, textFlow);
+        paragraphNodes.getChildren().add(i, paragraphNode);
     }
 
     private double getScrollTopMax() {
