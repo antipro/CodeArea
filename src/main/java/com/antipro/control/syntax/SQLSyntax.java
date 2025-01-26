@@ -29,13 +29,36 @@ public class SQLSyntax extends SyntaxHighlighter {
 
 
     public static final List<String> KEYWORDS = Arrays.asList(
-            "with", "as", "select", "update", "delete", "from", "where", "order", "asc", "desc", "group", "by", "and",
-            "alter", "to", "create", "view", "table", "begin", "end", "if", "else"
-    );
+            "with", "as",
+            "select", "update", "delete", "from", "to", "where", "order", "asc", "desc", "group", "by",
+            "and", "or",
+            "call", "merge", "for", "loop",
+
+            "replace", "alter", "create", "drop", "grant", "revoke", "insert", "into",
+            "each", "row", "values", "on", "rename", "set",
+
+            "view", "index", "table", "tablespace", "column", "procedure", "function", "directory",
+            "trigger", "sequence", "package", "after", "before",
+
+            "temporary", "global", "using", "default", "add", "alias",
+            "constraint", "check", "unique", "primary", "foreign", "key", "references",
+            "materialized", "refresh", "fast",
+
+            "not", "null", "is", "in", "like", "between", "exists", "any", "all",
+
+            "union", "intersect", "minus", "join", "inner", "outer", "left", "right", "full",
+            "cross", "partition", "over", "distinct",
+            "if", "elsif", "case", "when", "then", "else",
+            "begin", "end", "commit", "rollback", "declare", "comment", "execute", "immediate",
+
+            "varchar2", "varchar", "char", "number", "date", "timestamp", "clob", "blob",
+
+            "pctfree", "initrans", "maxtrans", "storage", "initial", "next", "minextents", "maxextents", "unlimited"
+            );
 
     private static final Pattern PATTERNS = Pattern.compile(
             "(?<KEYWORD>\\b(" + String.join("|", KEYWORDS) + ")\\b)|" +
-                    "(?<STRING>\".*?\")|" +
+                    "(?<STRING>'.*?')|" +
                     "(?<NUMBER>\\b\\d+\\b)|" +
                     "(?<COMMENT>(--.*)|(/\\*)|(\\*/))|" +
                     "(?<OPERATOR>[+\\-*/=<>!&|])",
