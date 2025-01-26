@@ -1,6 +1,7 @@
 package com.antipro.example;
 
 import com.antipro.control.CodeArea;
+import com.antipro.control.syntax.DemoSyntax;
 import javafx.application.Application;
 import javafx.scene.control.Button;
 import javafx.scene.control.Spinner;
@@ -41,12 +42,31 @@ public class CodeAreaExample extends Application {
         codeArea.setPrefWidth(700);
         codeArea.setPrefHeight(250);
 
+
         ToolBar toolBar = new ToolBar();
         Spinner<Integer> tabSizeSpinner = new Spinner<>(2, 8, 4);
         tabSizeSpinner.valueProperty().addListener((observable, oldValue, newValue) -> {
             codeArea.setTabSize(newValue);
         });
         toolBar.getItems().add(tabSizeSpinner);
+        Button noSyntaxButton = new Button("No Syntax");
+        noSyntaxButton.setOnAction(event -> {
+            codeArea.setSyntaxHighlighter(null);
+        });
+        toolBar.getItems().add(noSyntaxButton);
+        Button demoSyntaxButton = new Button("Demo Syntax");
+        demoSyntaxButton.setOnAction(event -> {
+            codeArea.setSyntaxHighlighter(new DemoSyntax(codeArea));
+        });
+        toolBar.getItems().add(demoSyntaxButton);
+
+
+        Button printButton = new Button("Print");
+        printButton.setOnAction(event -> {
+            System.out.println(codeArea.getText());
+        });
+        toolBar.getItems().add(printButton);
+
         VBox codeAreaHBox = new VBox(toolBar, codeArea);
         VBox.setVgrow(codeArea, javafx.scene.layout.Priority.ALWAYS);
         javafx.scene.Scene scene = new javafx.scene.Scene(codeAreaHBox);
@@ -54,6 +74,6 @@ public class CodeAreaExample extends Application {
         primaryStage.setX(100);
         primaryStage.setY(100);
         primaryStage.show();
-//        ScenicView.show(scene);
+        ScenicView.show(scene);
     }
 }

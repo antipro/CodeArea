@@ -1,17 +1,25 @@
 package com.antipro.control;
 
 import com.antipro.control.skin.CodeAreaSkin;
+import com.antipro.control.syntax.DemoSyntax;
 import com.antipro.control.syntax.SyntaxHighlighter;
 import com.sun.javafx.collections.ListListenerHelper;
 import com.sun.javafx.collections.NonIterableChange;
+import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.*;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.*;
 import javafx.css.converter.SizeConverter;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.Skin;
+import javafx.scene.paint.Paint;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextBoundsType;
+import javafx.util.StringConverter;
 
 import java.util.*;
 
@@ -377,7 +385,6 @@ public class CodeArea extends CodeInputControl {
      */
     public CodeArea(String text) {
         super(new CodeAreaContent());
-
         getStyleClass().addAll("text-area", "code-area");
         setAccessibleRole(AccessibleRole.TEXT_AREA);
         setText(text);
@@ -427,10 +434,34 @@ public class CodeArea extends CodeInputControl {
     public final boolean isWrapText() { return wrapText.getValue(); }
     public final void setWrapText(boolean value) { wrapText.setValue(value); }
 
-    private final ObjectProperty<SyntaxHighlighter> syntaxHighlighter = new SimpleObjectProperty<>();
+    private final ObjectProperty<SyntaxHighlighter> syntaxHighlighter = new SimpleObjectProperty<>(this, "syntaxHighlighter");
     public final ObjectProperty<SyntaxHighlighter> syntaxHighlighterProperty() { return syntaxHighlighter; }
-    public final SyntaxHighlighter getSyntaxHighlighter() { return syntaxHighlighter.get(); }
-    public final void setSyntaxHighlighter(SyntaxHighlighter value) { syntaxHighlighter.set(value); }
+    public final SyntaxHighlighter getSyntaxHighlighter() {
+        if (syntaxHighlighter.get() == null) {
+            // Default syntax highlighter
+            syntaxHighlighter.set(new DemoSyntax(this) {
+                @Override
+                public List<Text> parse(String rawString, IntegerProperty tabSizeProperty, ChangeListener<TextBoundsType> callback, ObjectProperty<Font> fontProperty, ObjectProperty<Paint> selectionFillProperty) {
+                    Text singleText = new Text(rawString);
+                    singleText.setTextOrigin(javafx.geometry.VPos.TOP);
+                    singleText.setManaged(false);
+                    singleText.tabSizeProperty().bind(tabSizeProperty);
+                    singleText.boundsTypeProperty().addListener(callback);
+                    singleText.fontProperty().bind(fontProperty);
+                    singleText.selectionFillProperty().bind(selectionFillProperty);
+                    return Collections.singletonList(singleText);
+                }
+            });
+        }
+        return syntaxHighlighter.get(); }
+    public final void setSyntaxHighlighter(SyntaxHighlighter value) {
+        syntaxHighlighter.set(value);
+        String originalText = getText();
+        appendText(" ");
+        Platform.runLater(() -> {
+            setText(originalText);
+        });
+    }
 
     private IntegerProperty tabSize = new SimpleIntegerProperty(this, "tabSize", 4);
 
@@ -644,4 +675,5 @@ public class CodeArea extends CodeInputControl {
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
         return getClassCssMetaData();
     }
+
 }

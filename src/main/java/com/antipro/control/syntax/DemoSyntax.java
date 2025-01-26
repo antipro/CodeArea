@@ -1,5 +1,6 @@
 package com.antipro.control.syntax;
 
+import com.antipro.control.CodeArea;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.value.ChangeListener;
@@ -17,7 +18,11 @@ import java.util.List;
  * This is a demo syntax highlighter that highlights every other word in blue and red.
  * @author antipro
  */
-public class DemoSyntax implements SyntaxHighlighter{
+public class DemoSyntax extends SyntaxHighlighter{
+
+    public DemoSyntax(CodeArea codeArea) {
+        super(codeArea);
+    }
 
     @Override
     public List<Text> parse(String rawString,
