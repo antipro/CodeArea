@@ -307,9 +307,8 @@ public abstract class CodeInputControlSkin<T extends CodeInputControl> extends S
                     // Don't use imstart here because it isn't initialized yet.
                     Rectangle2D characterBounds = getCharacterBounds(control.getSelection().getStart() + offset);
                     Point2D p = control.localToScene(characterBounds.getMinX(), characterBounds.getMaxY());
-                    Point2D location = new Point2D(window.getX() + scene.getX() + p.getX(),
+                    return new Point2D(window.getX() + scene.getX() + p.getX(),
                             window.getY() + scene.getY() + p.getY());
-                    return location;
                 }
 
                 @Override public int getLocationOffset(int x, int y) {

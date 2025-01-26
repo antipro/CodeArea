@@ -903,7 +903,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     @Override protected PathElement[] getUnderlineShape(int start, int end) {
         int pStart = 0;
         for (Node node : paragraphNodes.getChildren()) {
-            // TODO 需要定位到具体的 Text
+            // Need to Locate Text
             TextFlow textFlow = (TextFlow)node;
             for (Node child : textFlow.getChildren()) {
                 Text text = (Text) child;
@@ -945,35 +945,80 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     /** {@inheritDoc} */
     @Override protected void addHighlight(List<? extends Node> nodes, int start) {
         int pStart = 0;
-        Text paragraphNode = null;
+        Text textNode = null;
 //        for (Node node : paragraphNodes.getChildren()) {
 //            Text p = (Text)node;
 //            int pEnd = pStart + p.textProperty().getValueSafe().length();
 //            if (pEnd >= start) {
-//                paragraphNode = p;
+//                textNode = p;
 //                break;
 //            }
 //            pStart = pEnd + 1;
 //        }
         TextFlow textFlow = null;
+        boolean found = false;
+
+        /* ************************************************************************
+         * Although the XY position is calculated after layoutChildren.
+         * But here I found them are all 0. So I have to calculate them again.
+         * Strange. the XY position of TextFlow is still exist.
+         **************************************************************************/
+        double subX = 0;
+        double subY = 0;
+        double oneLineHeight = 0;
+        final double leftPadding = snappedLeftInset();
+        double width = contentView.getWidth();
+        double wrappingWidth = Math.max(width - (leftPadding + snappedRightInset()), 0);
+
         for (Node node : paragraphNodes.getChildren()) {
             textFlow = (TextFlow)node;
-            for (Node child : textFlow.getChildren()) {
-                Text text = (Text) child;
-                int pEnd = pStart + text.textProperty().getValueSafe().length();
+            subX = 0;
+            subY = 0;
+            ObservableList<Node> children = textFlow.getChildren();
+            for (int i = 0; i < children.size(); i++) {
+                textNode = (Text) children.get(i);
+
+                if (oneLineHeight == 0) {
+                    oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "A", 0, textNode.getBoundsType());
+                }
+                double unwrapWidth = Utils.computeTextWidth(textNode.getFont(), textNode.getText(), 0);
+                if (i > 0 && subX + unwrapWidth > wrappingWidth) {
+                    // Not first of line and exceed the border. Move to new line
+                    subY += oneLineHeight;
+                    subX = 0;
+                }
+                textNode.setLayoutX(subX);
+                textNode.setLayoutY(subY);
+                if (subX + unwrapWidth > wrappingWidth) {
+                    // Single Text Node exceeds wrapping width
+                    textNode.setWrappingWidth(wrappingWidth);
+                    subX = 0;
+                    subY += textNode.getBoundsInParent().getHeight();
+                } else {
+                    textNode.setWrappingWidth(0);
+                    subX += unwrapWidth;
+                }
+
+                int pEnd = pStart + textNode.textProperty().getValueSafe().length();
                 if (pEnd >= start) {
-                    paragraphNode = text;
+                    found = true;
                     break;
                 }
                 pStart = pEnd;
             }
+            if (found) {
+                break;
+            }
             pStart += 1;
         }
-
-        if (textFlow != null && paragraphNode != null) {
+        if (textFlow != null && textNode != null) {
+//            System.out.println("Selected: " + textNode.getText());
+//            System.out.println("textFlow Position: " + textFlow.getLayoutX() + ", " + textFlow.getLayoutY());
+//            System.out.println("textNode Position: " + subX + ", " + subY);
+//            System.out.println();
             for (Node node : nodes) {
-                node.setLayoutX(textFlow.getLayoutX() + paragraphNode.getLayoutX());
-                node.setLayoutY(textFlow.getLayoutY() + paragraphNode.getLayoutY());
+                node.setLayoutX(textFlow.getLayoutX() + subX);
+                node.setLayoutY(textFlow.getLayoutY() + subY);
             }
         }
         contentView.getChildren().addAll(nodes);
@@ -1191,8 +1236,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         Bounds bounds = characterBoundingPath.getBoundsInParent();
 
-        double x = bounds.getMinX() + paragraphNode.getLayoutX() - codeArea.getScrollLeft();
-        double y = bounds.getMinY() + paragraphNode.getLayoutY() - codeArea.getScrollTop();
+        double x = bounds.getMinX() - codeArea.getScrollLeft();
+        double y = bounds.getMinY() - codeArea.getScrollTop();
 
         // Sometimes the bounds is empty, in which case we must ignore the width/height
         double width = bounds.isEmpty() ? 0 : bounds.getWidth();
@@ -1637,17 +1682,16 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 //                paragraphNode.setLayoutY(y);
 //
 //                y += bounds.getHeight();
-                TextFlow paragraphNode = (TextFlow) paragraphNodesChild;
-                paragraphNode.setPrefWidth(wrappingWidth);
-                paragraphNode.setLayoutX(leftPadding);
-                paragraphNode.setLayoutY(y);
+                TextFlow textFlow = (TextFlow) paragraphNodesChild;
+                textFlow.setPrefWidth(wrappingWidth);
+                textFlow.setLayoutX(leftPadding);
+                textFlow.setLayoutY(y);
 
                 double subX = 0;
                 double subY = 0;
-                ObservableList<Node> children = paragraphNode.getChildren();
+                ObservableList<Node> children = textFlow.getChildren();
                 for (int i = 0; i < children.size(); i++) {
-                    Node child = children.get(i);
-                    Text textNode = (Text) child;
+                    Text textNode = (Text) children.get(i);
                     if (oneLineHeight == 0) {
                         oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "A", 0, textNode.getBoundsType());
                     }
@@ -1670,12 +1714,12 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     }
                 }
                 if (subX == 0) {
-                    paragraphNode.setPrefHeight(Math.max(subY, oneLineHeight));
+                    textFlow.setPrefHeight(Math.max(subY, oneLineHeight));
                 } else {
-                    paragraphNode.setPrefHeight(subY + oneLineHeight);
+                    textFlow.setPrefHeight(subY + oneLineHeight);
                 }
-                y += paragraphNode.getPrefHeight();
-                addLineNumber(no++, paragraphNode.getPrefHeight());
+                y += textFlow.getPrefHeight();
+                addLineNumber(no++, textFlow.getPrefHeight());
             }
             int diff = no - lineNoBar.getChildren().size();
             if (diff < 0) {
