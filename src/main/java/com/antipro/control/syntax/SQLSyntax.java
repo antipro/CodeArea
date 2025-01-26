@@ -25,9 +25,6 @@ public class SQLSyntax extends SyntaxHighlighter {
         put("operator", Color.RED);
     }};
 
-    private static final Pattern BLOCK_COMMENT_PATTERN = Pattern.compile("/\\*.*?\\*/", Pattern.DOTALL);
-
-
     public static final List<String> KEYWORDS = Arrays.asList(
             "with", "as",
             "select", "update", "delete", "from", "to", "where", "order", "asc", "desc", "group", "by",
