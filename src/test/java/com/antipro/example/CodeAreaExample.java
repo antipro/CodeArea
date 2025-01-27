@@ -54,12 +54,12 @@ public class CodeAreaExample extends Application {
         toolBar.getItems().add(noSyntaxButton);
         Button demoSyntaxButton = new Button("Demo Syntax");
         demoSyntaxButton.setOnAction(event -> {
-            codeArea.setSyntaxHighlighter(new DemoSyntax(codeArea));
+            codeArea.setSyntaxHighlighter(new DemoSyntax());
         });
         toolBar.getItems().add(demoSyntaxButton);
         Button sqlSyntaxButton = new Button("SQL Syntax");
         sqlSyntaxButton.setOnAction(event -> {
-            codeArea.setSyntaxHighlighter(new SQLSyntax(codeArea));
+            codeArea.setSyntaxHighlighter(new SQLSyntax());
         });
         toolBar.getItems().add(sqlSyntaxButton);
         Button wrapTextButton = new Button("Wrap Text");

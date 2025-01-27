@@ -20,16 +20,12 @@ import java.util.List;
  */
 public class DemoSyntax extends SyntaxHighlighter{
 
-    public DemoSyntax(CodeArea codeArea) {
-        super(codeArea);
-    }
-
     @Override
-    public List<Text> parse(String rawString,
-                            IntegerProperty tabSizeProperty,
-                            ChangeListener<TextBoundsType> callback,
-                            ObjectProperty<Font> fontProperty,
-                            ObjectProperty<Paint> selectionFillProperty) {
+    public List<Text> decompose(String rawString,
+                                IntegerProperty tabSizeProperty,
+                                ChangeListener<TextBoundsType> callback,
+                                ObjectProperty<Font> fontProperty,
+                                ObjectProperty<Paint> selectionFillProperty) {
         List<Text> texts = new ArrayList<>();
         List<String> words = new ArrayList<>();
         StringBuilder word = new StringBuilder();
@@ -64,5 +60,10 @@ public class DemoSyntax extends SyntaxHighlighter{
             texts.add(textNode);
         }
         return texts;
+    }
+
+    @Override
+    public void highlight(Text text) {
+        // Do nothing
     }
 }

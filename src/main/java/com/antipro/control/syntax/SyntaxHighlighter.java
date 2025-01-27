@@ -1,8 +1,5 @@
 package com.antipro.control.syntax;
 
-import com.antipro.control.CodeArea;
-import com.antipro.control.skin.CodeAreaSkin;
-import javafx.application.Platform;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.value.ChangeListener;
@@ -15,30 +12,23 @@ import java.util.List;
 
 public abstract class SyntaxHighlighter {
 
-    private final CodeArea codeArea;
+    /**
+     * Split the raw string into a list of Text nodes that represent the decomposed string
+     * @param rawString The raw string to decompose
+     * @param tabSizeProperty The tab size property
+     * @param callback The callback to listen for changes in bounds type
+     * @param fontProperty The font property
+     * @param selectionFillProperty The selection fill property
+     * @return A list of Text nodes that represent the decomposed string
+     */
+    public abstract List<Text> decompose(String rawString,
+                                         IntegerProperty tabSizeProperty,
+                                         ChangeListener<TextBoundsType> callback,
+                                         ObjectProperty<Font> fontProperty,
+                                         ObjectProperty<Paint> selectionFillProperty);
 
-    public SyntaxHighlighter(CodeArea codeArea) {
-        this.codeArea = codeArea;
-    }
-
-    public List<Text> parseDelegate(String rawString,
-                                    IntegerProperty tabSizeProperty,
-                                    ChangeListener<TextBoundsType> callback,
-                                    ObjectProperty<Font> fontProperty,
-                                    ObjectProperty<Paint> selectionFillProperty) {
-        List<Text> texts = parse(
-                rawString,
-                tabSizeProperty,
-                callback,
-                fontProperty,
-                selectionFillProperty
-        );
-        return texts;
-    }
-
-    abstract List<Text> parse(String rawString,
-                              IntegerProperty tabSizeProperty,
-                              ChangeListener<TextBoundsType> callback,
-                              ObjectProperty<Font> fontProperty,
-                              ObjectProperty<Paint> selectionFillProperty);
+    /**
+     * @param text The text to highlight
+     */
+    public abstract void highlight(Text text);
 }

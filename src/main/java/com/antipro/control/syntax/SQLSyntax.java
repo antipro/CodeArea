@@ -64,26 +64,22 @@ public class SQLSyntax extends SyntaxHighlighter {
 
     private boolean inBlockComment = false;
 
-    public SQLSyntax(CodeArea codeArea) {
-        super(codeArea);
-    }
-
     @Override
-    public List<Text> parse(String sourceCode,
-                            IntegerProperty tabSizeProperty,
-                            ChangeListener<TextBoundsType> callback,
-                            ObjectProperty<Font> fontProperty,
-                            ObjectProperty<Paint> selectionFillProperty) {
+    public List<Text> decompose(String sourceCode,
+                                IntegerProperty tabSizeProperty,
+                                ChangeListener<TextBoundsType> callback,
+                                ObjectProperty<Font> fontProperty,
+                                ObjectProperty<Paint> selectionFillProperty) {
         if (sourceCode.isBlank()) {
-            Text text = new Text(sourceCode);
-            text.setTextOrigin(VPos.TOP);
-            text.setManaged(false);
-            text.setFill(Color.BLACK);
-            text.tabSizeProperty().bind(tabSizeProperty);
-            text.boundsTypeProperty().addListener(callback);
-            text.fontProperty().bind(fontProperty);
-            text.selectionFillProperty().bind(selectionFillProperty);
-            return List.of(text);
+            Text textNode = new Text(sourceCode);
+            textNode.getStyleClass().add("default");
+            textNode.setTextOrigin(VPos.TOP);
+            textNode.setManaged(false);
+            textNode.tabSizeProperty().bind(tabSizeProperty);
+            textNode.boundsTypeProperty().addListener(callback);
+            textNode.fontProperty().bind(fontProperty);
+            textNode.selectionFillProperty().bind(selectionFillProperty);
+            return List.of(textNode);
         }
         List<Text> textNodes = new ArrayList<>();
 
@@ -94,9 +90,9 @@ public class SQLSyntax extends SyntaxHighlighter {
             // Add unstyled text before the match
             if (matcher.start() > lastKwEnd) {
                 Text textNode = new Text(sourceCode.substring(lastKwEnd, matcher.start()));
+                textNode.getStyleClass().add("default");
                 textNode.setTextOrigin(VPos.TOP);
                 textNode.setManaged(false);
-                textNode.setFill(inBlockComment ? Color.GRAY : Color.BLACK);
                 textNode.tabSizeProperty().bind(tabSizeProperty);
                 textNode.boundsTypeProperty().addListener(callback);
                 textNode.fontProperty().bind(fontProperty);
@@ -108,9 +104,9 @@ public class SQLSyntax extends SyntaxHighlighter {
             String styleGroup = getStyleGroup(matcher);
             if (styleGroup != null) {
                 Text textNode = new Text(matcher.group());
+                textNode.getStyleClass().add(styleGroup);
                 textNode.setTextOrigin(VPos.TOP);
                 textNode.setManaged(false);
-                textNode.setFill(inBlockComment ? Color.GRAY : SYNTAX_COLORS.getOrDefault(styleGroup, Color.BLACK));
                 textNode.tabSizeProperty().bind(tabSizeProperty);
                 textNode.boundsTypeProperty().addListener(callback);
                 textNode.fontProperty().bind(fontProperty);
@@ -138,8 +134,8 @@ public class SQLSyntax extends SyntaxHighlighter {
         if (lastKwEnd < sourceCode.length()) {
             Text textNode = new Text(sourceCode.substring(lastKwEnd));
             textNode.setTextOrigin(VPos.TOP);
+            textNode.getStyleClass().add("default");
             textNode.setManaged(false);
-            textNode.setFill(inBlockComment ? Color.GRAY : Color.BLACK);
             textNode.tabSizeProperty().bind(tabSizeProperty);
             textNode.boundsTypeProperty().addListener(callback);
             textNode.fontProperty().bind(fontProperty);
@@ -157,6 +153,23 @@ public class SQLSyntax extends SyntaxHighlighter {
             }
         }
         return null;
+    }
+
+    @Override
+    public void highlight(Text textNode) {
+        if (textNode.getStyleClass().isEmpty()) {
+            return;
+        }
+        String styleGroup = textNode.getStyleClass().getFirst();
+        if (styleGroup.equals("comment")) {
+            if (textNode.getText().startsWith("/*")) {
+                inBlockComment = true;
+            }
+            if (textNode.getText().endsWith("*/")) {
+                inBlockComment = false;
+            }
+        }
+        textNode.setFill(inBlockComment ? Color.GRAY : SYNTAX_COLORS.getOrDefault(styleGroup, Color.BLACK));
     }
 
 }

@@ -323,7 +323,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                 TextFlow paragraphNode = (TextFlow) paragraphNodes.getChildren().get(i);
                                 paragraphNode.getChildren().clear();
                                 String string = change.getList().get(i).toString();
-                                List<Text> texts = codeArea.getSyntaxHighlighter().parseDelegate(
+                                List<Text> texts = codeArea.getSyntaxHighlighter().decompose(
                                         string,
                                         codeArea.tabSizeProperty(),
                                         (observable, oldValue, newValue) -> {
@@ -1320,7 +1320,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 //        paragraphNode.selectionFillProperty().bind(highlightTextFillProperty());
         TextFlow paragraphNode = new TextFlow();
 
-        List<Text> texts = codeArea.getSyntaxHighlighter().parseDelegate(
+        List<Text> texts = codeArea.getSyntaxHighlighter().decompose(
                 string,
                 codeArea.tabSizeProperty(),
                 (observable, oldValue, newValue) -> {
@@ -1703,6 +1703,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 ObservableList<Node> children = textFlow.getChildren();
                 for (int i = 0; i < children.size(); i++) {
                     Text textNode = (Text) children.get(i);
+                    codeArea.getSyntaxHighlighter().highlight(textNode);
                     if (oneLineHeight == 0) {
                         oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "A", 0, textNode.getBoundsType());
                     }
