@@ -441,8 +441,8 @@ public class CodeArea extends CodeInputControl {
             // Default syntax highlighter
             syntaxHighlighter.set(new DemoSyntax() {
                 @Override
-                public List<Text> decompose(String rawString, IntegerProperty tabSizeProperty, ChangeListener<TextBoundsType> callback, ObjectProperty<Font> fontProperty, ObjectProperty<Paint> selectionFillProperty) {
-                    Text singleText = new Text(rawString);
+                public List<Text> decompose(String sentence, IntegerProperty tabSizeProperty, ChangeListener<TextBoundsType> callback, ObjectProperty<Font> fontProperty, ObjectProperty<Paint> selectionFillProperty) {
+                    Text singleText = new Text(sentence);
                     singleText.setTextOrigin(javafx.geometry.VPos.TOP);
                     singleText.setManaged(false);
                     singleText.tabSizeProperty().bind(tabSizeProperty);

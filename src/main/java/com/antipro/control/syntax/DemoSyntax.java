@@ -21,7 +21,7 @@ import java.util.List;
 public class DemoSyntax extends SyntaxHighlighter{
 
     @Override
-    public List<Text> decompose(String rawString,
+    public List<Text> decompose(String sentence,
                                 IntegerProperty tabSizeProperty,
                                 ChangeListener<TextBoundsType> callback,
                                 ObjectProperty<Font> fontProperty,
@@ -29,9 +29,9 @@ public class DemoSyntax extends SyntaxHighlighter{
         List<Text> texts = new ArrayList<>();
         List<String> words = new ArrayList<>();
         StringBuilder word = new StringBuilder();
-        if (!rawString.isEmpty()) {
-            for (int j = 0; j < rawString.length(); j++) {
-                char c = rawString.charAt(j);
+        if (!sentence.isEmpty()) {
+            for (int j = 0; j < sentence.length(); j++) {
+                char c = sentence.charAt(j);
                 if (c == ' ') {
                     word.append(c);
                     words.add(word.toString());
@@ -42,7 +42,7 @@ public class DemoSyntax extends SyntaxHighlighter{
             }
             words.add(word.toString());
         } else {
-            words.add(rawString);
+            words.add(sentence);
         }
         for (int j = 0; j < words.size(); j++) {
             Text textNode = new Text(words.get(j));

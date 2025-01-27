@@ -65,13 +65,13 @@ public class SQLSyntax extends SyntaxHighlighter {
     private boolean inBlockComment = false;
 
     @Override
-    public List<Text> decompose(String sourceCode,
+    public List<Text> decompose(String sentence,
                                 IntegerProperty tabSizeProperty,
                                 ChangeListener<TextBoundsType> callback,
                                 ObjectProperty<Font> fontProperty,
                                 ObjectProperty<Paint> selectionFillProperty) {
-        if (sourceCode.isBlank()) {
-            Text textNode = new Text(sourceCode);
+        if (sentence.isBlank()) {
+            Text textNode = new Text(sentence);
             textNode.getStyleClass().add("default");
             textNode.setTextOrigin(VPos.TOP);
             textNode.setManaged(false);
@@ -83,13 +83,13 @@ public class SQLSyntax extends SyntaxHighlighter {
         }
         List<Text> textNodes = new ArrayList<>();
 
-        Matcher matcher = PATTERNS.matcher(sourceCode);
+        Matcher matcher = PATTERNS.matcher(sentence);
         int lastKwEnd = 0;
 
         while (matcher.find()) {
             // Add unstyled text before the match
             if (matcher.start() > lastKwEnd) {
-                Text textNode = new Text(sourceCode.substring(lastKwEnd, matcher.start()));
+                Text textNode = new Text(sentence.substring(lastKwEnd, matcher.start()));
                 textNode.getStyleClass().add("default");
                 textNode.setTextOrigin(VPos.TOP);
                 textNode.setManaged(false);
@@ -131,8 +131,8 @@ public class SQLSyntax extends SyntaxHighlighter {
         }
 
         // Add remaining unstyled text
-        if (lastKwEnd < sourceCode.length()) {
-            Text textNode = new Text(sourceCode.substring(lastKwEnd));
+        if (lastKwEnd < sentence.length()) {
+            Text textNode = new Text(sentence.substring(lastKwEnd));
             textNode.setTextOrigin(VPos.TOP);
             textNode.getStyleClass().add("default");
             textNode.setManaged(false);
