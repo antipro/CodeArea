@@ -42,6 +42,11 @@ public class CodeAreaExample extends Application {
 
 
         ToolBar toolBar = new ToolBar();
+        Spinner<Integer> fontSizeSpinner = new Spinner<>(8, 72, 24);
+        fontSizeSpinner.valueProperty().addListener((observable, oldValue, newValue) -> {
+            codeArea.setFont(Font.font("Monospace", FontWeight.NORMAL, newValue));
+        });
+        toolBar.getItems().add(fontSizeSpinner);
         Spinner<Integer> tabSizeSpinner = new Spinner<>(2, 8, 4);
         tabSizeSpinner.valueProperty().addListener((observable, oldValue, newValue) -> {
             codeArea.setTabSize(newValue);
