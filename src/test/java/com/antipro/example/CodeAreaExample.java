@@ -83,6 +83,11 @@ public class CodeAreaExample extends Application {
             }
         });
         toolBar.getItems().add(btnAddErrorPos);
+        Button clearErrorPosButton = new Button("Clear Error Pos");
+        clearErrorPosButton.setOnAction(event -> {
+            codeArea.clearErrorPos();
+        });
+        toolBar.getItems().add(clearErrorPosButton);
 
         Button printButton = new Button("Print");
         printButton.setOnAction(event -> {

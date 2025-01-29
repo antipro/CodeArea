@@ -38,7 +38,6 @@ import javafx.scene.text.TextBoundsType;
 import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -300,13 +299,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             scrollPane.setHvalue(hValue);
         });
 
-        control.errorPosList().addListener((ListChangeListener<Integer>) change -> {
-            while (change.next()) {
-                if (!change.wasAdded()) {
-                    continue;
-                }
-                contentView.requestLayout();
-            }
+        control.getErrorPosList().addListener((ListChangeListener<Integer>) change -> {
+            contentView.requestLayout();
         });
 
         if (USE_MULTIPLE_NODES) {
@@ -1847,7 +1841,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 int caretOffset = codeArea.getLength() + 1;
                 boolean foundCaretNode = false;
 
-                int errorPosIndex = codeArea.errorPosList().size();
+                int errorPosIndex = codeArea.getErrorPosList().size();
                 int textOffset = caretOffset;
                 while (paragraphIndex > 0) {
                     TextFlow textFlow = (TextFlow) paragraphNodesChildren.get(--paragraphIndex);
@@ -1861,10 +1855,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                             caretTextNode = textNode;
                             caretOffset = textOffset - 1;
                         }
-                        if (!codeArea.errorPosList().isEmpty()
+                        if (!codeArea.getErrorPosList().isEmpty()
                                 && errorPosIndex > 0
-                                && codeArea.errorPosList().get(errorPosIndex - 1) >= textOffset - 1) {
-                            Integer errorPos = codeArea.errorPosList().get(--errorPosIndex);
+                                && codeArea.getErrorPosList().get(errorPosIndex - 1) >= textOffset - 1) {
+                            Integer errorPos = codeArea.getErrorPosList().get(--errorPosIndex);
                             updateErrorLine(textNode, errorPos, textOffset, textFlow);
                         }
                     }
@@ -1875,11 +1869,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         caretTextNode = (Text) textFlow.getChildren().getFirst();
                         caretOffset = textOffset;
                     }
-                    if (!codeArea.errorPosList().isEmpty()
+                    if (!codeArea.getErrorPosList().isEmpty()
                             && errorPosIndex > 0
-                            && codeArea.errorPosList().get(errorPosIndex - 1) >= textOffset) {
+                            && codeArea.getErrorPosList().get(errorPosIndex - 1) >= textOffset) {
                         Text textNode = (Text) textFlow.getChildren().getFirst();
-                        Integer errorPos = codeArea.errorPosList().get(--errorPosIndex);
+                        Integer errorPos = codeArea.getErrorPosList().get(--errorPosIndex);
                         updateErrorLine(textNode, errorPos, textOffset, textFlow);
                     }
                 }

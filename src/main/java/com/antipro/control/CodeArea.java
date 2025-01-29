@@ -20,7 +20,6 @@ import javafx.scene.paint.Paint;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextBoundsType;
-import javafx.util.StringConverter;
 
 import java.util.*;
 
@@ -489,7 +488,11 @@ public class CodeArea extends CodeInputControl {
         errorPosList.add(errorPos);
     }
 
-    public ObservableList<Integer> errorPosList() { return errorPosList; }
+    public ObservableList<Integer> getErrorPosList() { return errorPosList; }
+
+    public void clearErrorPos() {
+        errorPosList.clear();
+    }
 
     /**
      * The preferred number of text columns. This is used for
