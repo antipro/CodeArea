@@ -627,6 +627,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 }
                 // Bottom Center
                 if (i == paragraphNodesChildren.size() - 1 &&
+                        text.getLayoutY() + textBounds.getHeight() == textFlow.getLayoutY() + textFlow.getHeight() &&
                         x >= textFlow.getLayoutX() + text.getLayoutX() &&
                         x < textFlow.getLayoutX() + text.getLayoutX() + textBounds.getWidth() &&
                         y >= textFlow.getLayoutY() + text.getLayoutY() + textBounds.getHeight()
@@ -797,7 +798,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         // Find a text position for the target x,y.
 //        Text targetTextNode = getTextNode(caretPath.getLayoutX() + x, caretPath.getLayoutY() + targetLineMidY);
         GlobalHitInfo hit = getIndex(caretPath.getLayoutX() + x, caretPath.getLayoutY() + targetLineMidY);
-        int pos = hit.getCharIndex();
+        if (hit == null) {
+            return;
+        }
+//        int pos = hit.getCharIndex();
         Text targetTextNode = hit.getTextNode();
         // Save the old pos temporarily while testing the new one.
 //        int oldPos = textNode.getCaretPosition();
@@ -808,7 +812,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         tmpCaretPath.getElements().addAll(targetTextNode.getCaretShape());
         tmpCaretPath.setLayoutX(targetTextNode.getLayoutX());
         tmpCaretPath.setLayoutY(targetTextNode.getLayoutY());
-        Bounds tmpCaretBounds = tmpCaretPath.getLayoutBounds();
+//        Bounds tmpCaretBounds = tmpCaretPath.getLayoutBounds();
         // The y for the middle of the row we found.
 //        double foundLineMidY = (tmpCaretBounds.getMinY() + tmpCaretBounds.getMaxY()) / 2;
 //        targetTextNode.setCaretBias(oldBias);
@@ -1184,6 +1188,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
      * @param select whether to extend selection to the new position.
      */
     public void positionCaret(GlobalHitInfo hit, boolean select) {
+        if (hit == null) {
+            return;
+        }
         positionCaret(hit.getInsertionIndex(), hit.isLeading(), select, false);
     }
 

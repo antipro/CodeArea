@@ -232,48 +232,50 @@ public class CodeAreaBehavior extends CodeInputControlBehavior<CodeArea> {
             // if the primary button was pressed
             if (e.getButton() == MouseButton.PRIMARY && !(e.isMiddleButtonDown() || e.isSecondaryButtonDown())) {
                 GlobalHitInfo hit = skin.getIndex(e.getX(), e.getY());
-                int i = hit.getInsertionIndex();
-                final int anchor = codeArea.getAnchor();
-                final int caretPosition = codeArea.getCaretPosition();
-                if (e.getClickCount() < 2 &&
-                        (e.isSynthesized() ||
-                                (anchor != caretPosition &&
-                                        ((i > anchor && i < caretPosition) || (i < anchor && i > caretPosition))))) {
-                    // if there is a selection, then we will NOT handle the
-                    // press now, but will defer until the release. If you
-                    // select some text and then press down, we change the
-                    // caret and wait to allow you to drag the text (TODO).
-                    // When the drag concludes, then we handle the click
+                if (hit != null) {
+                    int i = hit.getInsertionIndex();
+                    final int anchor = codeArea.getAnchor();
+                    final int caretPosition = codeArea.getCaretPosition();
+                    if (e.getClickCount() < 2 &&
+                            (e.isSynthesized() ||
+                                    (anchor != caretPosition &&
+                                            ((i > anchor && i < caretPosition) || (i < anchor && i > caretPosition))))) {
+                        // if there is a selection, then we will NOT handle the
+                        // press now, but will defer until the release. If you
+                        // select some text and then press down, we change the
+                        // caret and wait to allow you to drag the text (TODO).
+                        // When the drag concludes, then we handle the click
 
-                    deferClick = true;
-                    // TODO start a timer such that after some millis we
-                    // switch into text dragging mode, change the cursor
-                    // to indicate the text can be dragged, etc.
-                } else if (!(e.isControlDown() || e.isAltDown() || e.isShiftDown() || e.isMetaDown() || e.isShortcutDown())) {
-                    switch (e.getClickCount()) {
-                        case 1: skin.positionCaret(hit, false); break;
-                        case 2: mouseDoubleClick(hit); break;
-                        case 3: mouseTripleClick(hit); break;
-                        default: // no-op
+                        deferClick = true;
+                        // TODO start a timer such that after some millis we
+                        // switch into text dragging mode, change the cursor
+                        // to indicate the text can be dragged, etc.
+                    } else if (!(e.isControlDown() || e.isAltDown() || e.isShiftDown() || e.isMetaDown() || e.isShortcutDown())) {
+                        switch (e.getClickCount()) {
+                            case 1: skin.positionCaret(hit, false); break;
+                            case 2: mouseDoubleClick(hit); break;
+                            case 3: mouseTripleClick(hit); break;
+                            default: // no-op
+                        }
+                    } else if (e.isShiftDown() && !(e.isControlDown() || e.isAltDown() || e.isMetaDown() || e.isShortcutDown()) && e.getClickCount() == 1) {
+                        // didn't click inside the selection, so select
+                        shiftDown = true;
+                        // if we are on mac os, then we will accumulate the
+                        // selection instead of just moving the dot. This happens
+                        // by figuring out past which (dot/mark) are extending the
+                        // selection, and set the mark to be the other side and
+                        // the dot to be the new position.
+                        // everywhere else we just move the dot.
+                        if (isMac()) {
+                            codeArea.extendSelection(i);
+                        } else {
+                            skin.positionCaret(hit, true);
+                        }
                     }
-                } else if (e.isShiftDown() && !(e.isControlDown() || e.isAltDown() || e.isMetaDown() || e.isShortcutDown()) && e.getClickCount() == 1) {
-                    // didn't click inside the selection, so select
-                    shiftDown = true;
-                    // if we are on mac os, then we will accumulate the
-                    // selection instead of just moving the dot. This happens
-                    // by figuring out past which (dot/mark) are extending the
-                    // selection, and set the mark to be the other side and
-                    // the dot to be the new position.
-                    // everywhere else we just move the dot.
-                    if (isMac()) {
-                        codeArea.extendSelection(i);
-                    } else {
-                        skin.positionCaret(hit, true);
-                    }
-                }
 //                 skin.setForwardBias(hit.isLeading());
 //                if (textInputControl.editable)
 //                    displaySoftwareKeyboard(true);
+                }
             }
             if (contextMenu.isShowing()) {
                 contextMenu.hide();
