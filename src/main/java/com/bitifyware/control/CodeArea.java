@@ -1,8 +1,8 @@
-package com.antipro.control;
+package com.bitifyware.control;
 
-import com.antipro.control.skin.CodeAreaSkin;
-import com.antipro.control.syntax.DemoSyntax;
-import com.antipro.control.syntax.SyntaxHighlighter;
+import com.bitifyware.control.skin.CodeAreaSkin;
+import com.bitifyware.control.syntax.DemoSyntax;
+import com.bitifyware.control.syntax.SyntaxHighlighter;
 import com.sun.javafx.collections.ListListenerHelper;
 import com.sun.javafx.collections.NonIterableChange;
 import javafx.application.Platform;

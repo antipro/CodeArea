@@ -1,4 +1,4 @@
-package com.antipro.control.syntax;
+package com.bitifyware.control.syntax;
 
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;

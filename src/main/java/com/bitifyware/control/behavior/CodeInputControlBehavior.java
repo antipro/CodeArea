@@ -1,8 +1,8 @@
-package com.antipro.control.behavior;
+package com.bitifyware.control.behavior;
 
-import com.antipro.control.CodeInputControl;
-import com.antipro.control.skin.CodeInputControlSkin;
-import com.antipro.control.skin.FXVK;
+import com.bitifyware.control.CodeInputControl;
+import com.bitifyware.control.skin.CodeInputControlSkin;
+import com.bitifyware.control.skin.FXVK;
 import com.sun.javafx.PlatformUtil;
 import com.sun.javafx.application.PlatformImpl;
 import com.sun.javafx.scene.control.Properties;

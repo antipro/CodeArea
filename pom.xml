@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.antipro</groupId>
+    <groupId>com.bitifyware</groupId>
     <artifactId>code-area</artifactId>
     <version>1.0.0</version>
 
@@ -102,31 +102,31 @@
                     <release>21</release>
                     <compilerArgs>
                         <arg>--add-exports</arg>
-                        <arg>javafx.base/com.sun.javafx=com.antipro.codearea</arg>
+                        <arg>javafx.base/com.sun.javafx=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.base/com.sun.javafx.collections=com.antipro.codearea</arg>
+                        <arg>javafx.base/com.sun.javafx.collections=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.base/com.sun.javafx.binding=com.antipro.codearea</arg>
+                        <arg>javafx.base/com.sun.javafx.binding=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.graphics/com.sun.javafx.scene.input=com.antipro.codearea</arg>
+                        <arg>javafx.graphics/com.sun.javafx.scene.input=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.graphics/com.sun.javafx.tk=com.antipro.codearea</arg>
+                        <arg>javafx.graphics/com.sun.javafx.tk=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.graphics/com.sun.javafx.util=com.antipro.codearea</arg>
+                        <arg>javafx.graphics/com.sun.javafx.util=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.graphics/com.sun.javafx.scene=com.antipro.codearea</arg>
+                        <arg>javafx.graphics/com.sun.javafx.scene=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.graphics/com.sun.javafx.application=com.antipro.codearea</arg>
+                        <arg>javafx.graphics/com.sun.javafx.application=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.controls/com.sun.javafx.scene.control=com.antipro.codearea</arg>
+                        <arg>javafx.controls/com.sun.javafx.scene.control=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.controls/com.sun.javafx.scene.control.behavior=com.antipro.codearea</arg>
+                        <arg>javafx.controls/com.sun.javafx.scene.control.behavior=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.controls/com.sun.javafx.scene.control.inputmap=com.antipro.codearea</arg>
+                        <arg>javafx.controls/com.sun.javafx.scene.control.inputmap=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.controls/com.sun.javafx.scene.control.skin.resources=com.antipro.codearea</arg>
+                        <arg>javafx.controls/com.sun.javafx.scene.control.skin.resources=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
-                        <arg>javafx.controls/com.sun.javafx.scene.control.skin=com.antipro.codearea</arg>
+                        <arg>javafx.controls/com.sun.javafx.scene.control.skin=com.bitifyware.codearea</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

@@ -1,8 +1,7 @@
-package com.antipro.example;
+package com.bitifyware.example;
 
-import com.antipro.control.CodeArea;
-import com.antipro.control.syntax.DemoSyntax;
-import com.antipro.control.syntax.SQLSyntax;
+import com.bitifyware.control.CodeArea;
+import com.bitifyware.control.syntax.DemoSyntax;
 import javafx.application.Application;
 import javafx.scene.control.Button;
 import javafx.scene.control.Spinner;
@@ -62,11 +61,6 @@ public class CodeAreaExample extends Application {
             codeArea.setSyntaxHighlighter(new DemoSyntax());
         });
         toolBar.getItems().add(demoSyntaxButton);
-        Button sqlSyntaxButton = new Button("SQL Syntax");
-        sqlSyntaxButton.setOnAction(event -> {
-            codeArea.setSyntaxHighlighter(new SQLSyntax());
-        });
-        toolBar.getItems().add(sqlSyntaxButton);
         Button wrapTextButton = new Button("Wrap Text");
         wrapTextButton.setOnAction(event -> {
             codeArea.setWrapText(!codeArea.isWrapText());

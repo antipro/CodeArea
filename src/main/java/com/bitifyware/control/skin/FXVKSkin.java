@@ -1,4 +1,4 @@
-package com.antipro.control.skin;
+package com.bitifyware.control.skin;
 
 import javafx.animation.*;
 import javafx.application.Platform;

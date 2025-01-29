@@ -1,7 +1,7 @@
-package com.antipro.control.skin;
+package com.bitifyware.control.skin;
 
-import com.antipro.control.CodeArea;
-import com.antipro.control.behavior.CodeAreaBehavior;
+import com.bitifyware.control.CodeArea;
+import com.bitifyware.control.behavior.CodeAreaBehavior;
 import com.sun.javafx.scene.control.skin.Utils;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;

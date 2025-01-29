@@ -1,6 +1,5 @@
-package com.antipro.control.syntax;
+package com.bitifyware.control.syntax;
 
-import com.antipro.control.CodeArea;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.value.ChangeListener;

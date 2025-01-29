@@ -1,8 +1,8 @@
-package com.antipro.control.behavior;
+package com.bitifyware.control.behavior;
 
-import com.antipro.control.CodeArea;
-import com.antipro.control.skin.CodeAreaSkin;
-import com.antipro.control.skin.CodeInputControlSkin;
+import com.bitifyware.control.CodeArea;
+import com.bitifyware.control.skin.CodeAreaSkin;
+import com.bitifyware.control.skin.CodeInputControlSkin;
 import com.sun.javafx.PlatformUtil;
 import com.sun.javafx.scene.control.Properties;
 import com.sun.javafx.scene.control.behavior.TwoLevelFocusBehavior;
@@ -17,7 +17,7 @@ import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import com.antipro.control.skin.GlobalHitInfo;
+import com.bitifyware.control.skin.GlobalHitInfo;
 import javafx.stage.Screen;
 import javafx.stage.Window;
 

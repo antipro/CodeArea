@@ -1,6 +1,6 @@
-package com.antipro.control.skin;
+package com.bitifyware.control.skin;
 
-import com.antipro.control.CodeInputControl;
+import com.bitifyware.control.CodeInputControl;
 import javafx.application.ConditionalFeature;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;

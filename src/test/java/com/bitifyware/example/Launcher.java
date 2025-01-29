@@ -1,4 +1,4 @@
-package com.antipro.example;
+package com.bitifyware.example;
 
 /**
  * @author antipro

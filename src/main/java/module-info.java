@@ -1,11 +1,11 @@
-module com.antipro.codearea {
+module com.bitifyware.codearea {
     requires javafx.controls;
     requires javafx.graphics;
     requires java.desktop;
 
-    exports com.antipro.control;
-    exports com.antipro.control.skin;
-    exports com.antipro.control.syntax;
-    opens com.antipro.control.skin to javafx.fxml;
-    opens com.antipro.control to javafx.fxml;
+    exports com.bitifyware.control.skin;
+    exports com.bitifyware.control.syntax;
+    opens com.bitifyware.control.skin to javafx.fxml;
+    exports com.bitifyware.control;
+    opens com.bitifyware.control to javafx.fxml;
 }
