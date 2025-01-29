@@ -72,6 +72,17 @@ public class CodeAreaExample extends Application {
             codeArea.setWrapText(!codeArea.isWrapText());
         });
         toolBar.getItems().add(wrapTextButton);
+        Spinner<Integer> errorLineSpinner = new Spinner<>(-1, Integer.MAX_VALUE, -1);
+        errorLineSpinner.setEditable(true);
+        toolBar.getItems().add(errorLineSpinner);
+        Button btnAddErrorPos = new Button("Add Error Pos");
+        btnAddErrorPos.setOnAction(event -> {
+            Integer errorLine = errorLineSpinner.getValue();
+            if (!Objects.equals(errorLine, -1)) {
+                codeArea.addErrorPos(errorLine);
+            }
+        });
+        toolBar.getItems().add(btnAddErrorPos);
 
         Button printButton = new Button("Print");
         printButton.setOnAction(event -> {

@@ -11,6 +11,7 @@ import javafx.beans.binding.DoubleBinding;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.value.ObservableBooleanValue;
 import javafx.beans.value.ObservableIntegerValue;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
@@ -29,11 +30,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import javafx.scene.shape.FillRule;
-import javafx.scene.shape.Path;
-import javafx.scene.shape.PathElement;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.*;
 import javafx.scene.text.HitInfo;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextBoundsType;
 import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
 
@@ -297,6 +298,15 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             double hValue = (newValue < getScrollLeftMax())
                     ? (newValue / getScrollLeftMax()) : 1.0;
             scrollPane.setHvalue(hValue);
+        });
+
+        control.errorPosList().addListener((ListChangeListener<Integer>) change -> {
+            while (change.next()) {
+                if (!change.wasAdded()) {
+                    continue;
+                }
+                contentView.requestLayout();
+            }
         });
 
         if (USE_MULTIPLE_NODES) {
@@ -1531,6 +1541,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             label.setPrefHeight(prefHeight);
         } else {
             Label label = new Label(String.valueOf(no + 1));
+            label.setPadding(new Insets(0, 0, 0, 0));
             label.setAlignment(Pos.TOP_CENTER);
             label.setPrefHeight(prefHeight);
             label.setMinWidth(Region.USE_PREF_SIZE);
@@ -1667,6 +1678,21 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
 
         @Override public void layoutChildren() {
+            List<Node> errorLines = contentView.getChildren()
+                    .stream()
+                    .filter(node -> node.getStyleClass().contains("error-line"))
+                    .toList();
+            contentView.getChildren().removeAll(errorLines);
+//            // Print call stack in one line
+//            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+//            StringBuilder sb = new StringBuilder();
+//            for (int i = 0; i < stackTrace.length; i++) {
+//                if (i > 0) {
+//                    sb.append(" -> ");
+//                }
+//                sb.append(stackTrace[i].getClassName() + "." + stackTrace[i].getMethodName());
+//            }
+//            System.out.println("layoutChildren from:" + sb);
             CodeArea codeArea = getSkinnable();
             double width = getWidth();
 
@@ -1705,7 +1731,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     Text textNode = (Text) children.get(i);
                     codeArea.getSyntaxHighlighter().highlight(textNode);
                     if (oneLineHeight == 0) {
-                        oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "A", 0, textNode.getBoundsType());
+                        oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "1", 0, TextBoundsType.LOGICAL_VERTICAL_CENTER);
                     }
                     double unwrapWidth = Utils.computeTextWidth(textNode.getFont(), textNode.getText(), 0);
                     if (i > 0 && subX + unwrapWidth > wrappingWidth) {
@@ -1719,7 +1745,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         // Single Text Node exceeds wrapping width
                         textNode.setWrappingWidth(wrappingWidth);
                         subX = 0;
-                        subY += textNode.getBoundsInParent().getHeight();
+                        double wrapHeight = textNode.getBoundsInParent().getHeight();
+                        if (wrapHeight % oneLineHeight != 0) {
+                            wrapHeight = oneLineHeight * Math.ceil(wrapHeight / oneLineHeight);
+                        }
+                        subY += wrapHeight;
                     } else {
                         textNode.setWrappingWidth(0);
                         subX += unwrapWidth;
@@ -1809,35 +1839,94 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             {
                 // Position caret
                 int paragraphIndex = paragraphNodesChildren.size();
-                int paragraphOffset = codeArea.getLength() + 1;
 
-                Text paragraphNode = null;
-                TextFlow textFlow;
-                do {
-//                    paragraphNode = (Text)paragraphNodesChildren.get(--paragraphIndex);
-//                    paragraphOffset -= paragraphNode.getText().length() + 1;
-                    textFlow = (TextFlow)paragraphNodesChildren.get(--paragraphIndex);
+                TextFlow caretTextFlow = (TextFlow) paragraphNodesChildren.getFirst();
+                Text caretTextNode = (Text) caretTextFlow
+                        .getChildren()
+                        .getFirst();
+                int caretOffset = codeArea.getLength() + 1;
+                boolean foundCaretNode = false;
+
+                int errorPosIndex = codeArea.errorPosList().size();
+                int textOffset = caretOffset;
+                while (paragraphIndex > 0) {
+                    TextFlow textFlow = (TextFlow) paragraphNodesChildren.get(--paragraphIndex);
                     ObservableList<Node> children = textFlow.getChildren();
                     for (int i = children.size() - 1; i >= 0; i--) {
-                        paragraphNode = (Text) children.get(i);
-                        paragraphOffset -= paragraphNode.getText().length();
-                        if (caretPos >= paragraphOffset) {
-                            break;
+                        Text textNode = (Text) children.get(i);
+                        textOffset -= textNode.getText().length();
+                        if (!foundCaretNode && caretPos >= textOffset) {
+                            foundCaretNode = true;
+                            caretTextFlow = textFlow;
+                            caretTextNode = textNode;
+                            caretOffset = textOffset - 1;
+                        }
+                        if (!codeArea.errorPosList().isEmpty()
+                                && errorPosIndex > 0
+                                && codeArea.errorPosList().get(errorPosIndex - 1) >= textOffset - 1) {
+                            Integer errorPos = codeArea.errorPosList().get(--errorPosIndex);
+                            updateErrorLine(textNode, errorPos, textOffset, textFlow);
                         }
                     }
-                    paragraphOffset--;
-                } while (caretPos < paragraphOffset);
+                    textOffset--;
+                    if (!foundCaretNode && caretPos >= textOffset) {
+                        foundCaretNode = true;
+                        caretTextFlow = textFlow;
+                        caretTextNode = (Text) textFlow.getChildren().getFirst();
+                        caretOffset = textOffset;
+                    }
+                    if (!codeArea.errorPosList().isEmpty()
+                            && errorPosIndex > 0
+                            && codeArea.errorPosList().get(errorPosIndex - 1) >= textOffset) {
+                        Text textNode = (Text) textFlow.getChildren().getFirst();
+                        Integer errorPos = codeArea.errorPosList().get(--errorPosIndex);
+                        updateErrorLine(textNode, errorPos, textOffset, textFlow);
+                    }
+                }
 
-                updateTextNodeCaretPos(caretPos - paragraphOffset, paragraphNode);
+                updateTextNodeCaretPos(caretPos - caretOffset, caretTextNode);
 
                 caretPath.getElements().clear();
-                caretPath.getElements().addAll(paragraphNode.getCaretShape());
-                caretPath.setLayoutX(textFlow.getLayoutX() + paragraphNode.getLayoutX());
+                caretPath.getElements().addAll(caretTextNode.getCaretShape());
+                caretPath.setLayoutX(caretTextFlow.getLayoutX() + caretTextNode.getLayoutX());
 
                 // TODO: Remove this temporary workaround for RT-27533
-//                paragraphNode.setLayoutX(2 * paragraphNode.getLayoutX() - paragraphNode.getBoundsInParent().getMinX());
+                // paragraphNode.setLayoutX(2 * paragraphNode.getLayoutX() - paragraphNode.getBoundsInParent().getMinX());
 
-                caretPath.setLayoutY(paragraphNode.getParent().getLayoutY() + paragraphNode.getLayoutY());
+                caretPath.setLayoutY(caretTextFlow.getLayoutY() + caretTextNode.getLayoutY());
+
+                // Position caret
+//                int paragraphIndex = paragraphNodesChildren.size();
+//                int paragraphOffset = codeArea.getLength() + 1;
+//
+//                Text paragraphNode = null;
+//                TextFlow textFlow;
+//                do {
+////                    paragraphNode = (Text)paragraphNodesChildren.get(--paragraphIndex);
+////                    paragraphOffset -= paragraphNode.getText().length() + 1;
+//                    textFlow = (TextFlow)paragraphNodesChildren.get(--paragraphIndex);
+//                    ObservableList<Node> children = textFlow.getChildren();
+//                    for (int i = children.size() - 1; i >= 0; i--) {
+//                        paragraphNode = (Text) children.get(i);
+//                        paragraphOffset -= paragraphNode.getText().length();
+//                        if (caretPos >= paragraphOffset) {
+//                            break;
+//                        }
+//                    }
+//                    paragraphOffset--;
+//                } while (caretPos < paragraphOffset);
+//
+//                updateTextNodeCaretPos(caretPos - paragraphOffset, paragraphNode);
+//
+//                caretPath.getElements().clear();
+//                caretPath.getElements().addAll(paragraphNode.getCaretShape());
+//                caretPath.setLayoutX(textFlow.getLayoutX() + paragraphNode.getLayoutX());
+//
+//                // TODO: Remove this temporary workaround for RT-27533
+////                paragraphNode.setLayoutX(2 * paragraphNode.getLayoutX() - paragraphNode.getBoundsInParent().getMinX());
+//
+//                caretPath.setLayoutY(paragraphNode.getParent().getLayoutY() + paragraphNode.getLayoutY());
+
 
                 if (oldCaretBounds == null || !oldCaretBounds.equals(caretPath.getBoundsInParent())) {
                     scrollCaretToVisible();
@@ -1927,6 +2016,31 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     scrollPane.setFitToHeight(setFitToHeight);
                 });
                 getParent().requestLayout();
+            }
+        }
+
+        /**
+         * Draw a line under the text node at the error position
+         * @param textNode The text node to update the error line for
+         * @param errorPos The position of the error
+         * @param textOffset The offset of the text node
+         * @param textFlow The text flow containing the text node
+         */
+        private void updateErrorLine(Text textNode, Integer errorPos, int textOffset, TextFlow textFlow) {
+            Line errorLine = new Line();
+            errorLine.getStyleClass().add("error-line");
+            errorLine.setManaged(false);
+            errorLine.setStroke(Color.RED);
+            errorLine.setStrokeWidth(2);
+            PathElement[] pathElements = textNode.underlineShape(errorPos - textOffset + 1, textNode.getText().length());
+            if (pathElements.length == 5) {
+                errorLine.setStartX(((LineTo)pathElements[3]).getX());
+                errorLine.setStartY(((LineTo)pathElements[3]).getY());
+                errorLine.setEndX(((LineTo)pathElements[2]).getX());
+                errorLine.setEndY(((LineTo)pathElements[2]).getY());
+                errorLine.setLayoutX(textFlow.getLayoutX() + textNode.getLayoutX());
+                errorLine.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                contentView.getChildren().add(errorLine);
             }
         }
     }

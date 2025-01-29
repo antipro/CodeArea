@@ -9,6 +9,7 @@ import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.*;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.*;
@@ -476,6 +477,19 @@ public class CodeArea extends CodeInputControl {
         this.tabSize.set(tabSize);
     }
 
+    private final ObservableList<Integer> errorPosList = FXCollections.observableArrayList();
+
+    {
+        textProperty().addListener((observable, oldValue, newValue) -> {
+            errorPosList.clear();
+        });
+    }
+
+    public final void addErrorPos(Integer errorPos) {
+        errorPosList.add(errorPos);
+    }
+
+    public ObservableList<Integer> errorPosList() { return errorPosList; }
 
     /**
      * The preferred number of text columns. This is used for
