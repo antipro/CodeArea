@@ -146,7 +146,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         this.behavior = new CodeAreaBehavior(control);
         this.behavior.setCodeAreaSkin(this);
 //        control.setInputMap(behavior.getInputMap());
-
+        this.paragraphNodes.getStyleClass().add("paragraph-nodes");
         this.codeArea = control;
 
         caretPosition = new IntegerBinding() {
