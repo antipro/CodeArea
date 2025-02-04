@@ -3,6 +3,7 @@ package com.bitifyware.example;
 import com.bitifyware.control.CodeArea;
 import com.bitifyware.control.syntax.DemoSyntax;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.ToolBar;
@@ -46,6 +47,14 @@ public class CodeAreaExample extends Application {
             codeArea.setTabSize(newValue);
         });
         toolBar.getItems().add(tabSizeSpinner);
+
+        codeArea.syntaxHighlighterProperty().addListener((observable, oldValue, newValue) -> {
+            String originalText = codeArea.getText();
+            codeArea.appendText(" ");
+            Platform.runLater(() -> {
+                codeArea.setText(originalText);
+            });
+        });
         Button noSyntaxButton = new Button("No Syntax");
         noSyntaxButton.setOnAction(event -> {
             codeArea.setSyntaxHighlighter(null);

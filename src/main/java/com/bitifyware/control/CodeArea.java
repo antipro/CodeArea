@@ -14,6 +14,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.*;
 import javafx.css.converter.SizeConverter;
+import javafx.geometry.Point2D;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.Skin;
 import javafx.scene.paint.Paint;
@@ -456,11 +457,6 @@ public class CodeArea extends CodeInputControl {
         return syntaxHighlighter.get(); }
     public final void setSyntaxHighlighter(SyntaxHighlighter value) {
         syntaxHighlighter.set(value);
-        String originalText = getText();
-        appendText(" ");
-        Platform.runLater(() -> {
-            setText(originalText);
-        });
     }
 
     private IntegerProperty tabSize = new SimpleIntegerProperty(this, "tabSize", 4);
@@ -493,6 +489,10 @@ public class CodeArea extends CodeInputControl {
     public void clearErrorPos() {
         errorPosList.clear();
     }
+
+    private final ObjectProperty<Point2D> caretPosition = new SimpleObjectProperty<>(this, "caretPosition", new Point2D(0, 0));
+
+    public final ObjectProperty<Point2D> caretPointProperty() { return caretPosition; }
 
     /**
      * The preferred number of text columns. This is used for

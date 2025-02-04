@@ -243,6 +243,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             contentView.requestLayout();
         });
 
+        registerChangeListener(control.syntaxHighlighterProperty(), e -> {
+            contentView.requestLayout();
+        });
+
         registerChangeListener(control.wrapTextProperty(), e -> {
             invalidateMetrics();
             scrollPane.setFitToWidth(control.isWrapText());
@@ -1304,7 +1308,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     private void createPromptNode() {
         if (promptNode == null && usePromptText.get()) {
             promptNode = new Text();
-            contentView.getChildren().add(0, promptNode);
+            contentView.getChildren().addFirst(promptNode);
             promptNode.setManaged(false);
             promptNode.getStyleClass().add("text");
             promptNode.visibleProperty().bind(usePromptText);
@@ -1895,6 +1899,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 // paragraphNode.setLayoutX(2 * paragraphNode.getLayoutX() - paragraphNode.getBoundsInParent().getMinX());
 
                 caretPath.setLayoutY(caretTextFlow.getLayoutY() + caretTextNode.getLayoutY());
+                Point2D caretPoint = new Point2D(caretPath.getLayoutX(), caretPath.getLayoutY());
+                getSkinnable().caretPointProperty().set(caretPoint);
 
                 // Position caret
 //                int paragraphIndex = paragraphNodesChildren.size();

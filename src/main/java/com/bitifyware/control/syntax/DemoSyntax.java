@@ -39,7 +39,9 @@ public class DemoSyntax extends SyntaxHighlighter{
                     word.append(c);
                 }
             }
-            words.add(word.toString());
+            if (!word.isEmpty()) {
+                words.add(word.toString());
+            }
         } else {
             words.add(sentence);
         }
