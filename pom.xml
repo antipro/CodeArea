@@ -112,6 +112,10 @@
                         <arg>--add-exports</arg>
                         <arg>javafx.graphics/com.sun.javafx.tk=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
+                        <arg>javafx.graphics/com.sun.javafx.scene.text=com.bitifyware.codearea</arg>
+                        <arg>--add-exports</arg>
+                        <arg>javafx.graphics/com.sun.javafx.geom=com.bitifyware.codearea</arg>
+                        <arg>--add-exports</arg>
                         <arg>javafx.graphics/com.sun.javafx.util=com.bitifyware.codearea</arg>
                         <arg>--add-exports</arg>
                         <arg>javafx.graphics/com.sun.javafx.scene=com.bitifyware.codearea</arg>

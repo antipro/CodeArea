@@ -3,6 +3,9 @@ package com.bitifyware.control.skin;
 import com.bitifyware.control.CodeArea;
 import com.bitifyware.control.behavior.CodeAreaBehavior;
 import com.sun.javafx.scene.control.skin.Utils;
+import com.sun.javafx.scene.text.FontHelper;
+import com.sun.javafx.scene.text.TextLayout;
+import com.sun.javafx.tk.Toolkit;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
@@ -32,10 +35,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.*;
-import javafx.scene.text.HitInfo;
-import javafx.scene.text.Text;
-import javafx.scene.text.TextBoundsType;
-import javafx.scene.text.TextFlow;
+import javafx.scene.text.*;
 import javafx.util.Duration;
 
 import java.util.List;
@@ -58,6 +58,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     /** A shared helper object, used only by downLines(). */
     private static final Path tmpCaretPath = new Path();
+    private static TextLayout layout;
 
 
 
@@ -1100,7 +1101,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     /** {@inheritDoc} */
     @Override public double computeBaselineOffset(double topInset, double rightInset, double bottomInset, double leftInset) {
-        Text firstParagraph = (Text) paragraphNodes.getChildren().getFirst();
+        TextFlow firstFlow = (TextFlow) paragraphNodes.getChildren().getFirst();
+        Text firstParagraph = (Text) firstFlow.getChildren().getFirst();
         return Utils.getAscent(getSkinnable().getFont(), firstParagraph.getBoundsType())
                 + contentView.snappedTopInset() + codeArea.snappedTopInset();
     }
@@ -1738,7 +1740,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     if (oneLineHeight == 0) {
                         oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "1", 0, TextBoundsType.LOGICAL_VERTICAL_CENTER);
                     }
-                    double unwrapWidth = Utils.computeTextWidth(textNode.getFont(), textNode.getText(), 0);
+                    double unwrapWidth = computeTextWidth(textNode.getText(), textNode.getFont(), 0, getSkinnable().tabSizeProperty().get());
                     if (i > 0 && subX + unwrapWidth > wrappingWidth) {
                         // Not first of line and exceed the border. Move to new line
                         subY += oneLineHeight;
@@ -2053,5 +2055,15 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 contentView.getChildren().add(errorLine);
             }
         }
+    }
+
+    public static double computeTextWidth(String text, Font font, double wrappingWidth, int tabSize) {
+        if (layout == null) {
+            layout = Toolkit.getToolkit().getTextLayoutFactory().createLayout();
+        }
+        layout.setTabSize(tabSize);
+        layout.setContent(text != null ? text : "", FontHelper.getNativeFont(font));
+        layout.setWrapWidth((float)wrappingWidth);
+        return layout.getBounds().getWidth();
     }
 }
