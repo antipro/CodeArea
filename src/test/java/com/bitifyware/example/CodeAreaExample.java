@@ -29,7 +29,12 @@ public class CodeAreaExample extends Application {
 //        TextArea codeArea = new TextArea();
         codeArea.setFont(Font.font("Monospace", FontWeight.NORMAL, 24));
         String text = """
-                The quick brown fox jumps over the lazy dog""";
+                The quick brown fox jumps over the lazy dog
+                敏捷的棕色狐狸跳过懒惰的狗
+                すばしっこい茶色の狐は怠け者の犬を飛び越えます
+                Le rapide renard brun saute par-dessus le chien paresseux
+                Проворная коричневая лиса перепрыгивает через ленивую собаку
+                """;
         codeArea.setText(text);
         codeArea.setWrapText(true);
         codeArea.setPrefWidth(700);
