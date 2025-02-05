@@ -1685,7 +1685,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
 
         @Override public void layoutChildren() {
-            System.out.println("layoutChildren");
             List<Node> errorLines = contentView.getChildren()
                     .stream()
                     .filter(node -> node.getStyleClass().contains("error-line"))

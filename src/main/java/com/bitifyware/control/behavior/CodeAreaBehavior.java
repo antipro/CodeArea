@@ -313,19 +313,19 @@ public class CodeAreaBehavior extends CodeInputControlBehavior<CodeArea> {
     }
 
     @Override public void contextMenuRequested(ContextMenuEvent e) {
-        final CodeArea textArea = getNode();
+        final CodeArea codeArea = getNode();
 
         if (contextMenu.isShowing()) {
             contextMenu.hide();
-        } else if (textArea.getContextMenu() == null &&
-                textArea.getOnContextMenuRequested() == null) {
+        } else if (codeArea.getContextMenu() == null &&
+                codeArea.getOnContextMenuRequested() == null) {
             double screenX = e.getScreenX();
             double screenY = e.getScreenY();
             double sceneX = e.getSceneX();
 
             if (Properties.IS_TOUCH_SUPPORTED) {
                 Point2D menuPos;
-                if (textArea.getSelection().getLength() == 0) {
+                if (codeArea.getSelection().getLength() == 0) {
                     skin.positionCaret(skin.getIndex(e.getX(), e.getY()), false);
                     menuPos = skin.getMenuPosition();
                 } else {
