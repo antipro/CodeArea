@@ -1690,16 +1690,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     .filter(node -> node.getStyleClass().contains("error-line"))
                     .toList();
             contentView.getChildren().removeAll(errorLines);
-//            // Print call stack in one line
-//            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-//            StringBuilder sb = new StringBuilder();
-//            for (int i = 0; i < stackTrace.length; i++) {
-//                if (i > 0) {
-//                    sb.append(" -> ");
-//                }
-//                sb.append(stackTrace[i].getClassName() + "." + stackTrace[i].getMethodName());
-//            }
-//            System.out.println("layoutChildren from:" + sb);
             CodeArea codeArea = getSkinnable();
             double width = getWidth();
 
@@ -1900,9 +1890,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 caretPath.getElements().addAll(caretTextNode.getCaretShape());
                 caretPath.setLayoutX(caretTextFlow.getLayoutX() + caretTextNode.getLayoutX());
 
-                // TODO: Remove this temporary workaround for RT-27533
-                // paragraphNode.setLayoutX(2 * paragraphNode.getLayoutX() - paragraphNode.getBoundsInParent().getMinX());
-
                 caretPath.setLayoutY(caretTextFlow.getLayoutY() + caretTextNode.getLayoutY());
                 Point2D caretPoint = new Point2D(caretPath.getLayoutX(), caretPath.getLayoutY());
                 getSkinnable().caretPointProperty().set(caretPoint);
@@ -1933,9 +1920,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 //                caretPath.getElements().clear();
 //                caretPath.getElements().addAll(paragraphNode.getCaretShape());
 //                caretPath.setLayoutX(textFlow.getLayoutX() + paragraphNode.getLayoutX());
-//
-//                // TODO: Remove this temporary workaround for RT-27533
-////                paragraphNode.setLayoutX(2 * paragraphNode.getLayoutX() - paragraphNode.getBoundsInParent().getMinX());
 //
 //                caretPath.setLayoutY(paragraphNode.getParent().getLayoutY() + paragraphNode.getLayoutY());
 
