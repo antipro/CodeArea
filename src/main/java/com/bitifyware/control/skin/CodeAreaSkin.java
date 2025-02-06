@@ -23,10 +23,8 @@ import javafx.geometry.*;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Group;
 import javafx.scene.Node;
-import javafx.scene.control.Control;
-import javafx.scene.control.IndexRange;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.control.*;
+import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.HBox;
@@ -39,6 +37,8 @@ import javafx.scene.text.*;
 import javafx.util.Duration;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
 import static com.sun.javafx.PlatformUtil.isMac;
@@ -178,6 +178,22 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         HBox hBox = new HBox();
         lineNoBar.setPadding(new Insets(6, 0, 10, 0));
         lineNoBar.setAlignment(Pos.TOP_RIGHT);
+        ResourceBundle bundle = ResourceBundle.getBundle("lang", Locale.getDefault());
+
+        MenuItem miToggleWrap = new MenuItem(
+                codeArea.isWrapText() ? bundle.getString("CodeArea.Unwrap") : bundle.getString("CodeArea.Wrap")
+        );
+        miToggleWrap.setOnAction(event -> {
+            codeArea.setWrapText(!codeArea.isWrapText());
+        });
+        ContextMenu contextMenu = new ContextMenu(miToggleWrap);
+        lineNoBar.setOnContextMenuRequested(event -> {
+            miToggleWrap.setText(
+                    codeArea.isWrapText() ? bundle.getString("CodeArea.Unwrap") : bundle.getString("CodeArea.Wrap")
+            );
+            contextMenu.show(lineNoBar, event.getScreenX(), event.getScreenY());
+            event.consume();
+        });
         hBox.getChildren().addAll(lineNoBar, contentView);
         HBox.setHgrow(contentView, Priority.ALWAYS);
         scrollPane.setContent(hBox);
@@ -1543,11 +1559,16 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     }
 
     void addLineNumber(int no, double prefHeight) {
+        Label label;
         if (no < lineNoBar.getChildren().size()) {
-            Label label = (Label) lineNoBar.getChildren().get(no);
+            label = (Label) lineNoBar.getChildren().get(no);
             label.setPrefHeight(prefHeight);
         } else {
-            Label label = new Label(String.valueOf(no + 1));
+            label = new Label(String.valueOf(no + 1));
+            label.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
+                event.consume();
+                lineNoBar.fireEvent(event.copyFor(lineNoBar, lineNoBar));
+            });
             label.setPadding(new Insets(0, 0, 0, 0));
             label.setAlignment(Pos.TOP_CENTER);
             label.setPrefHeight(prefHeight);
