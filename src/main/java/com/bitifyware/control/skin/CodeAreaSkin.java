@@ -178,6 +178,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         HBox hBox = new HBox();
         lineNoBar.setPadding(new Insets(6, 0, 10, 0));
         lineNoBar.setAlignment(Pos.TOP_RIGHT);
+        lineNoBar.setMinWidth(Utils.computeTextWidth(Font.getDefault(), "000", 0));
         ResourceBundle bundle = ResourceBundle.getBundle("lang", Locale.getDefault());
 
         MenuItem miToggleWrap = new MenuItem(
