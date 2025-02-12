@@ -27,10 +27,7 @@ import javafx.scene.control.*;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.*;
 import javafx.scene.text.*;
@@ -1707,11 +1704,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
 
         @Override public void layoutChildren() {
-            List<Node> errorLines = contentView.getChildren()
-                    .stream()
-                    .filter(node -> node.getStyleClass().contains("error-line"))
-                    .toList();
-            contentView.getChildren().removeAll(errorLines);
+            contentView.getChildren()
+                    .removeIf(node ->
+                            node.getStyleClass().contains("error-line")
+                            || node.getStyleClass().contains("line-highlight")
+                    );
             CodeArea codeArea = getSkinnable();
             double width = getWidth();
 
@@ -1742,7 +1739,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 textFlow.setPrefWidth(wrappingWidth);
                 textFlow.setLayoutX(leftPadding);
                 textFlow.setLayoutY(y);
-
+                textFlow.setBackground(null);
                 double subX = 0;
                 double subY = 0;
                 ObservableList<Node> children = textFlow.getChildren();
@@ -1907,7 +1904,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 }
 
                 updateTextNodeCaretPos(caretPos - caretOffset, caretTextNode);
-
+                // highlight the current line
+                caretTextFlow.setBackground(new Background(new BackgroundFill(Color.valueOf("#FFFACD"), CornerRadii.EMPTY, Insets.EMPTY)));
                 caretPath.getElements().clear();
                 caretPath.getElements().addAll(caretTextNode.getCaretShape());
                 caretPath.setLayoutX(caretTextFlow.getLayoutX() + caretTextNode.getLayoutX());
