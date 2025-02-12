@@ -1905,7 +1905,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
                 updateTextNodeCaretPos(caretPos - caretOffset, caretTextNode);
                 // highlight the current line
-                caretTextFlow.setBackground(new Background(new BackgroundFill(Color.valueOf("#FFFACD"), CornerRadii.EMPTY, Insets.EMPTY)));
+//                caretTextFlow.setBackground(new Background(new BackgroundFill(Color.valueOf("#BCBC9F"), CornerRadii.EMPTY, Insets.EMPTY)));
                 caretPath.getElements().clear();
                 caretPath.getElements().addAll(caretTextNode.getCaretShape());
                 caretPath.setLayoutX(caretTextFlow.getLayoutX() + caretTextNode.getLayoutX());
