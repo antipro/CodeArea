@@ -759,7 +759,7 @@ public abstract class CodeInputControl extends Control {
         }
 
         if (wordIterator == null) {
-            wordIterator = BreakIterator.getWordInstance();
+            wordIterator = new CodeBreakIterator();
         }
         wordIterator.setText(text);
 
@@ -783,7 +783,7 @@ public abstract class CodeInputControl extends Control {
         }
 
         if (wordIterator == null) {
-            wordIterator = BreakIterator.getWordInstance();
+            wordIterator = new CodeBreakIterator();
         }
         wordIterator.setText(text);
 
@@ -826,7 +826,7 @@ public abstract class CodeInputControl extends Control {
         }
 
         if (wordIterator == null) {
-            wordIterator = BreakIterator.getWordInstance();
+            wordIterator = new CodeBreakIterator();
         }
         wordIterator.setText(text);
 
