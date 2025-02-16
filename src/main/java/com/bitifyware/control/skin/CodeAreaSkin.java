@@ -1911,7 +1911,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 caretPath.setLayoutX(caretTextFlow.getLayoutX() + caretTextNode.getLayoutX());
 
                 caretPath.setLayoutY(caretTextFlow.getLayoutY() + caretTextNode.getLayoutY());
-                Point2D caretPoint = new Point2D(caretPath.getLayoutX(), caretPath.getLayoutY());
+                double caretX = caretTextFlow.getLayoutX() + caretTextNode.getLayoutX()
+                        + Utils.computeTextWidth(caretTextNode.getFont(), caretTextNode.getText().substring(0, caretPos - caretOffset), 0);
+                Point2D caretPoint = new Point2D(caretX, caretPath.getLayoutY());
                 getSkinnable().caretPointProperty().set(caretPoint);
 
                 // Position caret
