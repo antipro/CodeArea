@@ -97,6 +97,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     private Path characterBoundingPath = new Path();
 
+    private final Path bracketsPath = new Path();
+
     private Timeline scrollSelectionTimeline = new Timeline();
     private EventHandler<ActionEvent> scrollSelectionHandler = event -> {
         switch (scrollDirection) {
@@ -204,6 +206,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         };
         getSkinnable().addEventFilter(ScrollEvent.ANY, scrollEventFilter);
 
+        bracketsPath.setManaged(false);
+        bracketsPath.setStroke(Color.TRANSPARENT);
+        bracketsPath.setFill(Color.AQUA);
+        bracketsPath.setVisible(false);
+        contentView.getChildren().add(bracketsPath);
         // Add selection
         selectionHighlightGroup.setManaged(false);
         selectionHighlightGroup.setVisible(false);
@@ -1704,11 +1711,13 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
 
         @Override public void layoutChildren() {
+            bracketsPath.setVisible(false);
             contentView.getChildren()
                     .removeIf(node ->
                             node.getStyleClass().contains("error-line")
                             || node.getStyleClass().contains("line-highlight")
                     );
+
             CodeArea codeArea = getSkinnable();
             double width = getWidth();
 
@@ -1749,7 +1758,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     if (oneLineHeight == 0) {
                         oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "1", 0, TextBoundsType.LOGICAL_VERTICAL_CENTER);
                     }
-                    double unwrapWidth = computeTextWidth(textNode.getText(), textNode.getFont(), 0, getSkinnable().tabSizeProperty().get());
+                    double unwrapWidth = computeTextWidth(textNode.getText(), textNode.getFont(), 0, codeArea.tabSizeProperty().get());
                     if (i > 0 && subX + unwrapWidth > wrappingWidth) {
                         // Not first of line and exceed the border. Move to new line
                         subY += oneLineHeight;
@@ -1904,6 +1913,24 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 }
 
                 updateTextNodeCaretPos(caretPos - caretOffset, caretTextNode);
+
+                List<Text> textNodes = paragraphNodes.getChildren().stream()
+                        .map(n -> (TextFlow)n)
+                        .flatMap(n -> n.getChildren().stream())
+                        .map(n -> (Text)n)
+                        .toList();
+                String text = codeArea.getText();
+                String rightChar = caretPos + 1 <= text.length() ? text.substring(caretPos, caretPos + 1) : "";
+                if (rightChar.equals(")")) {
+                    updatePairHighlight(caretTextNode,
+                            caretPos - caretOffset, textNodes, false);
+                }
+                String leftChar = caretPos > 0 ? text.substring(caretPos - 1, caretPos) : "";
+                if (!bracketsPath.isVisible() && leftChar.equals("(")) {
+                    updatePairHighlight(caretTextNode,
+                            caretPos - caretOffset, textNodes, true);
+                }
+
                 // highlight the current line
 //                caretTextFlow.setBackground(new Background(new BackgroundFill(Color.valueOf("#BCBC9F"), CornerRadii.EMPTY, Insets.EMPTY)));
                 caretPath.getElements().clear();
@@ -1914,7 +1941,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 double caretX = caretTextFlow.getLayoutX() + caretTextNode.getLayoutX()
                         + Utils.computeTextWidth(caretTextNode.getFont(), caretTextNode.getText().substring(0, caretPos - caretOffset), 0);
                 Point2D caretPoint = new Point2D(caretX, caretPath.getLayoutY());
-                getSkinnable().caretPointProperty().set(caretPoint);
+                codeArea.caretPointProperty().set(caretPoint);
 
                 // Position caret
 //                int paragraphIndex = paragraphNodesChildren.size();
@@ -2034,6 +2061,97 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     scrollPane.setFitToHeight(setFitToHeight);
                 });
                 getParent().requestLayout();
+            }
+        }
+
+        private void updatePairHighlight(Text caretTextNode, int start, List<Text> pairHighlightNodes, boolean isForward) {
+            if (pairHighlightNodes.isEmpty()) {
+                return;
+            }
+            int weight = 1;
+            double opacity = 0.8;
+            if (isForward) {
+                if (start < caretTextNode.getText().length()) {
+                    String remainingText = caretTextNode.getText().substring(start);
+                    for (int i = 0; i < remainingText.length(); i++) {
+                        if (remainingText.charAt(i) == '(') {
+                            weight++;
+                        } else if (remainingText.charAt(i) == ')') {
+                            weight--;
+                        }
+                        if (weight == 0) {
+                            PathElement[] pathElements = caretTextNode.rangeShape(start + i, start + i + 1);
+                            bracketsPath.getElements().setAll(pathElements);
+                            TextFlow textFlow = (TextFlow) caretTextNode.getParent();
+                            bracketsPath.setLayoutX(textFlow.getLayoutX() + caretTextNode.getLayoutX());
+                            bracketsPath.setLayoutY(textFlow.getLayoutY() + caretTextNode.getLayoutY());
+                            bracketsPath.setVisible(true);
+                            return;
+                        }
+                    }
+                }
+                int index = pairHighlightNodes.indexOf(caretTextNode) + 1;
+                while (index < pairHighlightNodes.size()) {
+                    Text textNode = pairHighlightNodes.get(index++);
+                    String text = textNode.getText();
+                    for (int i = 0; i < text.length(); i++) {
+                        if (text.charAt(i) == '(') {
+                            weight++;
+                        } else if (text.charAt(i) == ')') {
+                            weight--;
+                        }
+                        if (weight == 0) {
+                            PathElement[] pathElements = textNode.rangeShape(i, i + 1);
+                            bracketsPath.getElements().setAll(pathElements);
+                            TextFlow textFlow = (TextFlow) textNode.getParent();
+                            bracketsPath.setLayoutX(textFlow.getLayoutX() + textNode.getLayoutX());
+                            bracketsPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                            bracketsPath.setVisible(true);
+                            return;
+                        }
+                    }
+                }
+            } else {
+                if (start > 0) {
+                    String remainingText = caretTextNode.getText().substring(0, start);
+                    for (int i = remainingText.length() - 1; i >= 0; i--) {
+                        if (remainingText.charAt(i) == ')') {
+                            weight++;
+                        } else if (remainingText.charAt(i) == '(') {
+                            weight--;
+                        }
+                        if (weight == 0) {
+                            PathElement[] pathElements = caretTextNode.rangeShape(i, i + 1);
+                            bracketsPath.getElements().setAll(pathElements);
+                            TextFlow textFlow = (TextFlow) caretTextNode.getParent();
+                            bracketsPath.setLayoutX(textFlow.getLayoutX() + caretTextNode.getLayoutX());
+                            bracketsPath.setLayoutY(textFlow.getLayoutY() + caretTextNode.getLayoutY());
+                            bracketsPath.setVisible(true);
+                            return;
+                        }
+                    }
+                }
+                int index = pairHighlightNodes.indexOf(caretTextNode) - 1;
+                while (index > -1) {
+                    Text textNode = pairHighlightNodes.get(index--);
+                    String text = textNode.getText();
+                    for (int i = text.length() - 1; i >= 0; i--) {
+                        if (text.charAt(i) == ')') {
+                            weight++;
+                        } else if (text.charAt(i) == '(') {
+                            weight--;
+                        }
+                        if (weight == 0) {
+                            PathElement[] pathElements = textNode.rangeShape(i, i + 1);
+                            bracketsPath.getElements().setAll(pathElements);
+                            TextFlow textFlow = (TextFlow) textNode.getParent();
+                            bracketsPath.setLayoutX(textFlow.getLayoutX() + textNode.getLayoutX());
+                            bracketsPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                            bracketsPath.setVisible(true);
+                            return;
+                        }
+                    }
+                }
             }
         }
 
