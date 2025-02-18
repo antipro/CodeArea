@@ -36,7 +36,7 @@ public class CodeAreaExample extends Application {
                 Проворная коричневая лиса перепрыгивает через ленивую собаку
                 """;
         codeArea.setText(text);
-        codeArea.setWrapText(true);
+//        codeArea.setWrapText(true);
         codeArea.setPrefWidth(700);
         codeArea.setPrefHeight(250);
 

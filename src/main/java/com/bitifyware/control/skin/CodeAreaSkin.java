@@ -383,6 +383,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     }
                 }
             });
+            registerInvalidationListener(control.textProperty(), e -> {
+                invalidateMetrics();
+//                ((Text)paragraphNodes.getChildren().getFirst()).setText(control.textProperty().getValueSafe());
+//                contentView.requestLayout();
+            });
         } else {
             registerInvalidationListener(control.textProperty(), e -> {
                 invalidateMetrics();
@@ -1760,14 +1765,14 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "1", 0, TextBoundsType.LOGICAL_VERTICAL_CENTER);
                     }
                     double unwrapWidth = computeTextWidth(textNode.getText(), textNode.getFont(), 0, codeArea.tabSizeProperty().get());
-                    if (i > 0 && subX + unwrapWidth > wrappingWidth) {
+                    if (i > 0 && subX + unwrapWidth > wrappingWidth && codeArea.isWrapText()) {
                         // Not first of line and exceed the border. Move to new line
                         subY += oneLineHeight;
                         subX = 0;
                     }
                     textNode.setLayoutX(subX);
                     textNode.setLayoutY(subY);
-                    if (subX + unwrapWidth > wrappingWidth) {
+                    if (subX + unwrapWidth > wrappingWidth && codeArea.isWrapText()) {
                         // Single Text Node exceeds wrapping width
                         textNode.setWrappingWidth(wrappingWidth);
                         subX = 0;
