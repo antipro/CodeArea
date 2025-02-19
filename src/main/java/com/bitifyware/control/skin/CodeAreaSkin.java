@@ -332,6 +332,13 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         if (USE_MULTIPLE_NODES) {
             registerListChangeListener(control.getParagraphs(), change -> {
+                /*
+                * I don't know how this behavior effects. but if I don't do this.
+                * the setText background will not trigger layout, all text will be in left top corner.
+                */
+                /* --- Copy from below --- */
+                invalidateMetrics();
+                /* --- Copy from below --- */
                 while (change.next()) {
                     int from = change.getFrom();
                     int to = change.getTo();
@@ -382,12 +389,15 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         paragraphNodes.getChildren().subList(from, from + removed.size()).clear();
                     }
                 }
+                /* --- Copy from below --- */
+                contentView.requestLayout();
+                /* --- Copy from below --- */
             });
-            registerInvalidationListener(control.textProperty(), e -> {
-                invalidateMetrics();
-//                ((Text)paragraphNodes.getChildren().getFirst()).setText(control.textProperty().getValueSafe());
+//            registerInvalidationListener(control.textProperty(), e -> {
+//                invalidateMetrics();
+////                ((Text)paragraphNodes.getChildren().getFirst()).setText(control.textProperty().getValueSafe());
 //                contentView.requestLayout();
-            });
+//            });
         } else {
             registerInvalidationListener(control.textProperty(), e -> {
                 invalidateMetrics();
