@@ -2017,6 +2017,15 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         selectionHighlightPath.setManaged(false);
                         PathElement[] selectionShape = textNode.getSelectionShape();
                         if (selectionShape != null) {
+                            // Because the Text node can not have the same bound height. Don't ask me why :(
+                            // the Y coordinate has been adjusted When layout above.
+                            // We need to adjust the Y coordinate of the selection shape.
+                            // So that the selection shape will have no space between the line.
+                            if (((MoveTo)selectionShape[0]).getY() == 0 && textNode.getLayoutY() > 0) {
+                                ((MoveTo)selectionShape[0]).setY(((MoveTo)selectionShape[0]).getY() - textNode.getLayoutY());
+                                ((LineTo)selectionShape[1]).setY(((LineTo)selectionShape[1]).getY() - textNode.getLayoutY());
+                                ((LineTo)selectionShape[4]).setY(((LineTo)selectionShape[4]).getY() - textNode.getLayoutY());
+                            }
                             selectionHighlightPath.getElements().addAll(selectionShape);
                         }
                         selectionHighlightGroup.getChildren().add(selectionHighlightPath);
