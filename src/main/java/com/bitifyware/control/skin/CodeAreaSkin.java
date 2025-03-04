@@ -1794,6 +1794,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     } else {
                         textNode.setWrappingWidth(0);
                         if (textNode.getBoundsInParent().getHeight() < oneLineHeight) {
+                            // When Text node have different bound height. Adjust Y coordinate to align the baseline
                             textNode.setLayoutY(subY + oneLineHeight - textNode.getBoundsInParent().getHeight());
                         }
                         subX += unwrapWidth;
