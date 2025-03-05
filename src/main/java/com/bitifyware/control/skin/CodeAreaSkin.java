@@ -36,6 +36,8 @@ import javafx.util.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.sun.javafx.PlatformUtil.isMac;
@@ -1938,7 +1940,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         .toList();
                 String text = codeArea.getText();
                 String selectedText = codeArea.getSelectedText();
-                if (!selectedText.isEmpty()) {
+                if (!selectedText.isBlank()) {
                     updateSelectionHighlight(caretTextNode, textNodes, selectedText);
                 } else {
                     String rightChar = caretPos + 1 <= text.length() ? text.substring(caretPos, caretPos + 1) : "";
@@ -2100,36 +2102,43 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 if (textNode == caretTextNode) {
                     continue;
                 }
-                if (!textNode.getText().contains(selectedText)) {
+                // Skip the text node that doesn't contain the selected text
+                // Must use regex to match the whole word.
+                String text = textNode.getText();
+                if (!text.matches(".*\\b" + selectedText + "\\b.*")) {
                     continue;
                 }
                 if (!textNode.getStyleClass().contains("default")) {
                     continue;
                 }
-                TextFlow textFlow = (TextFlow) textNode.getParent();
-                int start = textNode.getText().indexOf(selectedText);
-                int end = start + selectedText.length();
-                PathElement[] pathElements = textNode.rangeShape(start, end);
                 if (!highlightPath.isVisible()) {
                     highlightPath.setVisible(true);
                     highlightPath.setLayoutX(0);
                     highlightPath.setLayoutY(0);
                     highlightPath.getElements().clear();
                 }
-                for (PathElement pathElement : pathElements) {
-                    switch (pathElement) {
-                        case MoveTo moveTo -> {
-                            moveTo.setX(moveTo.getX() + textNode.getLayoutX() + textFlow.getLayoutX());
-                            moveTo.setY(moveTo.getY() + textNode.getLayoutY() + textFlow.getLayoutY());
+                Pattern pattern = Pattern.compile("(\\b" + selectedText + "\\b)", Pattern.CASE_INSENSITIVE);
+                Matcher matcher = pattern.matcher(text);
+                while (matcher.find()) {
+                    int start = matcher.start();
+                    int end = matcher.end();
+                    PathElement[] pathElements = textNode.rangeShape(start, end);
+                    TextFlow textFlow = (TextFlow) textNode.getParent();
+                    for (PathElement pathElement : pathElements) {
+                        switch (pathElement) {
+                            case MoveTo moveTo -> {
+                                moveTo.setX(moveTo.getX() + textNode.getLayoutX() + textFlow.getLayoutX());
+                                moveTo.setY(moveTo.getY() + textNode.getLayoutY() + textFlow.getLayoutY());
+                            }
+                            case LineTo lineTo -> {
+                                lineTo.setX(lineTo.getX() + textNode.getLayoutX() + textFlow.getLayoutX());
+                                lineTo.setY(lineTo.getY() + textNode.getLayoutY() + textFlow.getLayoutY());
+                            }
+                            default -> { }
                         }
-                        case LineTo lineTo -> {
-                            lineTo.setX(lineTo.getX() + textNode.getLayoutX() + textFlow.getLayoutX());
-                            lineTo.setY(lineTo.getY() + textNode.getLayoutY() + textFlow.getLayoutY());
-                        }
-                        default -> { }
                     }
+                    highlightPath.getElements().addAll(pathElements);
                 }
-                highlightPath.getElements().addAll(pathElements);
             }
         }
 
