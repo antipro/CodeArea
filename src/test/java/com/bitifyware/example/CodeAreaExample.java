@@ -98,6 +98,17 @@ public class CodeAreaExample extends Application {
         });
         toolBar.getItems().add(printButton);
 
+        Button unDoButton = new Button("Undo");
+        unDoButton.setOnAction(event -> {
+            codeArea.undo();
+        });
+        toolBar.getItems().add(unDoButton);
+        Button reDoButton = new Button("Redo");
+        reDoButton.setOnAction(event -> {
+            codeArea.redo();
+        });
+        toolBar.getItems().add(reDoButton);
+
         VBox codeAreaHBox = new VBox(toolBar, codeArea);
         VBox.setVgrow(codeArea, javafx.scene.layout.Priority.ALWAYS);
         javafx.scene.Scene scene = new javafx.scene.Scene(codeAreaHBox);
