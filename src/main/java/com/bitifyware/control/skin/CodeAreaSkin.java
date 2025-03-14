@@ -2048,11 +2048,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         selectionHighlightPath.setManaged(false);
                         // Create a 1px width PathElement to show the highlight
                         PathElement[] selectionShape = new PathElement[] {
-                                new MoveTo(0, 0),
-                                new LineTo(1, 0),
+                                new MoveTo(0, -textNode.getLayoutY()),
+                                new LineTo(1, -textNode.getLayoutY()),
                                 new LineTo(1, textNode.getLayoutBounds().getHeight()),
                                 new LineTo(0, textNode.getLayoutBounds().getHeight()),
-                                new LineTo(0, 0)
+                                new LineTo(0, -textNode.getLayoutY())
                         };
                         selectionHighlightPath.getElements().addAll(selectionShape);
                         selectionHighlightGroup.getChildren().add(selectionHighlightPath);
