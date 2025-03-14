@@ -2098,6 +2098,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
 
         private void updateSelectionHighlight(Text caretTextNode, List<Text> textNodes, String selectedText) {
+            String safePattern = selectedText.replaceAll("([\\\\.*+?^${}()|\\[\\]\\\\])", "\\\\$1");
             for (Text textNode : textNodes) {
                 if (textNode == caretTextNode) {
                     continue;
@@ -2105,7 +2106,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 // Skip the text node that doesn't contain the selected text
                 // Must use regex to match the whole word.
                 String text = textNode.getText();
-                if (!text.matches(".*\\b" + selectedText + "\\b.*")) {
+                if (!text.matches(".*\\b" + safePattern + "\\b.*")) {
                     continue;
                 }
                 if (!textNode.getStyleClass().contains("default")) {
@@ -2117,7 +2118,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     highlightPath.setLayoutY(0);
                     highlightPath.getElements().clear();
                 }
-                Pattern pattern = Pattern.compile("(\\b" + selectedText + "\\b)", Pattern.CASE_INSENSITIVE);
+                Pattern pattern = Pattern.compile("(\\b" + safePattern + "\\b)", Pattern.CASE_INSENSITIVE);
                 Matcher matcher = pattern.matcher(text);
                 while (matcher.find()) {
                     int start = matcher.start();
