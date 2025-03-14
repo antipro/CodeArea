@@ -2005,6 +2005,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             // Update selection fg and bg
             int start = selection.getStart();
             int end = selection.getEnd();
+            if (selection.getLength() > 0) {
+                System.out.println("selection start: " + start + ", end: " + end);
+            }
             for (int i = 0, max = paragraphNodesChildren.size(); i < max; i++) {
                 TextFlow textFlow = (TextFlow)paragraphNodesChildren.get(i);
                 for (int j = 0; j < textFlow.getChildren().size(); j++) {
@@ -2019,7 +2022,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         selectionHighlightPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
                         selectionHighlightPath.setManaged(false);
                         PathElement[] selectionShape = textNode.getSelectionShape();
-                        if (selectionShape != null) {
+                        if (selectionShape != null && selectionShape.length > 0) {
                             // Because the Text node can not have the same bound height. Don't ask me why :(
                             // the Y coordinate has been adjusted When layout above.
                             // We need to adjust the Y coordinate of the selection shape.
@@ -2035,6 +2038,24 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
 //                        selectionHighlightGroup.setVisible(true);
                         updateHighlightFill();
+                    } else if (end > start && start == paragraphLength && paragraphLength == 0) {
+                        // There is a blank line in selection
+                        textNode.setSelectionStart(0);
+                        textNode.setSelectionEnd(0);
+                        Path selectionHighlightPath = new Path();
+                        selectionHighlightPath.setLayoutX(textNode.getLayoutX());
+                        selectionHighlightPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                        selectionHighlightPath.setManaged(false);
+                        // Create a 1px width PathElement to show the highlight
+                        PathElement[] selectionShape = new PathElement[] {
+                                new MoveTo(0, 0),
+                                new LineTo(1, 0),
+                                new LineTo(1, textNode.getLayoutBounds().getHeight()),
+                                new LineTo(0, textNode.getLayoutBounds().getHeight()),
+                                new LineTo(0, 0)
+                        };
+                        selectionHighlightPath.getElements().addAll(selectionShape);
+                        selectionHighlightGroup.getChildren().add(selectionHighlightPath);
                     } else {
                         textNode.setSelectionStart(-1);
                         textNode.setSelectionEnd(-1);
