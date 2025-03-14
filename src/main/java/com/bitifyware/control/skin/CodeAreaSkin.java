@@ -2005,9 +2005,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             // Update selection fg and bg
             int start = selection.getStart();
             int end = selection.getEnd();
-            if (selection.getLength() > 0) {
-                System.out.println("selection start: " + start + ", end: " + end);
-            }
             for (int i = 0, max = paragraphNodesChildren.size(); i < max; i++) {
                 TextFlow textFlow = (TextFlow)paragraphNodesChildren.get(i);
                 for (int j = 0; j < textFlow.getChildren().size(); j++) {
