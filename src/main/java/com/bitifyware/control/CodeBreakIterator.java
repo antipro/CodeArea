@@ -7,6 +7,10 @@ import java.util.Set;
 
 public class CodeBreakIterator extends BreakIterator {
 
+    public static final Set<Character> DELIMITERS = Set.of(' ', '.', ',', ';', ':', '!', '?',
+            '(', ')', '[', ']', '{', '}', '<', '>',
+            '/', '\\', '|', '\'', '"', '`', '~', '\n', '\t',
+            '@', '#', '%', '^', '&', '*', '-', '+', '=', '—');
     private String text;
     private int current;
 
@@ -54,11 +58,7 @@ public class CodeBreakIterator extends BreakIterator {
     }
 
     public static boolean isDelimiter(char c) {
-        Set<Character> delimiters = Set.of(' ', '.', ',', ';', ':', '!', '?',
-                '(', ')', '[', ']', '{', '}', '<', '>',
-                '/', '\\', '|', '\'', '"', '`', '~', '\n', '\t',
-                '@', '#', '%', '^', '&', '*', '-', '+', '=', '—');
-        return delimiters.contains(c);
+        return DELIMITERS.contains(c);
     }
 
     @Override
