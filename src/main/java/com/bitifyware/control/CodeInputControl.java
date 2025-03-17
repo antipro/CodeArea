@@ -797,7 +797,7 @@ public abstract class CodeInputControl extends Control {
                 char ch = text.charAt(Utils.clamp(0, p, textLength-1));
                 // Avoid using Character.isSpaceChar() and Character.isWhitespace(),
                 // because they include LINE_SEPARATOR, PARAGRAPH_SEPARATOR, etc.
-                if (ch != ' ' && ch != '\t') {
+                if (!Character.isLetterOrDigit(ch)) {
                     if (select) {
                         selectRange(getAnchor(), p);
                     } else {
