@@ -649,7 +649,7 @@ public abstract class CodeInputControl extends Control {
      */
     public void paste() {
         final Clipboard clipboard = Clipboard.getSystemClipboard();
-        if (clipboard.hasString() && clipboard.getString() != null) {
+        if (clipboard.hasString() || clipboard.getString() != null) {
             final String text = clipboard.getString();
             if (text != null) {
                 createNewUndoRecord = true;
