@@ -649,6 +649,7 @@ public abstract class CodeInputControl extends Control {
      */
     public void paste() {
         final Clipboard clipboard = Clipboard.getSystemClipboard();
+        // Sometimes clipboard have string but hasString() returns false
         if (clipboard.hasString() || clipboard.getString() != null) {
             final String text = clipboard.getString();
             if (text != null) {
