@@ -5,18 +5,21 @@ import com.bitifyware.control.syntax.DemoSyntax;
 import com.bitifyware.control.syntax.SyntaxHighlighter;
 import com.sun.javafx.collections.ListListenerHelper;
 import com.sun.javafx.collections.NonIterableChange;
-import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.*;
 import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.*;
 import javafx.css.converter.SizeConverter;
+import javafx.event.EventHandler;
 import javafx.geometry.Point2D;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.Skin;
+import javafx.scene.input.ContextMenuEvent;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
@@ -488,6 +491,17 @@ public class CodeArea extends CodeInputControl {
 
     public void clearErrorPos() {
         errorPosList.clear();
+    }
+
+    private final ObjectProperty<EventHandler<ContextMenuEvent>> gutterEventHandlerProperty =
+            new SimpleObjectProperty<>(this, "gutterEventHandler=");
+
+    public final ObjectProperty<EventHandler<ContextMenuEvent>> gutterEventHandlerProperty() {
+        return gutterEventHandlerProperty;
+    }
+
+    public final EventHandler<ContextMenuEvent> getGutterEventHandler() {
+        return gutterEventHandlerProperty.get();
     }
 
     private final ObjectProperty<Point2D> caretPosition = new SimpleObjectProperty<>(this, "caretPosition", new Point2D(0, 0));

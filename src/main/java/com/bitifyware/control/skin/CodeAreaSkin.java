@@ -84,7 +84,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     private double lineHeight;
 
     private ContentView contentView = new ContentView();
-    private final VBox lineNoBar = new VBox();
+    private final VBox gutter = new VBox();
     private Group paragraphNodes = new Group();
 
     private Text promptNode;
@@ -179,27 +179,12 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         scrollPane = new ScrollPane();
         scrollPane.setFitToWidth(control.isWrapText());
         HBox hBox = new HBox();
-        lineNoBar.setPadding(new Insets(6, 0, 10, 0));
-        lineNoBar.setAlignment(Pos.TOP_RIGHT);
+        gutter.setPadding(new Insets(6, 0, 10, 0));
+        gutter.setAlignment(Pos.TOP_RIGHT);
         minBarWidth = Utils.computeTextWidth(codeArea.getFont(), "00", Double.POSITIVE_INFINITY);
-        lineNoBar.setMinWidth(minBarWidth);
-        ResourceBundle bundle = ResourceBundle.getBundle("lang", Locale.getDefault());
-
-        MenuItem miToggleWrap = new MenuItem(
-                codeArea.isWrapText() ? bundle.getString("CodeArea.Unwrap") : bundle.getString("CodeArea.Wrap")
-        );
-        miToggleWrap.setOnAction(event -> {
-            codeArea.setWrapText(!codeArea.isWrapText());
-        });
-        ContextMenu contextMenu = new ContextMenu(miToggleWrap);
-        lineNoBar.setOnContextMenuRequested(event -> {
-            miToggleWrap.setText(
-                    codeArea.isWrapText() ? bundle.getString("CodeArea.Unwrap") : bundle.getString("CodeArea.Wrap")
-            );
-            contextMenu.show(lineNoBar, event.getScreenX(), event.getScreenY());
-            event.consume();
-        });
-        hBox.getChildren().addAll(lineNoBar, contentView);
+        gutter.setMinWidth(minBarWidth);
+        gutter.onContextMenuRequestedProperty().bind(codeArea.gutterEventHandlerProperty());
+        hBox.getChildren().addAll(gutter, contentView);
         HBox.setHgrow(contentView, Priority.ALWAYS);
         scrollPane.setContent(hBox);
         getChildren().add(scrollPane);
@@ -1586,14 +1571,14 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     void addLineNumber(int no, double prefHeight) {
         Label label;
-        if (no < lineNoBar.getChildren().size()) {
-            label = (Label) lineNoBar.getChildren().get(no);
+        if (no < gutter.getChildren().size()) {
+            label = (Label) gutter.getChildren().get(no);
             label.setPrefHeight(prefHeight);
         } else {
             label = new Label(String.valueOf(no + 1));
             label.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
                 event.consume();
-                lineNoBar.fireEvent(event.copyFor(lineNoBar, lineNoBar));
+                gutter.fireEvent(event.copyFor(gutter, gutter));
             });
             label.setPadding(new Insets(0, 0, 0, 0));
             label.setAlignment(Pos.TOP_CENTER);
@@ -1602,7 +1587,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             label.setOnContextMenuRequested(Event::consume);
             label.fontProperty().bind(codeArea.fontProperty());
             label.textFillProperty().bind(textFillProperty());
-            lineNoBar.getChildren().add(label);
+            gutter.getChildren().add(label);
         }
     }
 
@@ -1813,16 +1798,16 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 y += textFlow.getPrefHeight();
                 addLineNumber(no++, textFlow.getPrefHeight());
             }
-            int diff = no - lineNoBar.getChildren().size();
+            int diff = no - gutter.getChildren().size();
             if (diff < 0) {
                 // Clear the extra line numbers
-                lineNoBar.getChildren().remove(no, lineNoBar.getChildren().size());
+                gutter.getChildren().remove(no, gutter.getChildren().size());
             }
-            double noBarWith = ((Label)lineNoBar.getChildren().getLast()).getWidth();
+            double noBarWith = ((Label) gutter.getChildren().getLast()).getWidth();
             if (noBarWith < minBarWidth) {
                 noBarWith = minBarWidth;
             }
-            lineNoBar.setMinWidth(noBarWith);
+            gutter.setMinWidth(noBarWith);
 
             if (promptNode != null) {
                 promptNode.setLayoutX(0);
