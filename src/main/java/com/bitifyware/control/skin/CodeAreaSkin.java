@@ -33,6 +33,7 @@ import javafx.scene.shape.*;
 import javafx.scene.text.*;
 import javafx.util.Duration;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -2007,17 +2008,15 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             int end = selection.getEnd();
             for (int i = 0, max = paragraphNodesChildren.size(); i < max; i++) {
                 TextFlow textFlow = (TextFlow)paragraphNodesChildren.get(i);
+                Path linePath = null;
+                List<PathElement[]> pathElements = new ArrayList<>();
+                double highlightWidth = 0.0;
                 for (int j = 0; j < textFlow.getChildren().size(); j++) {
                     Text textNode = (Text) textFlow.getChildren().get(j);
                     int paragraphLength = textNode.getText().length();
                     if (end > start && start < paragraphLength) {
                         textNode.setSelectionStart(start);
                         textNode.setSelectionEnd(Math.min(end, paragraphLength));
-
-                        Path selectionHighlightPath = new Path();
-                        selectionHighlightPath.setLayoutX(textNode.getLayoutX());
-                        selectionHighlightPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
-                        selectionHighlightPath.setManaged(false);
                         PathElement[] selectionShape = textNode.getSelectionShape();
                         if (selectionShape != null && selectionShape.length > 0) {
                             // Because the Text node can not have the same bound height. Don't ask me why :(
@@ -2030,20 +2029,25 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                 ((LineTo)selectionShape[1]).setY(((LineTo)selectionShape[1]).getY() - offset);
                                 ((LineTo)selectionShape[4]).setY(((LineTo)selectionShape[4]).getY() - offset);
                             }
-                            selectionHighlightPath.getElements().addAll(selectionShape);
+                            pathElements.add(selectionShape);
+                            highlightWidth += ((LineTo)selectionShape[1]).getX();
+                            if (linePath == null) {
+                                // Set Start Point
+                                linePath = new Path();
+                                linePath.setLayoutX(textNode.getLayoutX());
+                                linePath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                                linePath.setManaged(false);
+                            }
+
                         }
-                        selectionHighlightGroup.getChildren().add(selectionHighlightPath);
-
-//                        selectionHighlightGroup.setVisible(true);
-
                     } else if (end > start && start == paragraphLength && paragraphLength == 0) {
                         // There is a blank line in selection
                         textNode.setSelectionStart(0);
                         textNode.setSelectionEnd(0);
-                        Path selectionHighlightPath = new Path();
-                        selectionHighlightPath.setLayoutX(textNode.getLayoutX());
-                        selectionHighlightPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
-                        selectionHighlightPath.setManaged(false);
+                        Path blankLinePath = new Path();
+                        blankLinePath.setLayoutX(textNode.getLayoutX());
+                        blankLinePath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                        blankLinePath.setManaged(false);
                         // Create a 1px width PathElement to show the highlight
                         PathElement[] selectionShape = new PathElement[] {
                                 new MoveTo(0, -textNode.getLayoutY()),
@@ -2052,15 +2056,34 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                 new LineTo(0, textNode.getLayoutBounds().getHeight()),
                                 new LineTo(0, -textNode.getLayoutY())
                         };
-                        selectionHighlightPath.getElements().addAll(selectionShape);
-                        selectionHighlightGroup.getChildren().add(selectionHighlightPath);
+                        blankLinePath.getElements().addAll(selectionShape);
+                        selectionHighlightGroup.getChildren().add(blankLinePath);
                     } else {
                         textNode.setSelectionStart(-1);
                         textNode.setSelectionEnd(-1);
-//                        selectionHighlightGroup.setVisible(false);
                     }
                     start = Math.max(0, start - paragraphLength);
                     end   = Math.max(0, end   - paragraphLength);
+                }
+                if (!pathElements.isEmpty()) {
+                    // There is selection in this paragraph
+                    PathElement[] firstShape = pathElements.getFirst();
+                    // MoveTo left top corner of fist shape
+                    linePath.getElements().add(firstShape[0]);
+                    PathElement[] lastShape = pathElements.getLast();
+                    // LineTo right top corner of last shape
+                    LineTo lineTo = new LineTo(highlightWidth, ((LineTo)lastShape[1]).getY());
+                    linePath.getElements().add(lineTo);
+                    // LineTo right bottom corner of last shape
+                    lineTo = new LineTo(highlightWidth, ((LineTo)lastShape[2]).getY());
+                    linePath.getElements().add(lineTo);
+                    // LineTo left bottom corner of first shape
+                    lineTo = new LineTo(((LineTo)firstShape[3]).getX(), ((LineTo)firstShape[3]).getY());
+                    linePath.getElements().add(lineTo);
+                    // LineTo left top corner of first shape
+                    lineTo = new LineTo(((LineTo)firstShape[4]).getX(), ((LineTo)firstShape[4]).getY());
+                    linePath.getElements().add(lineTo);
+                    selectionHighlightGroup.getChildren().add(linePath);
                 }
                 start = Math.max(0, start - 1);
                 end   = Math.max(0, end   - 1);
