@@ -126,6 +126,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
      * Remembers horizontal position when traversing up / down.
      */
     double targetCaretX = -1;
+    private double minBarWidth;
 
 
 
@@ -180,7 +181,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         HBox hBox = new HBox();
         lineNoBar.setPadding(new Insets(6, 0, 10, 0));
         lineNoBar.setAlignment(Pos.TOP_RIGHT);
-        lineNoBar.setMinWidth(Utils.computeTextWidth(Font.getDefault(), "000", 0));
+        minBarWidth = Utils.computeTextWidth(codeArea.getFont(), "00", Double.POSITIVE_INFINITY);
+        lineNoBar.setMinWidth(minBarWidth);
         ResourceBundle bundle = ResourceBundle.getBundle("lang", Locale.getDefault());
 
         MenuItem miToggleWrap = new MenuItem(
@@ -1816,6 +1818,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 // Clear the extra line numbers
                 lineNoBar.getChildren().remove(no, lineNoBar.getChildren().size());
             }
+            double noBarWith = ((Label)lineNoBar.getChildren().getLast()).getWidth();
+            if (noBarWith < minBarWidth) {
+                noBarWith = minBarWidth;
+            }
+            lineNoBar.setMinWidth(noBarWith);
 
             if (promptNode != null) {
                 promptNode.setLayoutX(0);
