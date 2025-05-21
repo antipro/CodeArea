@@ -2035,7 +2035,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         selectionHighlightGroup.getChildren().add(selectionHighlightPath);
 
 //                        selectionHighlightGroup.setVisible(true);
-                        updateHighlightFill();
+
                     } else if (end > start && start == paragraphLength && paragraphLength == 0) {
                         // There is a blank line in selection
                         textNode.setSelectionStart(0);
@@ -2066,6 +2066,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 end   = Math.max(0, end   - 1);
             }
             if (!selectionHighlightGroup.getChildren().isEmpty()) {
+                updateHighlightFill();
                 selectionHighlightGroup.setLayoutX(paragraphNodes.getBoundsInLocal().getMinX());
 //                selectionHighlightGroup.setLayoutY(paragraphNodes.getBoundsInLocal().getMinY());
                 selectionHighlightGroup.setVisible(true);
