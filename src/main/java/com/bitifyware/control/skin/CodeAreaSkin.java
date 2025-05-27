@@ -2021,6 +2021,30 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                 ((LineTo)selectionShape[1]).setY(((LineTo)selectionShape[1]).getY() - offset);
                                 ((LineTo)selectionShape[4]).setY(((LineTo)selectionShape[4]).getY() - offset);
                             }
+
+                            if (linePath != null && textNode.getLayoutX() == 0) {
+                                // New Line of Selection Draw previous linePath
+                                PathElement[] firstShape = pathElements.getFirst();
+                                // MoveTo left top corner of fist shape
+                                linePath.getElements().add(firstShape[0]);
+                                PathElement[] lastShape = pathElements.getLast();
+                                // LineTo right top corner of last shape
+                                LineTo lineTo = new LineTo(highlightWidth, ((LineTo)lastShape[1]).getY());
+                                linePath.getElements().add(lineTo);
+                                // LineTo right bottom corner of last shape
+                                lineTo = new LineTo(highlightWidth, ((LineTo)lastShape[2]).getY());
+                                linePath.getElements().add(lineTo);
+                                // LineTo left bottom corner of first shape
+                                lineTo = new LineTo(((LineTo)firstShape[3]).getX(), ((LineTo)firstShape[3]).getY());
+                                linePath.getElements().add(lineTo);
+                                // LineTo left top corner of first shape
+                                lineTo = new LineTo(((LineTo)firstShape[4]).getX(), ((LineTo)firstShape[4]).getY());
+                                linePath.getElements().add(lineTo);
+                                selectionHighlightGroup.getChildren().add(linePath);
+                                linePath = null; // Reset for next line
+                                pathElements.clear();
+                                highlightWidth = 0.0;
+                            }
                             pathElements.add(selectionShape);
                             highlightWidth += ((LineTo)selectionShape[1]).getX();
                             if (linePath == null) {
@@ -2029,8 +2053,16 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                 linePath.setLayoutX(textNode.getLayoutX());
                                 linePath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
                                 linePath.setManaged(false);
+                                if (textNode.getBoundsInLocal().getWidth() < Utils.computeTextWidth(
+                                        textNode.getFont(), textNode.getText(), 0)) {
+                                    // There is a text node which have whole width of editor
+                                    linePath.getElements().addAll(pathElements.getFirst());
+                                    selectionHighlightGroup.getChildren().add(linePath);
+                                    pathElements.clear();
+                                    linePath = null; // Reset for next line
+                                    highlightWidth = 0.0;
+                                }
                             }
-
                         }
                     } else if (end > start && start == paragraphLength && paragraphLength == 0) {
                         // There is a blank line in selection
@@ -2058,7 +2090,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     end   = Math.max(0, end   - paragraphLength);
                 }
                 if (!pathElements.isEmpty()) {
-                    // There is selection in this paragraph
+                    // There is still some selection shape left in pathElements, Draw it
                     PathElement[] firstShape = pathElements.getFirst();
                     // MoveTo left top corner of fist shape
                     linePath.getElements().add(firstShape[0]);
@@ -2076,6 +2108,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     lineTo = new LineTo(((LineTo)firstShape[4]).getX(), ((LineTo)firstShape[4]).getY());
                     linePath.getElements().add(lineTo);
                     selectionHighlightGroup.getChildren().add(linePath);
+                    pathElements.clear();
                 }
                 start = Math.max(0, start - 1);
                 end   = Math.max(0, end   - 1);
@@ -2083,7 +2116,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             if (!selectionHighlightGroup.getChildren().isEmpty()) {
                 updateHighlightFill();
                 selectionHighlightGroup.setLayoutX(paragraphNodes.getBoundsInLocal().getMinX());
-//                selectionHighlightGroup.setLayoutY(paragraphNodes.getBoundsInLocal().getMinY());
                 selectionHighlightGroup.setVisible(true);
             }
 
