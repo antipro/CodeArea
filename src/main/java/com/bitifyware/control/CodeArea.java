@@ -462,7 +462,7 @@ public class CodeArea extends CodeInputControl {
         syntaxHighlighter.set(value);
     }
 
-    private IntegerProperty tabSize = new SimpleIntegerProperty(this, "tabSize", 4);
+    private final IntegerProperty tabSize = new SimpleIntegerProperty(this, "tabSize", 4);
 
     public final IntegerProperty tabSizeProperty() {
         return tabSize;
