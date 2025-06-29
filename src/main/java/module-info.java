@@ -4,6 +4,7 @@ module com.bitifyware.codearea {
     requires java.desktop;
 
     exports com.bitifyware.control.skin;
+    exports com.bitifyware.control.utils;
     exports com.bitifyware.control.syntax;
     exports com.bitifyware.control;
     opens com.bitifyware.control.skin to javafx.fxml;
