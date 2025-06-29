@@ -158,6 +158,7 @@
                                 <!--                                <option>-keep class javafx.** { *; }</option>-->
                                 <option>-keep class module-info { *; }</option>
                                 <option>-keep class javafx.** { *; }</option>
+                                <option>-keep class com.bitifyware.control.utils.* { *; }</option>
                                 <option>-keep class com.bitifyware.control.skin.* { *; }</option>
                                 <option>-keep class com.bitifyware.control.syntax.* { *; }</option>
                                 <option>-keep class com.bitifyware.control.* { *; }</option>
