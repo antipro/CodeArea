@@ -307,10 +307,8 @@ public abstract class CodeInputControlSkin<T extends CodeInputControl> extends S
                     // Don't use imstart here because it isn't initialized yet.
                     Rectangle2D characterBounds = getCharacterBounds(control.getSelection().getStart() + offset);
                     Point2D p = control.localToScene(characterBounds.getMinX(), characterBounds.getMaxY());
-                    Point2D point2D = new Point2D(window.getX() + scene.getX() + p.getX(),
+                    return new Point2D(window.getX() + scene.getX() + p.getX(),
                             window.getY() + scene.getY() + p.getY());
-                    System.out.println("getTextLocation: offset=" + offset + ", point2D=" + point2D);
-                    return point2D;
                 }
 
                 @Override public int getLocationOffset(int x, int y) {
@@ -718,9 +716,10 @@ public abstract class CodeInputControlSkin<T extends CodeInputControl> extends S
      * @param event the {@code InputMethodEvent} to be handled
      */
     protected void handleInputMethodEvent(InputMethodEvent event) {
-        for (InputMethodTextRun inputMethodTextRun : event.getComposed()) {
-            System.out.println("inputMethodTextRun = " + inputMethodTextRun.getText());
-        }
+//        for (InputMethodTextRun inputMethodTextRun : event.getComposed()) {
+//            Rectangle2D characterBounds = getCharacterBounds(getSkinnable().getCaretPosition());
+//            System.out.println("x:" + characterBounds.getMinX() + " y:" + characterBounds.getMinY());
+//        }
         final CodeInputControl textInput = getSkinnable();
         if (textInput.isEditable() && !textInput.textProperty().isBound() && !textInput.isDisabled()) {
 

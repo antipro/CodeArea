@@ -1285,7 +1285,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
 
         characterBoundingPath.getElements().clear();
-        characterBoundingPath.getElements().addAll(paragraphNode.rangeShape(characterIndex, characterIndex + 1));
+        PathElement[] pathElements = paragraphNode.rangeShape(characterIndex, characterIndex + 1);
+        if (pathElements.length == 0) {
+            pathElements = paragraphNode.getCaretShape();
+        }
+        characterBoundingPath.getElements().addAll(pathElements);
         characterBoundingPath.setLayoutX(textFlow.getLayoutX() + paragraphNode.getLayoutX());
         characterBoundingPath.setLayoutY(textFlow.getLayoutY() + paragraphNode.getLayoutY());
 
