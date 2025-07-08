@@ -8,7 +8,6 @@ import com.sun.javafx.collections.NonIterableChange;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.*;
 import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -19,7 +18,6 @@ import javafx.geometry.Point2D;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.Skin;
 import javafx.scene.input.ContextMenuEvent;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
@@ -473,6 +471,23 @@ public class CodeArea extends CodeInputControl {
             throw new IllegalArgumentException("tabSize cannot be less than 1.");
         }
         this.tabSize.set(tabSize);
+    }
+
+    private final StringProperty highlightClassProperty = new SimpleStringProperty(this, "highlightClass", "");
+
+    public final StringProperty highlightClassProperty() {
+        return highlightClassProperty;
+    }
+
+    public final String getHighlightClass() {
+        return highlightClassProperty.get();
+    }
+
+    public final void setHighlightClass(String highlightClass) {
+        if (highlightClass == null) {
+            throw new IllegalArgumentException("identifier cannot be null.");
+        }
+        highlightClassProperty.set(highlightClass);
     }
 
     private final ObservableList<Integer> errorPosList = FXCollections.observableArrayList();

@@ -35,8 +35,6 @@ import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -1527,29 +1525,12 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         return (Text)textFlow.getChildren().getFirst();
     }
 
+    /**
+     * Sets the caret position in the text node.
+     * @param pos the caret position in the text node
+     * @param textNode the text node which caret belongs to
+     */
     private void updateTextNodeCaretPos(int pos, Text textNode) {
-//        int offset = 0;
-//        for (Node child : paragraphNodes.getChildren()) {
-//            TextFlow textFlow = (TextFlow)child;
-//            for (Node textFlowChild : textFlow.getChildren()) {
-//                Text text = (Text)textFlowChild;
-//                int length = text.getText().length();
-//                if (pos < offset + length) {
-//                    if (isForwardBias()) {
-//                        text.setCaretPosition(pos - offset);
-//                    } else {
-//                        text.setCaretPosition(pos - offset - 1);
-//                    }
-//                    text.caretBiasProperty().set(isForwardBias());
-//                    for (PathElement pathElement : text.getCaretShape()) {
-//                        System.out.println("path element: " + pathElement);
-//                    }
-//                    return;
-//                }
-//                offset += length;
-//            }
-//        }
-//        Text textNode = getTextNode(0, 0);
         if (isForwardBias()) {
             textNode.setCaretPosition(pos);
         } else {
@@ -1721,6 +1702,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
 
         @Override public void layoutChildren() {
+            highlightPath.getElements().clear();
             highlightPath.setVisible(false);
             contentView.getChildren()
                     .removeIf(node ->
@@ -1928,7 +1910,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     }
                 }
 
-                updateTextNodeCaretPos(caretPos - caretOffset, caretTextNode);
+                int caretPosInText = caretPos - caretOffset;
+                updateTextNodeCaretPos(caretPosInText, caretTextNode);
 
                 List<Text> textNodes = paragraphNodes.getChildren().stream()
                         .map(n -> (TextFlow)n)
@@ -1939,16 +1922,18 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 String selectedText = codeArea.getSelectedText();
                 if (!selectedText.isBlank()) {
                     updateSelectionHighlight(caretTextNode, textNodes, selectedText);
+                } else if (caretTextNode.getStyleClass().contains(codeArea.getHighlightClass())) {
+                    // TOOD highlight text node with identifier
+                    updateClassHighlight(caretTextNode, codeArea.getHighlightClass(), caretPosInText, textNodes);
                 } else {
                     String rightChar = caretPos + 1 <= text.length() ? text.substring(caretPos, caretPos + 1) : "";
+                    String leftChar = caretPos > 0 ? text.substring(caretPos - 1, caretPos) : "";
                     if (rightChar.equals(")")) {
                         updatePairHighlight(caretTextNode,
-                                caretPos - caretOffset, textNodes, false);
-                    }
-                    String leftChar = caretPos > 0 ? text.substring(caretPos - 1, caretPos) : "";
-                    if (!highlightPath.isVisible() && leftChar.equals("(")) {
+                                caretPosInText, textNodes, false);
+                    } else if (leftChar.equals("(")) {
                         updatePairHighlight(caretTextNode,
-                                caretPos - caretOffset, textNodes, true);
+                                caretPosInText, textNodes, true);
                     }
                 }
 
@@ -1960,7 +1945,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
                 caretPath.setLayoutY(caretTextFlow.getLayoutY() + caretTextNode.getLayoutY());
                 double caretX = caretTextFlow.getLayoutX() + caretTextNode.getLayoutX()
-                        + Utils.computeTextWidth(caretTextNode.getFont(), caretTextNode.getText().substring(0, caretPos - caretOffset), 0);
+                        + Utils.computeTextWidth(caretTextNode.getFont(), caretTextNode.getText().substring(0, caretPosInText), 0);
                 Point2D caretPoint = new Point2D(caretX, caretPath.getLayoutY());
                 codeArea.caretPointProperty().set(caretPoint);
 
@@ -2187,7 +2172,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     highlightPath.setVisible(true);
                     highlightPath.setLayoutX(0);
                     highlightPath.setLayoutY(0);
-                    highlightPath.getElements().clear();
                 }
                 Pattern pattern = Pattern.compile("(\\b" + safePattern + "\\b)", Pattern.CASE_INSENSITIVE);
                 Matcher matcher = pattern.matcher(text);
@@ -2212,6 +2196,57 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     highlightPath.getElements().addAll(pathElements);
                 }
             }
+        }
+
+        public void updateClassHighlight(Text caretTextNode, String highlightClass, int pos, List<Text> allTextNodes) {
+            if (allTextNodes.isEmpty()) {
+                return;
+            }
+            // Get the word at the given position in caretTextNode
+            String text = caretTextNode.getText();
+            if (text.isEmpty() || pos < 0 || pos > text.length()) return;
+
+            // Use regex to find the word at pos
+            Matcher matcher = Pattern.compile("\\b\\w+\\b").matcher(text);
+            String word = null;
+            while (matcher.find()) {
+                if (matcher.start() <= pos && matcher.end() >= pos) {
+                    word = matcher.group();
+                    break;
+                }
+            }
+            if (word == null || word.isBlank()) {
+                return;
+            }
+
+            // Prepare regex for whole word search
+            String safePattern = Pattern.quote(word);
+            Pattern wordPattern = Pattern.compile("\\b" + safePattern + "\\b");
+
+            boolean found = false;
+            for (Text node : allTextNodes) {
+                if (!node.getStyleClass().contains(highlightClass)) continue;
+                String nodeText = node.getText();
+                Matcher m = wordPattern.matcher(nodeText);
+                while (m.find()) {
+                    int start = m.start();
+                    int end = m.end();
+                    PathElement[] pathElements = node.rangeShape(start, end);
+                    TextFlow textFlow = (TextFlow) node.getParent();
+                    for (PathElement pe : pathElements) {
+                        if (pe instanceof MoveTo moveTo) {
+                            moveTo.setX(moveTo.getX() + node.getLayoutX() + textFlow.getLayoutX());
+                            moveTo.setY(moveTo.getY() + node.getLayoutY() + textFlow.getLayoutY());
+                        } else if (pe instanceof LineTo lineTo) {
+                            lineTo.setX(lineTo.getX() + node.getLayoutX() + textFlow.getLayoutX());
+                            lineTo.setY(lineTo.getY() + node.getLayoutY() + textFlow.getLayoutY());
+                        }
+                    }
+                    highlightPath.getElements().addAll(pathElements);
+                    found = true;
+                }
+            }
+            highlightPath.setVisible(found);
         }
 
         private void updatePairHighlight(Text caretTextNode, int start, List<Text> allTextNodes, boolean isForward) {
