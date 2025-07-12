@@ -96,9 +96,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     private VerticalDirection scrollDirection = null;
 
-    private Path characterBoundingPath = new Path();
+    private final Path characterBoundingPath = new Path();
 
     private final Path highlightPath = new Path();
+
+    private final Path rangeHighlightPath = new Path();
 
     private Timeline scrollSelectionTimeline = new Timeline();
     private EventHandler<ActionEvent> scrollSelectionHandler = event -> {
@@ -200,6 +202,12 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         highlightPath.setOpacity(0.5);
         highlightPath.setVisible(false);
         contentView.getChildren().add(highlightPath);
+        rangeHighlightPath.setManaged(false);
+        rangeHighlightPath.setStroke(Color.TRANSPARENT);
+        rangeHighlightPath.setFill(Color.LIGHTGRAY);
+        rangeHighlightPath.setOpacity(0.5);
+        rangeHighlightPath.setVisible(false);
+        contentView.getChildren().add(rangeHighlightPath);
         // Add selection
         selectionHighlightGroup.setManaged(false);
         selectionHighlightGroup.setVisible(false);
@@ -1704,6 +1712,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         @Override public void layoutChildren() {
             highlightPath.getElements().clear();
             highlightPath.setVisible(false);
+            rangeHighlightPath.getElements().clear();
+            rangeHighlightPath.setVisible(false);
             contentView.getChildren()
                     .removeIf(node ->
                             node.getStyleClass().contains("error-line")
@@ -1913,17 +1923,22 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 int caretPosInText = caretPos - caretOffset;
                 updateTextNodeCaretPos(caretPosInText, caretTextNode);
 
+                if (codeArea.getHighlightedRange() != null) {
+                    updateHighlightRange(codeArea.getHighlightedRange());
+                }
+
                 List<Text> textNodes = paragraphNodes.getChildren().stream()
                         .map(n -> (TextFlow)n)
                         .flatMap(n -> n.getChildren().stream())
                         .map(n -> (Text)n)
                         .toList();
+
                 String text = codeArea.getText();
                 String selectedText = codeArea.getSelectedText();
                 if (!selectedText.isBlank()) {
                     updateSelectionHighlight(caretTextNode, textNodes, selectedText);
                 } else if (caretTextNode.getStyleClass().contains(codeArea.getHighlightClass())) {
-                    // TOOD highlight text node with identifier
+                    // highlight text node with identifier
                     updateClassHighlight(caretTextNode, codeArea.getHighlightClass(), caretPosInText, textNodes);
                 } else {
                     String rightChar = caretPos + 1 <= text.length() ? text.substring(caretPos, caretPos + 1) : "";
@@ -1936,6 +1951,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                 caretPosInText, textNodes, true);
                     }
                 }
+
+
 
                 // highlight the current line
 //                caretTextFlow.setBackground(new Background(new BackgroundFill(Color.valueOf("#BCBC9F"), CornerRadii.EMPTY, Insets.EMPTY)));
@@ -2151,6 +2168,61 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 });
                 getParent().requestLayout();
             }
+        }
+
+        private void updateHighlightRange(IndexRange indexRange) {
+            if (indexRange == null || indexRange.getLength() <= 0) {
+                rangeHighlightPath.getElements().clear();
+                rangeHighlightPath.setVisible(false);
+                return;
+            }
+            int start = indexRange.getStart();
+            int end = indexRange.getEnd();
+            if (start < 0 || end > codeArea.getLength() || start >= end) {
+                rangeHighlightPath.getElements().clear();
+                rangeHighlightPath.setVisible(false);
+                return;
+            }
+            rangeHighlightPath.getElements().clear();
+            boolean found = false;
+            int globalOffset = 0;
+            List<Node> nodeList = paragraphNodes.getChildren();
+            for (Node node : nodeList) {
+                TextFlow textFlow = (TextFlow) node;
+                ObservableList<Node> textNodes = textFlow.getChildren();
+                for (Node subNode : textNodes) {
+                    Text text = (Text) subNode;
+                    int textLength = text.getText().length();
+                    int nodeStart = globalOffset;
+                    int nodeEnd = globalOffset + textLength;
+                    // Check if this Text node overlaps with the highlight range
+                    int highlightStart = Math.max(start, nodeStart);
+                    int highlightEnd = Math.min(end, nodeEnd);
+                    if (highlightStart < highlightEnd) {
+                        int localStart = highlightStart - nodeStart;
+                        int localEnd = highlightEnd - nodeStart;
+                        PathElement[] pathElements = text.rangeShape(localStart, localEnd);
+                        for (PathElement pathElement : pathElements) {
+                            switch (pathElement) {
+                                case MoveTo moveTo -> {
+                                    moveTo.setX(moveTo.getX() + text.getLayoutX() + textFlow.getLayoutX());
+                                    moveTo.setY(moveTo.getY() + text.getLayoutY() + textFlow.getLayoutY());
+                                }
+                                case LineTo lineTo -> {
+                                    lineTo.setX(lineTo.getX() + text.getLayoutX() + textFlow.getLayoutX());
+                                    lineTo.setY(lineTo.getY() + text.getLayoutY() + textFlow.getLayoutY());
+                                }
+                                default -> { }
+                            }
+                        }
+                        rangeHighlightPath.getElements().addAll(pathElements);
+                        found = true;
+                    }
+                    globalOffset += textLength;
+                }
+                globalOffset++; // Account for the newline character
+            }
+            rangeHighlightPath.setVisible(found);
         }
 
         private void updateSelectionHighlight(Text caretTextNode, List<Text> textNodes, String selectedText) {

@@ -16,6 +16,7 @@ import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
 import javafx.geometry.Point2D;
 import javafx.scene.AccessibleRole;
+import javafx.scene.control.IndexRange;
 import javafx.scene.control.Skin;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.paint.Paint;
@@ -492,10 +493,23 @@ public class CodeArea extends CodeInputControl {
 
     private final ObservableList<Integer> errorPosList = FXCollections.observableArrayList();
 
-    {
-        textProperty().addListener((observable, oldValue, newValue) -> {
-            errorPosList.clear();
-        });
+
+    private final ObjectProperty<IndexRange> highlightedRange = new SimpleObjectProperty<>(this, "highlightedRange", null);
+
+    public final ObjectProperty<IndexRange> highlightedRangeProperty() {
+        return highlightedRange;
+    }
+
+    public final IndexRange getHighlightedRange() {
+        return highlightedRange.get();
+    }
+
+    public final void setHighlightedRange(IndexRange range) {
+        highlightedRange.set(range);
+        if (range == null) {
+            return;
+        }
+        selectRange(range.getStart(), range.getStart());
     }
 
     public final void addErrorPos(Integer errorPos) {
@@ -507,6 +521,14 @@ public class CodeArea extends CodeInputControl {
     public void clearErrorPos() {
         errorPosList.clear();
     }
+
+    {
+        textProperty().addListener((observable, oldValue, newValue) -> {
+            errorPosList.clear();
+            highlightedRange.set(null);
+        });
+    }
+
 
     private final ObjectProperty<EventHandler<ContextMenuEvent>> gutterEventHandlerProperty =
             new SimpleObjectProperty<>(this, "gutterEventHandler=");
