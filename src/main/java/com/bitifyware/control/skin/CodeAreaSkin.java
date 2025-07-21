@@ -205,7 +205,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         rangeHighlightPath.setManaged(false);
         rangeHighlightPath.setStroke(Color.TRANSPARENT);
         rangeHighlightPath.setFill(Color.LIGHTGRAY);
-        rangeHighlightPath.setOpacity(0.5);
+        rangeHighlightPath.setOpacity(0.1);
         rangeHighlightPath.setVisible(false);
         contentView.getChildren().add(rangeHighlightPath);
         // Add selection
