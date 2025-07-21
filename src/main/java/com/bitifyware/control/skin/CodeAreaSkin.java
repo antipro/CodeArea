@@ -197,15 +197,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         getSkinnable().addEventFilter(ScrollEvent.ANY, scrollEventFilter);
 
         highlightPath.setManaged(false);
-        highlightPath.setStroke(Color.TRANSPARENT);
-        highlightPath.setFill(Color.LIGHTGRAY);
-        highlightPath.setOpacity(0.5);
+        highlightPath.getStyleClass().add("highlight");
         highlightPath.setVisible(false);
         contentView.getChildren().add(highlightPath);
         rangeHighlightPath.setManaged(false);
-        rangeHighlightPath.setStroke(Color.TRANSPARENT);
-        rangeHighlightPath.setFill(Color.LIGHTGRAY);
-        rangeHighlightPath.setOpacity(0.1);
+        rangeHighlightPath.getStyleClass().add("range-highlight");
         rangeHighlightPath.setVisible(false);
         contentView.getChildren().add(rangeHighlightPath);
         // Add selection
