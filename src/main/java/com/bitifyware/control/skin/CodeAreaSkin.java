@@ -1752,7 +1752,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 ObservableList<Node> children = textFlow.getChildren();
                 for (int i = 0; i < children.size(); i++) {
                     Text textNode = (Text) children.get(i);
-                    codeArea.getSyntaxHighlighter().highlight(textNode);
+//                    codeArea.getSyntaxHighlighter().highlight(textNode);
                     if (oneLineHeight == 0) {
                         oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "1", 0, TextBoundsType.LOGICAL_VERTICAL_CENTER);
                     }

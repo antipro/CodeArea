@@ -27,10 +27,10 @@ public abstract class SyntaxHighlighter {
                                          ChangeListener<TextBoundsType> callback,
                                          ObjectProperty<Font> fontProperty,
                                          ObjectProperty<Paint> selectionFillProperty);
-
-    /**
-     * Highlight the text This method will be called when layoutChildren
-     * @param text The text to highlight
-     */
-    public abstract void highlight(Text text);
+//
+//    /**
+//     * Highlight the text This method will be called when layoutChildren
+//     * @param text The text to highlight
+//     */
+//    public abstract void highlight(Text text);
 }

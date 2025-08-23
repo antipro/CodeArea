@@ -63,8 +63,8 @@ public class DemoSyntax extends SyntaxHighlighter{
         return texts;
     }
 
-    @Override
-    public void highlight(Text text) {
-        // Do nothing
-    }
+//    @Override
+//    public void highlight(Text text) {
+//        // Do nothing
+//    }
 }
