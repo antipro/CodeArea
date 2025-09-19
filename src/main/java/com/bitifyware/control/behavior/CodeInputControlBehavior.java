@@ -205,7 +205,7 @@ public abstract class CodeInputControlBehavior<T extends CodeInputControl> exten
                 keyMapping(new KeyBinding(END).shift(), e -> selectEnd()),
                 keyMapping(new KeyBinding(LEFT).ctrl(), e -> leftWord()),
                 keyMapping(new KeyBinding(RIGHT).ctrl(), e -> rightWord()),
-                keyMapping(new KeyBinding(H).ctrl(), e -> deletePreviousChar()),
+//                keyMapping(new KeyBinding(H).ctrl(), e -> deletePreviousChar()),
                 keyMapping(new KeyBinding(DELETE).ctrl(), e -> deleteNextWord()),
                 keyMapping(new KeyBinding(BACK_SPACE).ctrl(), e -> deletePreviousWord()),
                 keyMapping(new KeyBinding(BACK_SLASH).ctrl(), e -> c.deselect()),
