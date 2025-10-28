@@ -10,6 +10,7 @@ import javafx.scene.control.ToolBar;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import org.scenicview.ScenicView;
 
 import java.util.Objects;
@@ -114,10 +115,14 @@ public class CodeAreaExample extends Application {
         codeArea.setOnMouseMoved(event -> {
             String textAtPosition = codeArea.getTextAtPosition(event.getX(), event.getY());
             int charIndex = codeArea.getCharacterIndexAtPosition(event.getX(), event.getY());
-            javafx.scene.text.Text textNode = codeArea.getTextNodeAtPosition(event.getX(), event.getY());
+            Text textNode = codeArea.getTextNodeAtPosition(event.getX(), event.getY());
             if (textAtPosition != null && textNode != null) {
-                System.out.println("Position (" + event.getX() + ", " + event.getY() + "): char='" + textAtPosition + 
-                    "', index=" + charIndex + ", textNode=" + textNode.getText().substring(0, Math.min(10, textNode.getText().length())) + "...");
+                String nodeText = textNode.getText();
+                if (nodeText != null && !nodeText.isEmpty()) {
+                    String preview = nodeText.substring(0, Math.min(10, nodeText.length())) + "...";
+                    System.out.println("Position (" + event.getX() + ", " + event.getY() + "): char='" + textAtPosition + 
+                        "', index=" + charIndex + ", textNode=" + preview);
+                }
             }
         });
 
