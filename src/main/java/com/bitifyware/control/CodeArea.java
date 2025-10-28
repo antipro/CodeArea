@@ -1,6 +1,7 @@
 package com.bitifyware.control;
 
 import com.bitifyware.control.skin.CodeAreaSkin;
+import com.bitifyware.control.skin.GlobalHitInfo;
 import com.bitifyware.control.syntax.DemoSyntax;
 import com.bitifyware.control.syntax.SyntaxHighlighter;
 import com.sun.javafx.collections.ListListenerHelper;
@@ -660,6 +661,34 @@ public class CodeArea extends CodeInputControl {
     @Override
     String filterInput(String text) {
         return CodeInputControl.filterInput(text, false, false);
+    }
+
+    /**
+     * Gets the character at the specified mouse coordinates.
+     * 
+     * @param x the x coordinate relative to the CodeArea
+     * @param y the y coordinate relative to the CodeArea
+     * @return the character at the specified position, or null if the position is invalid
+     */
+    public String getTextAtPosition(double x, double y) {
+        CodeAreaSkin skin = (CodeAreaSkin) getSkin();
+        if (skin == null) {
+            return null;
+        }
+        
+        GlobalHitInfo hitInfo = skin.getIndex(x, y);
+        if (hitInfo == null) {
+            return null;
+        }
+        
+        int charIndex = hitInfo.getCharIndex();
+        String content = getText();
+        
+        if (charIndex >= 0 && charIndex < content.length()) {
+            return String.valueOf(content.charAt(charIndex));
+        }
+        
+        return null;
     }
 
     /* *************************************************************************

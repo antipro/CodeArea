@@ -110,6 +110,14 @@ public class CodeAreaExample extends Application {
         });
         toolBar.getItems().add(reDoButton);
 
+        // Demonstrate the getTextAtPosition method
+        codeArea.setOnMouseMoved(event -> {
+            String textAtPosition = codeArea.getTextAtPosition(event.getX(), event.getY());
+            if (textAtPosition != null) {
+                System.out.println("Character at position (" + event.getX() + ", " + event.getY() + "): '" + textAtPosition + "'");
+            }
+        });
+
         VBox codeAreaHBox = new VBox(toolBar, codeArea);
         VBox.setVgrow(codeArea, javafx.scene.layout.Priority.ALWAYS);
         javafx.scene.Scene scene = new javafx.scene.Scene(codeAreaHBox);
