@@ -671,20 +671,13 @@ public class CodeArea extends CodeInputControl {
      * @return the character at the specified position, or null if the position is invalid
      */
     public String getTextAtPosition(double x, double y) {
-        CodeAreaSkin skin = (CodeAreaSkin) getSkin();
-        if (skin == null) {
+        int charIndex = getCharacterIndexAtPosition(x, y);
+        if (charIndex < 0) {
             return null;
         }
         
-        GlobalHitInfo hitInfo = skin.getIndex(x, y);
-        if (hitInfo == null) {
-            return null;
-        }
-        
-        int charIndex = hitInfo.getCharIndex();
         String content = getText();
-        
-        if (charIndex >= 0 && charIndex < content.length()) {
+        if (charIndex < content.length()) {
             return String.valueOf(content.charAt(charIndex));
         }
         
