@@ -705,6 +705,27 @@ public class CodeArea extends CodeInputControl {
         return hitInfo.getCharIndex();
     }
 
+    /**
+     * Gets the JavaFX Text node at the specified mouse coordinates.
+     * 
+     * @param x the x coordinate relative to the CodeArea
+     * @param y the y coordinate relative to the CodeArea
+     * @return the Text node at the specified position, or null if the position is invalid
+     */
+    public Text getTextNodeAtPosition(double x, double y) {
+        CodeAreaSkin skin = (CodeAreaSkin) getSkin();
+        if (skin == null) {
+            return null;
+        }
+        
+        GlobalHitInfo hitInfo = skin.getIndex(x, y);
+        if (hitInfo == null) {
+            return null;
+        }
+        
+        return hitInfo.getTextNode();
+    }
+
     /* *************************************************************************
      *                                                                         *
      * Stylesheet Handling                                                     *
