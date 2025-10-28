@@ -691,6 +691,27 @@ public class CodeArea extends CodeInputControl {
         return null;
     }
 
+    /**
+     * Gets the character index at the specified mouse coordinates.
+     * 
+     * @param x the x coordinate relative to the CodeArea
+     * @param y the y coordinate relative to the CodeArea
+     * @return the character index at the specified position, or -1 if the position is invalid
+     */
+    public int getCharacterIndexAtPosition(double x, double y) {
+        CodeAreaSkin skin = (CodeAreaSkin) getSkin();
+        if (skin == null) {
+            return -1;
+        }
+        
+        GlobalHitInfo hitInfo = skin.getIndex(x, y);
+        if (hitInfo == null) {
+            return -1;
+        }
+        
+        return hitInfo.getCharIndex();
+    }
+
     /* *************************************************************************
      *                                                                         *
      * Stylesheet Handling                                                     *

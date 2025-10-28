@@ -113,8 +113,9 @@ public class CodeAreaExample extends Application {
         // Demonstrate the getTextAtPosition method
         codeArea.setOnMouseMoved(event -> {
             String textAtPosition = codeArea.getTextAtPosition(event.getX(), event.getY());
+            int charIndex = codeArea.getCharacterIndexAtPosition(event.getX(), event.getY());
             if (textAtPosition != null) {
-                System.out.println("Character at position (" + event.getX() + ", " + event.getY() + "): '" + textAtPosition + "'");
+                System.out.println("Position (" + event.getX() + ", " + event.getY() + "): char='" + textAtPosition + "', index=" + charIndex);
             }
         });
 
