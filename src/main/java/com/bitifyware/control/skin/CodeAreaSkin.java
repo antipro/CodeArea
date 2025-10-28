@@ -103,6 +103,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     private final Path rangeHighlightPath = new Path();
 
     private final Path mouseUnderlinePath = new Path();
+    private final MoveTo mouseUnderlineStart = new MoveTo();
+    private final LineTo mouseUnderlineEnd = new LineTo();
 
     private Timeline scrollSelectionTimeline = new Timeline();
     private EventHandler<ActionEvent> scrollSelectionHandler = event -> {
@@ -209,8 +211,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         mouseUnderlinePath.setManaged(false);
         mouseUnderlinePath.getStyleClass().add("mouse-underline");
         mouseUnderlinePath.setVisible(false);
-        mouseUnderlinePath.setStroke(Color.BLUE);
-        mouseUnderlinePath.setStrokeWidth(2);
+        mouseUnderlinePath.getElements().addAll(mouseUnderlineStart, mouseUnderlineEnd);
         contentView.getChildren().add(mouseUnderlinePath);
         // Add selection
         selectionHighlightGroup.setManaged(false);
@@ -720,21 +721,24 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     public void addUnderlineAtPosition(double x, double y) {
         GlobalHitInfo hitInfo = getIndex(x, y);
         if (hitInfo == null) {
+            mouseUnderlinePath.setVisible(false);
             return;
         }
         
         Text textNode = hitInfo.getTextNode();
         if (textNode == null) {
+            mouseUnderlinePath.setVisible(false);
             return;
         }
         
         // Get the bounds of the text node
         Bounds bounds = textNode.getBoundsInParent();
         
-        // Create underline path
-        mouseUnderlinePath.getElements().clear();
-        mouseUnderlinePath.getElements().add(new MoveTo(bounds.getMinX(), bounds.getMaxY()));
-        mouseUnderlinePath.getElements().add(new LineTo(bounds.getMaxX(), bounds.getMaxY()));
+        // Update underline path by modifying existing elements
+        mouseUnderlineStart.setX(bounds.getMinX());
+        mouseUnderlineStart.setY(bounds.getMaxY());
+        mouseUnderlineEnd.setX(bounds.getMaxX());
+        mouseUnderlineEnd.setY(bounds.getMaxY());
         mouseUnderlinePath.setVisible(true);
     }
 
@@ -1746,7 +1750,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             highlightPath.setVisible(false);
             rangeHighlightPath.getElements().clear();
             rangeHighlightPath.setVisible(false);
-            mouseUnderlinePath.getElements().clear();
             mouseUnderlinePath.setVisible(false);
             contentView.getChildren()
                     .removeIf(node ->
