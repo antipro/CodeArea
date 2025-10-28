@@ -111,11 +111,15 @@ public class CodeAreaExample extends Application {
         });
         toolBar.getItems().add(reDoButton);
 
-        // Demonstrate the getTextAtPosition method
+        // Demonstrate the getTextAtPosition method and underline functionality
         codeArea.setOnMouseMoved(event -> {
             String textAtPosition = codeArea.getTextAtPosition(event.getX(), event.getY());
             int charIndex = codeArea.getCharacterIndexAtPosition(event.getX(), event.getY());
             Text textNode = codeArea.getTextNodeAtPosition(event.getX(), event.getY());
+            
+            // Add underline to the text node under mouse
+            codeArea.addUnderlineAtPosition(event.getX(), event.getY());
+            
             if (textAtPosition != null && textNode != null) {
                 String nodeText = textNode.getText();
                 if (nodeText != null && !nodeText.isEmpty()) {

@@ -726,6 +726,22 @@ public class CodeArea extends CodeInputControl {
         return hitInfo.getTextNode();
     }
 
+    /**
+     * Adds an underline to the Text node at the specified mouse coordinates.
+     * The underline will be automatically cleared during layout.
+     * 
+     * @param x the x coordinate relative to the CodeArea
+     * @param y the y coordinate relative to the CodeArea
+     */
+    public void addUnderlineAtPosition(double x, double y) {
+        CodeAreaSkin skin = (CodeAreaSkin) getSkin();
+        if (skin == null) {
+            return;
+        }
+        
+        skin.addUnderlineAtPosition(x, y);
+    }
+
     /* *************************************************************************
      *                                                                         *
      * Stylesheet Handling                                                     *
