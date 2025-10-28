@@ -454,38 +454,34 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             selectionHandle2.setOnMouseReleased(handleReleaseHandler);
 
             caretHandle.setOnMouseDragged(e -> {
-                Text textNode = getTextNode(e.getX(), e.getY());
-                Point2D tp = textNode.localToScene(0, 0);
-                Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + caretHandle.getWidth() / 2,
-                        e.getSceneY() - tp.getY() - pressY - 6);
-                HitInfo hit = textNode.hitTest(translateCaretPosition(p));
-                GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(),
-                        hit.getInsertionIndex(), hit.isLeading(),
-                        textNode, null);
+//                Text textNode = getTextNode(e.getX(), e.getY());
+//                Point2D tp = textNode.localToScene(0, 0);
+//                Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + caretHandle.getWidth() / 2,
+//                        e.getSceneY() - tp.getY() - pressY - 6);
+//                HitInfo hit = textNode.hitTest(translateCaretPosition(p));
+                GlobalHitInfo myHit = getIndex(e.getX(), e.getY());
                 positionCaret(myHit, false);
                 e.consume();
             });
 
             selectionHandle1.setOnMouseDragged(e -> {
-                CodeArea control1 = getSkinnable();
-                Text textNode = getTextNode(e.getX(), e.getY());
-                Point2D tp = textNode.localToScene(0, 0);
-                Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + selectionHandle1.getWidth() / 2,
-                        e.getSceneY() - tp.getY() - pressY + selectionHandle1.getHeight() + 5);
-                HitInfo hit = textNode.hitTest(translateCaretPosition(p));
-                if (control1.getAnchor() < control1.getCaretPosition()) {
-                    // Swap caret and anchor
-                    control1.selectRange(control1.getCaretPosition(), control1.getAnchor());
-                }
-                int pos = hit.getCharIndex();
-                if (pos > 0) {
-                    if (pos >= control1.getAnchor()) {
-                        pos = control1.getAnchor();
-                    }
-                }
-                GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(),
-                        hit.getInsertionIndex(), hit.isLeading(),
-                        textNode, null);
+//                CodeArea control1 = getSkinnable();
+//                Text textNode = getTextNode(e.getX(), e.getY());
+//                Point2D tp = textNode.localToScene(0, 0);
+//                Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + selectionHandle1.getWidth() / 2,
+//                        e.getSceneY() - tp.getY() - pressY + selectionHandle1.getHeight() + 5);
+//                HitInfo hit = textNode.hitTest(translateCaretPosition(p));
+//                if (control1.getAnchor() < control1.getCaretPosition()) {
+//                    // Swap caret and anchor
+//                    control1.selectRange(control1.getCaretPosition(), control1.getAnchor());
+//                }
+//                int pos = hit.getCharIndex();
+//                if (pos > 0) {
+//                    if (pos >= control1.getAnchor()) {
+//                        pos = control1.getAnchor();
+//                    }
+//                }
+                GlobalHitInfo myHit = getIndex(e.getX(), e.getY());
                 positionCaret(myHit, true);
                 e.consume();
             });
@@ -503,12 +499,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 }
                 int pos = hit.getCharIndex();
                 if (pos > 0) {
-                    if (pos <= control1.getAnchor() + 1) {
-                        pos = Math.min(control1.getAnchor() + 2, control1.getLength());
-                    }
-                    GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(),
-                            hit.getInsertionIndex(), hit.isLeading(),
-                            textNode, null);
+//                    if (pos <= control1.getAnchor() + 1) {
+//                        pos = Math.min(control1.getAnchor() + 2, control1.getLength());
+//                    }
+                    GlobalHitInfo myHit = getIndex(e.getX(), e.getY());
                     positionCaret(myHit, true);
                 }
                 e.consume();
