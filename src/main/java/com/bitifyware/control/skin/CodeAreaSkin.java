@@ -102,6 +102,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     private final Path rangeHighlightPath = new Path();
 
+    private final Path mouseUnderlinePath = new Path();
+    private final MoveTo mouseUnderlineStart = new MoveTo();
+    private final LineTo mouseUnderlineEnd = new LineTo();
+
     private Timeline scrollSelectionTimeline = new Timeline();
     private EventHandler<ActionEvent> scrollSelectionHandler = event -> {
         switch (scrollDirection) {
@@ -204,6 +208,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         rangeHighlightPath.getStyleClass().add("range-highlight");
         rangeHighlightPath.setVisible(false);
         contentView.getChildren().add(rangeHighlightPath);
+        mouseUnderlinePath.setManaged(false);
+        mouseUnderlinePath.getStyleClass().add("mouse-underline");
+        mouseUnderlinePath.setVisible(false);
+        mouseUnderlinePath.getElements().addAll(mouseUnderlineStart, mouseUnderlineEnd);
+        contentView.getChildren().add(mouseUnderlinePath);
         // Add selection
         selectionHighlightGroup.setManaged(false);
         selectionHighlightGroup.setVisible(false);
@@ -445,34 +454,34 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             selectionHandle2.setOnMouseReleased(handleReleaseHandler);
 
             caretHandle.setOnMouseDragged(e -> {
-                Text textNode = getTextNode(e.getX(), e.getY());
-                Point2D tp = textNode.localToScene(0, 0);
-                Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + caretHandle.getWidth() / 2,
-                        e.getSceneY() - tp.getY() - pressY - 6);
-                HitInfo hit = textNode.hitTest(translateCaretPosition(p));
-                GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(), hit.getInsertionIndex(), hit.isLeading(), textNode);
+//                Text textNode = getTextNode(e.getX(), e.getY());
+//                Point2D tp = textNode.localToScene(0, 0);
+//                Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + caretHandle.getWidth() / 2,
+//                        e.getSceneY() - tp.getY() - pressY - 6);
+//                HitInfo hit = textNode.hitTest(translateCaretPosition(p));
+                GlobalHitInfo myHit = getIndex(e.getX(), e.getY());
                 positionCaret(myHit, false);
                 e.consume();
             });
 
             selectionHandle1.setOnMouseDragged(e -> {
-                CodeArea control1 = getSkinnable();
-                Text textNode = getTextNode(e.getX(), e.getY());
-                Point2D tp = textNode.localToScene(0, 0);
-                Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + selectionHandle1.getWidth() / 2,
-                        e.getSceneY() - tp.getY() - pressY + selectionHandle1.getHeight() + 5);
-                HitInfo hit = textNode.hitTest(translateCaretPosition(p));
-                if (control1.getAnchor() < control1.getCaretPosition()) {
-                    // Swap caret and anchor
-                    control1.selectRange(control1.getCaretPosition(), control1.getAnchor());
-                }
-                int pos = hit.getCharIndex();
-                if (pos > 0) {
-                    if (pos >= control1.getAnchor()) {
-                        pos = control1.getAnchor();
-                    }
-                }
-                GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(), hit.getInsertionIndex(), hit.isLeading(), textNode);
+//                CodeArea control1 = getSkinnable();
+//                Text textNode = getTextNode(e.getX(), e.getY());
+//                Point2D tp = textNode.localToScene(0, 0);
+//                Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + selectionHandle1.getWidth() / 2,
+//                        e.getSceneY() - tp.getY() - pressY + selectionHandle1.getHeight() + 5);
+//                HitInfo hit = textNode.hitTest(translateCaretPosition(p));
+//                if (control1.getAnchor() < control1.getCaretPosition()) {
+//                    // Swap caret and anchor
+//                    control1.selectRange(control1.getCaretPosition(), control1.getAnchor());
+//                }
+//                int pos = hit.getCharIndex();
+//                if (pos > 0) {
+//                    if (pos >= control1.getAnchor()) {
+//                        pos = control1.getAnchor();
+//                    }
+//                }
+                GlobalHitInfo myHit = getIndex(e.getX(), e.getY());
                 positionCaret(myHit, true);
                 e.consume();
             });
@@ -490,10 +499,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 }
                 int pos = hit.getCharIndex();
                 if (pos > 0) {
-                    if (pos <= control1.getAnchor() + 1) {
-                        pos = Math.min(control1.getAnchor() + 2, control1.getLength());
-                    }
-                    GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(), hit.getInsertionIndex(), hit.isLeading(), textNode);
+//                    if (pos <= control1.getAnchor() + 1) {
+//                        pos = Math.min(control1.getAnchor() + 2, control1.getLength());
+//                    }
+                    GlobalHitInfo myHit = getIndex(e.getX(), e.getY());
                     positionCaret(myHit, true);
                 }
                 e.consume();
@@ -568,7 +577,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Middle Top
                 if (i == 0 &&
@@ -583,7 +592,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Right Above
                 if (i == 0 && j == children.size() - 1 &&
@@ -597,7 +606,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Center Left
                 if (j == 0 &&
@@ -612,7 +621,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Center
                 if (
@@ -628,7 +637,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Center Right
                 if (j == children.size() - 1 &&
@@ -643,7 +652,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Bottom Left
                 if (i == paragraphNodesChildren.size() - 1 && j == 0 &&
@@ -657,7 +666,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Bottom Center
                 if (i == paragraphNodesChildren.size() - 1 &&
@@ -673,7 +682,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Bottom Right
                 if (i == paragraphNodesChildren.size() - 1 && j == children.size() - 1 &&
@@ -687,7 +696,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
 
 
@@ -700,6 +709,52 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         }
         return null;
+    }
+
+    /**
+     * Adds an underline to the specified Text node at the given mouse coordinates.
+     * The underline will be cleared when layoutChildren is called.
+     *
+     * @param x the x coordinate relative to the CodeArea
+     * @param y the y coordinate relative to the CodeArea
+     */
+    public void addUnderlineAtPosition(double x, double y) {
+        GlobalHitInfo hitInfo = getIndex(x, y);
+        if (hitInfo == null) {
+            mouseUnderlinePath.setVisible(false);
+            return;
+        }
+        Text textNode = hitInfo.getTextNode();
+        if (textNode == null) {
+            mouseUnderlinePath.setVisible(false);
+            return;
+        }
+        
+        // Only draw underline for non-empty strings
+        String text = textNode.getText();
+        if (text == null) {
+            mouseUnderlinePath.setVisible(false);
+            return;
+        }
+        
+        TextFlow textFlow = hitInfo.getTextFlow();
+        if (textFlow == null) {
+            mouseUnderlinePath.setVisible(false);
+            return;
+        }
+        // Adjust x,y to be relative to text node
+        double offsetX = textFlow.getLayoutX();
+        double offsetY = textFlow.getLayoutY();
+
+        // Get the bounds of the text node
+        Bounds bounds = textNode.getBoundsInParent();
+        
+        // Update underline path by modifying existing elements
+        mouseUnderlineStart.setX(offsetX + bounds.getMinX());
+        mouseUnderlineStart.setY(offsetY + bounds.getMaxY());
+        mouseUnderlineEnd.setX(offsetX + bounds.getMaxX());
+        mouseUnderlineEnd.setY(offsetY + bounds.getMaxY());
+        mouseUnderlinePath.setVisible(true);
     }
 
     /** {@inheritDoc} */
@@ -1710,6 +1765,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             highlightPath.setVisible(false);
             rangeHighlightPath.getElements().clear();
             rangeHighlightPath.setVisible(false);
+            mouseUnderlinePath.setVisible(false);
             contentView.getChildren()
                     .removeIf(node ->
                             node.getStyleClass().contains("error-line")
