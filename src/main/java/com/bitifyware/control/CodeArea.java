@@ -742,6 +742,15 @@ public class CodeArea extends CodeInputControl {
         skin.addUnderlineAtPosition(x, y);
     }
 
+    public void clearUnderlines() {
+        CodeAreaSkin skin = (CodeAreaSkin) getSkin();
+        if (skin == null) {
+            return;
+        }
+
+        skin.clearUnderlines();
+    }
+
     /* *************************************************************************
      *                                                                         *
      * Stylesheet Handling                                                     *

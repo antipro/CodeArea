@@ -757,6 +757,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         mouseUnderlinePath.setVisible(true);
     }
 
+    public void clearUnderlines() {
+        mouseUnderlinePath.setVisible(false);
+    }
+
     /** {@inheritDoc} */
     @Override public void moveCaret(TextUnit unit, Direction dir, boolean select) {
         switch (unit) {
