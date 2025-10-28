@@ -459,7 +459,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 Point2D p = new Point2D(e.getSceneX() - tp.getX() - pressX + caretHandle.getWidth() / 2,
                         e.getSceneY() - tp.getY() - pressY - 6);
                 HitInfo hit = textNode.hitTest(translateCaretPosition(p));
-                GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(), hit.getInsertionIndex(), hit.isLeading(), textNode);
+                GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(),
+                        hit.getInsertionIndex(), hit.isLeading(),
+                        textNode, null);
                 positionCaret(myHit, false);
                 e.consume();
             });
@@ -481,7 +483,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         pos = control1.getAnchor();
                     }
                 }
-                GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(), hit.getInsertionIndex(), hit.isLeading(), textNode);
+                GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(),
+                        hit.getInsertionIndex(), hit.isLeading(),
+                        textNode, null);
                 positionCaret(myHit, true);
                 e.consume();
             });
@@ -502,7 +506,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     if (pos <= control1.getAnchor() + 1) {
                         pos = Math.min(control1.getAnchor() + 2, control1.getLength());
                     }
-                    GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(), hit.getInsertionIndex(), hit.isLeading(), textNode);
+                    GlobalHitInfo myHit = new GlobalHitInfo(hit.getCharIndex(),
+                            hit.getInsertionIndex(), hit.isLeading(),
+                            textNode, null);
                     positionCaret(myHit, true);
                 }
                 e.consume();
@@ -577,7 +583,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Middle Top
                 if (i == 0 &&
@@ -592,7 +598,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Right Above
                 if (i == 0 && j == children.size() - 1 &&
@@ -606,7 +612,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Center Left
                 if (j == 0 &&
@@ -621,7 +627,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Center
                 if (
@@ -637,7 +643,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Center Right
                 if (j == children.size() - 1 &&
@@ -652,7 +658,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Bottom Left
                 if (i == paragraphNodesChildren.size() - 1 && j == 0 &&
@@ -666,7 +672,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Bottom Center
                 if (i == paragraphNodesChildren.size() - 1 &&
@@ -682,7 +688,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
                 // Bottom Right
                 if (i == paragraphNodesChildren.size() - 1 && j == children.size() - 1 &&
@@ -696,7 +702,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     return new GlobalHitInfo(
                             hit.getCharIndex() + offset,
                             hit.getInsertionIndex() + offset,
-                            hit.isLeading(), text);
+                            hit.isLeading(), text, textFlow);
                 }
 
 
@@ -724,21 +730,28 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             mouseUnderlinePath.setVisible(false);
             return;
         }
-        
         Text textNode = hitInfo.getTextNode();
         if (textNode == null) {
             mouseUnderlinePath.setVisible(false);
             return;
         }
-        
+        TextFlow textFlow = hitInfo.getTextFlow();
+        if (textFlow == null) {
+            mouseUnderlinePath.setVisible(false);
+            return;
+        }
+        // Adjust x,y to be relative to text node
+        double offsetX = textFlow.getLayoutX();
+        double offsetY = textFlow.getLayoutY();
+
         // Get the bounds of the text node
         Bounds bounds = textNode.getBoundsInParent();
         
         // Update underline path by modifying existing elements
-        mouseUnderlineStart.setX(bounds.getMinX());
-        mouseUnderlineStart.setY(bounds.getMaxY());
-        mouseUnderlineEnd.setX(bounds.getMaxX());
-        mouseUnderlineEnd.setY(bounds.getMaxY());
+        mouseUnderlineStart.setX(offsetX + bounds.getMinX());
+        mouseUnderlineStart.setY(offsetY + bounds.getMaxY());
+        mouseUnderlineEnd.setX(offsetX + bounds.getMaxX());
+        mouseUnderlineEnd.setY(offsetY + bounds.getMaxY());
         mouseUnderlinePath.setVisible(true);
     }
 

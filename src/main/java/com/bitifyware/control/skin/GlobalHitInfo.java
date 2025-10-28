@@ -1,6 +1,7 @@
 package com.bitifyware.control.skin;
 
 import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 
 /**
  * @author antipro
@@ -10,19 +11,22 @@ public class GlobalHitInfo {
     private final boolean leading;
     private final int insertionIndex;
     private final Text textNode;
+    private final TextFlow textFlow;
 
     /**
      * Create a HitInfo object representing a text index and forward bias.
      *
      * @param charIndex the character index.
      * @param leading   whether the hit is on the leading edge of the character. If it is false, it represents the trailing edge.
-     * @param textNode the text node.
+     * @param textNode  the text node.
+     * @param textFlow the text flow.
      */
-    public GlobalHitInfo(int charIndex, int insertionIndex, boolean leading, Text textNode) {
+    public GlobalHitInfo(int charIndex, int insertionIndex, boolean leading, Text textNode, TextFlow textFlow) {
         this.charIndex = charIndex;
         this.leading = leading;
         this.insertionIndex = insertionIndex;
         this.textNode = textNode;
+        this.textFlow = textFlow;
     }
 
     /**
@@ -58,6 +62,10 @@ public class GlobalHitInfo {
 
     public Text getTextNode() {
         return textNode;
+    }
+
+    public TextFlow getTextFlow() {
+        return textFlow;
     }
 
 }
