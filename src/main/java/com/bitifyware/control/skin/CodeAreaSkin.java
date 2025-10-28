@@ -735,6 +735,14 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             mouseUnderlinePath.setVisible(false);
             return;
         }
+        
+        // Only draw underline for non-empty strings
+        String text = textNode.getText();
+        if (text == null || text.isEmpty()) {
+            mouseUnderlinePath.setVisible(false);
+            return;
+        }
+        
         TextFlow textFlow = hitInfo.getTextFlow();
         if (textFlow == null) {
             mouseUnderlinePath.setVisible(false);
