@@ -2000,11 +2000,39 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     String rightChar = caretPos + 1 <= text.length() ? text.substring(caretPos, caretPos + 1) : "";
                     String leftChar = caretPos > 0 ? text.substring(caretPos - 1, caretPos) : "";
                     if (rightChar.equals(")")) {
-                        updatePairHighlight(caretTextNode,
-                                caretPosInText, textNodes, false);
+                        // Caret is before a ')' at global position caretPos
+                        // Find the text node containing this ')' and search backward
+                        TextNodePosition closeParenPos = findTextNodeAtGlobalPos(textNodes, caretPos);
+                        if (closeParenPos != null) {
+                            // Search backward from the position of the ')'
+                            // The updatePairHighlight method will search from positions 0 to start-1
+                            updatePairHighlight(closeParenPos.textNode,
+                                    closeParenPos.localPos, textNodes, false);
+                        }
                     } else if (leftChar.equals("(")) {
-                        updatePairHighlight(caretTextNode,
-                                caretPosInText, textNodes, true);
+                        // Caret is after a '(' at global position caretPos - 1
+                        // Find the text node containing this '(' and search forward
+                        TextNodePosition openParenPos = findTextNodeAtGlobalPos(textNodes, caretPos - 1);
+                        if (openParenPos != null) {
+                            // Search forward from the position after the '('
+                            // Need to handle the case where the next position is in a different text node
+                            int nextLocalPos = openParenPos.localPos + 1;
+                            Text searchStartNode = openParenPos.textNode;
+                            
+                            // If next position is beyond current text node, find the next text node
+                            if (nextLocalPos >= openParenPos.textNode.getText().length()) {
+                                int nodeIndex = textNodes.indexOf(openParenPos.textNode);
+                                if (nodeIndex >= 0 && nodeIndex + 1 < textNodes.size()) {
+                                    searchStartNode = textNodes.get(nodeIndex + 1);
+                                    nextLocalPos = 0;
+                                } else {
+                                    // No more text nodes to search
+                                    return;
+                                }
+                            }
+                            
+                            updatePairHighlight(searchStartNode, nextLocalPos, textNodes, true);
+                        }
                     }
                 }
 
@@ -2491,6 +2519,38 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 contentView.getChildren().add(errorLine);
             }
         }
+    }
+
+    /**
+     * Helper record to store a Text node and a position within it
+     */
+    private record TextNodePosition(Text textNode, int localPos) {}
+
+    /**
+     * Finds the text node and local position for a given global position in the text.
+     * @param textNodes List of all text nodes
+     * @param globalPos Global position in the text
+     * @return TextNodePosition containing the text node and local position, or null if not found
+     */
+    private TextNodePosition findTextNodeAtGlobalPos(List<Text> textNodes, int globalPos) {
+        int offset = 0;
+        for (Text textNode : textNodes) {
+            int nodeLength = textNode.getText().length();
+            if (globalPos < offset + nodeLength) {
+                // The position is within this text node
+                return new TextNodePosition(textNode, globalPos - offset);
+            }
+            offset += nodeLength;
+            // Account for newline character between text flows
+            // Check if this is the last text node in a TextFlow
+            if (textNode.getParent() instanceof TextFlow) {
+                TextFlow textFlow = (TextFlow) textNode.getParent();
+                if (textFlow.getChildren().indexOf(textNode) == textFlow.getChildren().size() - 1) {
+                    offset++; // Add 1 for the newline
+                }
+            }
+        }
+        return null;
     }
 
     public static double computeTextWidth(String text, Font font, double wrappingWidth, int tabSize) {
