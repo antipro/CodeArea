@@ -98,14 +98,13 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     private final Path characterBoundingPath = new Path();
 
-    private final Path highlightPath = new Path();
-    private final Path pairHighlightPath = new Path();
-
-    private final Path rangeHighlightPath = new Path();
-
+    private final Path wordPath = new Path();
+    private final Path bracketsPath = new Path();
     private final Path mouseUnderlinePath = new Path();
     private final MoveTo mouseUnderlineStart = new MoveTo();
     private final LineTo mouseUnderlineEnd = new LineTo();
+
+    private final Path rangeHighlightPath = new Path();
 
     private Timeline scrollSelectionTimeline = new Timeline();
     private EventHandler<ActionEvent> scrollSelectionHandler = event -> {
@@ -201,13 +200,13 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         };
         getSkinnable().addEventFilter(ScrollEvent.ANY, scrollEventFilter);
 
-        highlightPath.setManaged(false);
-        highlightPath.getStyleClass().add("highlight");
-        highlightPath.setVisible(false);
-        pairHighlightPath.setManaged(false);
-        pairHighlightPath.getStyleClass().add("highlight");
-        pairHighlightPath.setVisible(false);
-        contentView.getChildren().addAll(highlightPath, pairHighlightPath);
+        wordPath.setManaged(false);
+        wordPath.getStyleClass().add("highlight");
+        wordPath.setVisible(false);
+        bracketsPath.setManaged(false);
+        bracketsPath.getStyleClass().add("highlight");
+        bracketsPath.setVisible(false);
+        contentView.getChildren().addAll(wordPath, bracketsPath);
         rangeHighlightPath.setManaged(false);
         rangeHighlightPath.getStyleClass().add("range-highlight");
         rangeHighlightPath.setVisible(false);
@@ -1769,10 +1768,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
 
         @Override public void layoutChildren() {
-            highlightPath.getElements().clear();
-            highlightPath.setVisible(false);
-            pairHighlightPath.getElements().clear();
-            pairHighlightPath.setVisible(false);
+            wordPath.getElements().clear();
+            wordPath.setVisible(false);
+            bracketsPath.getElements().clear();
+            bracketsPath.setVisible(false);
             rangeHighlightPath.getElements().clear();
             rangeHighlightPath.setVisible(false);
             mouseUnderlinePath.setVisible(false);
@@ -2316,10 +2315,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 if (!textNode.getStyleClass().contains("default")) {
                     continue;
                 }
-                if (!highlightPath.isVisible()) {
-                    highlightPath.setVisible(true);
-                    highlightPath.setLayoutX(0);
-                    highlightPath.setLayoutY(0);
+                if (!wordPath.isVisible()) {
+                    wordPath.setVisible(true);
+                    wordPath.setLayoutX(0);
+                    wordPath.setLayoutY(0);
                 }
                 Pattern pattern = Pattern.compile("(\\b" + safePattern + "\\b)", Pattern.CASE_INSENSITIVE);
                 Matcher matcher = pattern.matcher(text);
@@ -2341,7 +2340,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                             default -> { }
                         }
                     }
-                    highlightPath.getElements().addAll(pathElements);
+                    wordPath.getElements().addAll(pathElements);
                 }
             }
         }
@@ -2390,11 +2389,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                             lineTo.setY(lineTo.getY() + node.getLayoutY() + textFlow.getLayoutY());
                         }
                     }
-                    highlightPath.getElements().addAll(pathElements);
+                    wordPath.getElements().addAll(pathElements);
                     found = true;
                 }
             }
-            highlightPath.setVisible(found);
+            wordPath.setVisible(found);
         }
 
         private void updatePairHighlight(Text caretTextNode, int start, List<Text> allTextNodes, boolean isForward, char openChar, char closeChar) {
@@ -2413,11 +2412,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         }
                         if (weight == 0) {
                             PathElement[] pathElements = caretTextNode.rangeShape(start + i, start + i + 1);
-                            pairHighlightPath.getElements().setAll(pathElements);
+                            bracketsPath.getElements().setAll(pathElements);
                             TextFlow textFlow = (TextFlow) caretTextNode.getParent();
-                            pairHighlightPath.setLayoutX(textFlow.getLayoutX() + caretTextNode.getLayoutX());
-                            pairHighlightPath.setLayoutY(textFlow.getLayoutY() + caretTextNode.getLayoutY());
-                            pairHighlightPath.setVisible(true);
+                            bracketsPath.setLayoutX(textFlow.getLayoutX() + caretTextNode.getLayoutX());
+                            bracketsPath.setLayoutY(textFlow.getLayoutY() + caretTextNode.getLayoutY());
+                            bracketsPath.setVisible(true);
                             return;
                         }
                     }
@@ -2434,11 +2433,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         }
                         if (weight == 0) {
                             PathElement[] pathElements = textNode.rangeShape(i, i + 1);
-                            pairHighlightPath.getElements().setAll(pathElements);
+                            bracketsPath.getElements().setAll(pathElements);
                             TextFlow textFlow = (TextFlow) textNode.getParent();
-                            pairHighlightPath.setLayoutX(textFlow.getLayoutX() + textNode.getLayoutX());
-                            pairHighlightPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
-                            pairHighlightPath.setVisible(true);
+                            bracketsPath.setLayoutX(textFlow.getLayoutX() + textNode.getLayoutX());
+                            bracketsPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                            bracketsPath.setVisible(true);
                             return;
                         }
                     }
@@ -2454,11 +2453,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         }
                         if (weight == 0) {
                             PathElement[] pathElements = caretTextNode.rangeShape(i, i + 1);
-                            pairHighlightPath.getElements().setAll(pathElements);
+                            bracketsPath.getElements().setAll(pathElements);
                             TextFlow textFlow = (TextFlow) caretTextNode.getParent();
-                            pairHighlightPath.setLayoutX(textFlow.getLayoutX() + caretTextNode.getLayoutX());
-                            pairHighlightPath.setLayoutY(textFlow.getLayoutY() + caretTextNode.getLayoutY());
-                            pairHighlightPath.setVisible(true);
+                            bracketsPath.setLayoutX(textFlow.getLayoutX() + caretTextNode.getLayoutX());
+                            bracketsPath.setLayoutY(textFlow.getLayoutY() + caretTextNode.getLayoutY());
+                            bracketsPath.setVisible(true);
                             return;
                         }
                     }
@@ -2475,11 +2474,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         }
                         if (weight == 0) {
                             PathElement[] pathElements = textNode.rangeShape(i, i + 1);
-                            pairHighlightPath.getElements().setAll(pathElements);
+                            bracketsPath.getElements().setAll(pathElements);
                             TextFlow textFlow = (TextFlow) textNode.getParent();
-                            pairHighlightPath.setLayoutX(textFlow.getLayoutX() + textNode.getLayoutX());
-                            pairHighlightPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
-                            pairHighlightPath.setVisible(true);
+                            bracketsPath.setLayoutX(textFlow.getLayoutX() + textNode.getLayoutX());
+                            bracketsPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                            bracketsPath.setVisible(true);
                             return;
                         }
                     }
