@@ -99,6 +99,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     private final Path characterBoundingPath = new Path();
 
     private final Path highlightPath = new Path();
+    private final Path pairHighlightPath = new Path();
 
     private final Path rangeHighlightPath = new Path();
 
@@ -203,7 +204,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         highlightPath.setManaged(false);
         highlightPath.getStyleClass().add("highlight");
         highlightPath.setVisible(false);
-        contentView.getChildren().add(highlightPath);
+        pairHighlightPath.setManaged(false);
+        pairHighlightPath.getStyleClass().add("highlight");
+        pairHighlightPath.setVisible(false);
+        contentView.getChildren().addAll(highlightPath, pairHighlightPath);
         rangeHighlightPath.setManaged(false);
         rangeHighlightPath.getStyleClass().add("range-highlight");
         rangeHighlightPath.setVisible(false);
@@ -1767,6 +1771,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         @Override public void layoutChildren() {
             highlightPath.getElements().clear();
             highlightPath.setVisible(false);
+            pairHighlightPath.getElements().clear();
+            pairHighlightPath.setVisible(false);
             rangeHighlightPath.getElements().clear();
             rangeHighlightPath.setVisible(false);
             mouseUnderlinePath.setVisible(false);
@@ -1991,11 +1997,12 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
                 String text = codeArea.getText();
                 String selectedText = codeArea.getSelectedText();
-                if (!selectedText.isBlank()) {
-                    updateSelectionHighlight(caretTextNode, textNodes, selectedText);
-                } else if (caretTextNode.getStyleClass().contains(codeArea.getHighlightClass())) {
+                if (caretTextNode.getStyleClass().contains(codeArea.getHighlightClass())) {
                     // highlight text node with identifier
                     updateClassHighlight(caretTextNode, codeArea.getHighlightClass(), caretPosInText, textNodes);
+                }
+                if (!selectedText.isBlank()) {
+                    updateSelectionHighlight(caretTextNode, textNodes, selectedText);
                 } else {
                     String rightChar = caretPos + 1 <= text.length() ? text.substring(caretPos, caretPos + 1) : "";
                     String leftChar = caretPos > 0 ? text.substring(caretPos - 1, caretPos) : "";
@@ -2393,11 +2400,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         }
                         if (weight == 0) {
                             PathElement[] pathElements = caretTextNode.rangeShape(start + i, start + i + 1);
-                            highlightPath.getElements().setAll(pathElements);
+                            pairHighlightPath.getElements().setAll(pathElements);
                             TextFlow textFlow = (TextFlow) caretTextNode.getParent();
-                            highlightPath.setLayoutX(textFlow.getLayoutX() + caretTextNode.getLayoutX());
-                            highlightPath.setLayoutY(textFlow.getLayoutY() + caretTextNode.getLayoutY());
-                            highlightPath.setVisible(true);
+                            pairHighlightPath.setLayoutX(textFlow.getLayoutX() + caretTextNode.getLayoutX());
+                            pairHighlightPath.setLayoutY(textFlow.getLayoutY() + caretTextNode.getLayoutY());
+                            pairHighlightPath.setVisible(true);
                             return;
                         }
                     }
@@ -2414,11 +2421,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         }
                         if (weight == 0) {
                             PathElement[] pathElements = textNode.rangeShape(i, i + 1);
-                            highlightPath.getElements().setAll(pathElements);
+                            pairHighlightPath.getElements().setAll(pathElements);
                             TextFlow textFlow = (TextFlow) textNode.getParent();
-                            highlightPath.setLayoutX(textFlow.getLayoutX() + textNode.getLayoutX());
-                            highlightPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
-                            highlightPath.setVisible(true);
+                            pairHighlightPath.setLayoutX(textFlow.getLayoutX() + textNode.getLayoutX());
+                            pairHighlightPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                            pairHighlightPath.setVisible(true);
                             return;
                         }
                     }
@@ -2434,11 +2441,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         }
                         if (weight == 0) {
                             PathElement[] pathElements = caretTextNode.rangeShape(i, i + 1);
-                            highlightPath.getElements().setAll(pathElements);
+                            pairHighlightPath.getElements().setAll(pathElements);
                             TextFlow textFlow = (TextFlow) caretTextNode.getParent();
-                            highlightPath.setLayoutX(textFlow.getLayoutX() + caretTextNode.getLayoutX());
-                            highlightPath.setLayoutY(textFlow.getLayoutY() + caretTextNode.getLayoutY());
-                            highlightPath.setVisible(true);
+                            pairHighlightPath.setLayoutX(textFlow.getLayoutX() + caretTextNode.getLayoutX());
+                            pairHighlightPath.setLayoutY(textFlow.getLayoutY() + caretTextNode.getLayoutY());
+                            pairHighlightPath.setVisible(true);
                             return;
                         }
                     }
@@ -2455,11 +2462,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         }
                         if (weight == 0) {
                             PathElement[] pathElements = textNode.rangeShape(i, i + 1);
-                            highlightPath.getElements().setAll(pathElements);
+                            pairHighlightPath.getElements().setAll(pathElements);
                             TextFlow textFlow = (TextFlow) textNode.getParent();
-                            highlightPath.setLayoutX(textFlow.getLayoutX() + textNode.getLayoutX());
-                            highlightPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
-                            highlightPath.setVisible(true);
+                            pairHighlightPath.setLayoutX(textFlow.getLayoutX() + textNode.getLayoutX());
+                            pairHighlightPath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                            pairHighlightPath.setVisible(true);
                             return;
                         }
                     }
