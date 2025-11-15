@@ -2006,12 +2006,25 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 } else {
                     String rightChar = caretPos + 1 <= text.length() ? text.substring(caretPos, caretPos + 1) : "";
                     String leftChar = caretPos > 0 ? text.substring(caretPos - 1, caretPos) : "";
+                    // Check for closing brackets on the right
                     if (rightChar.equals(")")) {
-                        updatePairHighlight(caretTextNode,
-                                caretPosInText, textNodes, false);
-                    } else if (leftChar.equals("(")) {
-                        updatePairHighlight(caretTextNode,
-                                caretPosInText, textNodes, true);
+                        updatePairHighlight(caretTextNode, caretPosInText, textNodes, false, '(', ')');
+                    } else if (rightChar.equals("]")) {
+                        updatePairHighlight(caretTextNode, caretPosInText, textNodes, false, '[', ']');
+                    } else if (rightChar.equals("}")) {
+                        updatePairHighlight(caretTextNode, caretPosInText, textNodes, false, '{', '}');
+                    } else if (rightChar.equals(">")) {
+                        updatePairHighlight(caretTextNode, caretPosInText, textNodes, false, '<', '>');
+                    }
+                    // Check for opening brackets on the left
+                    else if (leftChar.equals("(")) {
+                        updatePairHighlight(caretTextNode, caretPosInText, textNodes, true, '(', ')');
+                    } else if (leftChar.equals("[")) {
+                        updatePairHighlight(caretTextNode, caretPosInText, textNodes, true, '[', ']');
+                    } else if (leftChar.equals("{")) {
+                        updatePairHighlight(caretTextNode, caretPosInText, textNodes, true, '{', '}');
+                    } else if (leftChar.equals("<")) {
+                        updatePairHighlight(caretTextNode, caretPosInText, textNodes, true, '<', '>');
                     }
                 }
 
@@ -2384,7 +2397,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             highlightPath.setVisible(found);
         }
 
-        private void updatePairHighlight(Text caretTextNode, int start, List<Text> allTextNodes, boolean isForward) {
+        private void updatePairHighlight(Text caretTextNode, int start, List<Text> allTextNodes, boolean isForward, char openChar, char closeChar) {
             if (allTextNodes.isEmpty()) {
                 return;
             }
@@ -2393,9 +2406,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 if (start < caretTextNode.getText().length()) {
                     String remainingText = caretTextNode.getText().substring(start);
                     for (int i = 0; i < remainingText.length(); i++) {
-                        if (remainingText.charAt(i) == '(') {
+                        if (remainingText.charAt(i) == openChar) {
                             weight++;
-                        } else if (remainingText.charAt(i) == ')') {
+                        } else if (remainingText.charAt(i) == closeChar) {
                             weight--;
                         }
                         if (weight == 0) {
@@ -2414,9 +2427,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     Text textNode = allTextNodes.get(index++);
                     String text = textNode.getText();
                     for (int i = 0; i < text.length(); i++) {
-                        if (text.charAt(i) == '(') {
+                        if (text.charAt(i) == openChar) {
                             weight++;
-                        } else if (text.charAt(i) == ')') {
+                        } else if (text.charAt(i) == closeChar) {
                             weight--;
                         }
                         if (weight == 0) {
@@ -2434,9 +2447,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 if (start > 0) {
                     String remainingText = caretTextNode.getText().substring(0, start);
                     for (int i = remainingText.length() - 1; i >= 0; i--) {
-                        if (remainingText.charAt(i) == ')') {
+                        if (remainingText.charAt(i) == closeChar) {
                             weight++;
-                        } else if (remainingText.charAt(i) == '(') {
+                        } else if (remainingText.charAt(i) == openChar) {
                             weight--;
                         }
                         if (weight == 0) {
@@ -2455,9 +2468,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     Text textNode = allTextNodes.get(index--);
                     String text = textNode.getText();
                     for (int i = text.length() - 1; i >= 0; i--) {
-                        if (text.charAt(i) == ')') {
+                        if (text.charAt(i) == closeChar) {
                             weight++;
-                        } else if (text.charAt(i) == '(') {
+                        } else if (text.charAt(i) == openChar) {
                             weight--;
                         }
                         if (weight == 0) {
