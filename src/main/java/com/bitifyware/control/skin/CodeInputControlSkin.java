@@ -285,8 +285,9 @@ public abstract class CodeInputControlSkin<T extends CodeInputControl> extends S
         }
     }
 
+    @Override
     public void install() {
-        // super.install(); // not available in JavaFX 17
+        super.install();
 
         CodeInputControl control = getSkinnable();
 
