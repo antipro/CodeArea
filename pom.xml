@@ -9,12 +9,12 @@
     <version>1.0.0</version>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <proguard.version>7.6.1</proguard.version>
         <proguard.maven.plugin.version>2.6.1</proguard.maven.plugin.version>
-        <javafx.version>23.0.1</javafx.version>
+        <javafx.version>17.0.12</javafx.version>
     </properties>
 
     <dependencies>
@@ -198,9 +198,9 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.11.0</version>
                 <configuration>
-                    <release>21</release>
+                    <release>17</release>
                     <compilerArgs>
                         <arg>--add-exports</arg>
                         <arg>javafx.base/com.sun.javafx=com.bitifyware.codearea</arg>
