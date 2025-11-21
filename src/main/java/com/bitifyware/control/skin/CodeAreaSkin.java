@@ -1820,8 +1820,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     Text textNode = (Text) children.get(i);
 //                    codeArea.getSyntaxHighlighter().highlight(textNode);
                     if (oneLineHeight == 0) {
-                        // Use LOGICAL bounds type for consistent text height calculation
-                        oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "1", 0, TextBoundsType.LOGICAL);
+                        oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "1", 0, TextBoundsType.LOGICAL_VERTICAL_CENTER);
                     }
                     double unwrapWidth = computeTextWidth(textNode.getText(), textNode.getFont(), 0, codeArea.tabSizeProperty().get());
                     if (i > 0 && subX + unwrapWidth > wrappingWidth && codeArea.isWrapText()) {
@@ -2095,25 +2094,15 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         textNode.setSelectionEnd(Math.min(end, paragraphLength));
                         PathElement[] selectionShape = textNode.getSelectionShape();
                         if (selectionShape != null && selectionShape.length > 0) {
-                            // With TextBoundsType.LOGICAL, we need to ensure selection shapes align properly
-                            // by adjusting Y coordinates based on the actual text layout position
-                            double textNodeLayoutY = textNode.getLayoutY();
-                            double boundsHeight = textNode.getBoundsInLocal().getHeight();
-                            
-                            // Only adjust if the text node has been repositioned for baseline alignment
-                            if (textNodeLayoutY > 0 && boundsHeight < oneLineHeight) {
-                                // Calculate the offset needed to align selection with adjusted text position
-                                double offset = textNodeLayoutY;
-                                if (offset > 0) {
-                                    // Adjust all Y coordinates in the selection shape
-                                    for (PathElement element : selectionShape) {
-                                        if (element instanceof MoveTo) {
-                                            ((MoveTo) element).setY(((MoveTo) element).getY() - offset);
-                                        } else if (element instanceof LineTo) {
-                                            ((LineTo) element).setY(((LineTo) element).getY() - offset);
-                                        }
-                                    }
-                                }
+                            // Because the Text node can not have the same bound height. Don't ask me why :(
+                            // the Y coordinate has been adjusted When layout above.
+                            // We need to adjust the Y coordinate of the selection shape.
+                            // So that the selection shape will have no space between the line.
+                            double offset = oneLineHeight - textNode.getBoundsInLocal().getMaxY();
+                            if (((MoveTo)selectionShape[0]).getY() == 0 && offset > 0) {
+                                ((MoveTo)selectionShape[0]).setY(((MoveTo)selectionShape[0]).getY() - offset);
+                                ((LineTo)selectionShape[1]).setY(((LineTo)selectionShape[1]).getY() - offset);
+                                ((LineTo)selectionShape[4]).setY(((LineTo)selectionShape[4]).getY() - offset);
                             }
 
                             if (linePath != null && textNode.getLayoutX() == 0) {
