@@ -8,6 +8,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import org.scenicview.ScenicView;
 
 /**
  * Test application to demonstrate and verify selection/highlight rendering fixes.
@@ -65,6 +66,7 @@ public class SelectionRenderingTest extends Application {
         System.out.println("=== Text Node Properties Diagnostic ===");
         System.out.println("Font: " + codeArea.getFont());
         System.out.println("To test: Select some text and observe if the highlight aligns with glyphs");
+        ScenicView.show(scene);
     }
 
     public static void main(String[] args) {
