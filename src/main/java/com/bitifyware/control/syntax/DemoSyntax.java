@@ -47,6 +47,7 @@ public class DemoSyntax extends SyntaxHighlighter{
         }
         for (int j = 0; j < words.size(); j++) {
             Text textNode = new Text(words.get(j));
+            textNode.setBoundsType(TextBoundsType.LOGICAL);
             textNode.setTextOrigin(VPos.TOP);
             textNode.setManaged(false);
             textNode.tabSizeProperty().bind(tabSizeProperty);
