@@ -219,6 +219,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         // Add selection
         selectionHighlightGroup.setManaged(false);
         selectionHighlightGroup.setVisible(false);
+        selectionHighlightGroup.setMouseTransparent(true);
         contentView.getChildren().add(selectionHighlightGroup);
 
         // Add content view
@@ -1827,8 +1828,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         subY += oneLineHeight;
                         subX = 0;
                     }
-                    textNode.setLayoutX(subX);
-                    textNode.setLayoutY(subY);
+                    // Round coordinates for pixel-perfect text positioning
+                    textNode.setLayoutX(Math.round(subX));
+                    textNode.setLayoutY(Math.round(subY));
                     if (subX + unwrapWidth > wrappingWidth && codeArea.isWrapText()) {
                         // Single Text Node exceeds wrapping width
                         textNode.setWrappingWidth(wrappingWidth);
@@ -1842,7 +1844,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         textNode.setWrappingWidth(0);
                         if (textNode.getBoundsInParent().getHeight() < oneLineHeight) {
                             // When Text node have different bound height. Adjust Y coordinate to align the baseline
-                            textNode.setLayoutY(subY + oneLineHeight - textNode.getBoundsInParent().getHeight());
+                            textNode.setLayoutY(Math.round(subY + oneLineHeight - textNode.getBoundsInParent().getHeight()));
                         }
                         subX += unwrapWidth;
                     }
@@ -2131,9 +2133,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                             if (linePath == null) {
                                 // Set Start Point
                                 linePath = new Path();
-                                linePath.setLayoutX(textNode.getLayoutX());
-                                linePath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                                // Round coordinates for pixel-perfect alignment
+                                linePath.setLayoutX(Math.round(textNode.getLayoutX()));
+                                linePath.setLayoutY(Math.round(textFlow.getLayoutY() + textNode.getLayoutY()));
                                 linePath.setManaged(false);
+                                linePath.setSmooth(false);
                                 if (textNode.getBoundsInLocal().getWidth() < Utils.computeTextWidth(
                                         textNode.getFont(), textNode.getText(), 0)) {
                                     // There is a text node which have whole width of editor
@@ -2150,9 +2154,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         textNode.setSelectionStart(0);
                         textNode.setSelectionEnd(0);
                         Path blankLinePath = new Path();
-                        blankLinePath.setLayoutX(textNode.getLayoutX());
-                        blankLinePath.setLayoutY(textFlow.getLayoutY() + textNode.getLayoutY());
+                        // Round coordinates for pixel-perfect alignment
+                        blankLinePath.setLayoutX(Math.round(textNode.getLayoutX()));
+                        blankLinePath.setLayoutY(Math.round(textFlow.getLayoutY() + textNode.getLayoutY()));
                         blankLinePath.setManaged(false);
+                        blankLinePath.setSmooth(false);
                         // Create a 1px width PathElement to show the highlight
                         PathElement[] selectionShape = new PathElement[] {
                                 new MoveTo(0, -textNode.getLayoutY()),

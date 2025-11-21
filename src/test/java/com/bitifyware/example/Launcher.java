@@ -6,6 +6,6 @@ package com.bitifyware.example;
 public class Launcher {
 
     public static void main(String[] args) {
-        CodeAreaExample.main(args);
+        SelectionRenderingTest.main(args);
     }
 }
