@@ -2151,29 +2151,28 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     
                     if (end > start && start < paragraphLength) {
                         // This text node contains selected text
-                        int selStart = start;
-                        int selEnd = Math.min(end, paragraphLength);
+                        int selStart = Math.max(0, Math.min(start, paragraphLength));
+                        int selEnd = Math.max(0, Math.min(end, paragraphLength));
                         
-                        // Compute X positions for selection start and end within this text node
-                        String textBefore = textNode.getText().substring(0, selStart);
-                        String selectedText = textNode.getText().substring(selStart, selEnd);
-                        
-                        double xStart = Utils.computeTextWidth(textNode.getFont(), textBefore, 0);
-                        double xEnd = xStart + Utils.computeTextWidth(textNode.getFont(), selectedText, 0);
-                        
-                        if (!hasSelection) {
-                            // Start of selection on this line
-                            lineStartX = textNode.getLayoutX() + xStart;
-                            hasSelection = true;
+                        // Safety check to prevent substring errors
+                        if (selStart < selEnd && selEnd <= textNode.getText().length()) {
+                            // Compute X positions for selection start and end within this text node
+                            String textBefore = textNode.getText().substring(0, selStart);
+                            String selectedText = textNode.getText().substring(selStart, selEnd);
+                            
+                            double xStart = Utils.computeTextWidth(textNode.getFont(), textBefore, 0);
+                            double xEnd = xStart + Utils.computeTextWidth(textNode.getFont(), selectedText, 0);
+                            
+                            if (!hasSelection) {
+                                // Start of selection on this line
+                                lineStartX = textNode.getLayoutX() + xStart;
+                                hasSelection = true;
+                            }
+                            
+                            lineEndX = textNode.getLayoutX() + xEnd;
                         }
                         
-                        lineEndX = textNode.getLayoutX() + xEnd;
-                        
                         // Clear Text node's internal selection (we draw our own)
-                        textNode.setSelectionStart(-1);
-                        textNode.setSelectionEnd(-1);
-                    } else if (hasSelection && start >= paragraphLength) {
-                        // Selection continues but not in this text node
                         textNode.setSelectionStart(-1);
                         textNode.setSelectionEnd(-1);
                     } else if (end > start && start == paragraphLength && paragraphLength == 0) {
