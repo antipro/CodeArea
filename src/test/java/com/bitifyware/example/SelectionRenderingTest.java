@@ -32,7 +32,7 @@ public class SelectionRenderingTest extends Application {
         codeArea.setSyntaxHighlighter(new DemoSyntax());
         
         // Set a monospace font for consistent character widths
-        codeArea.setFont(Font.font("Monospace", 14));
+        codeArea.setFont(Font.font("Monospaced", 20));
         
         // Sample text with multiple lines
         String sampleText = "public class HelloWorld {\n" +
