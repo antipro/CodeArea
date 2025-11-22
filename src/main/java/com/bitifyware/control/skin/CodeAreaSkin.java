@@ -80,6 +80,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     private double widthForComputedPrefHeight = Double.NEGATIVE_INFINITY;
     private double characterWidth;
     private double lineHeight;
+    
+    // Measuring Text node for stable line height computation (includes CJK characters)
+    private Text measuringText = null;
+    private double stableLineHeight = 0.0;
 
     private ContentView contentView = new ContentView();
     private final VBox gutter = new VBox();
@@ -1551,6 +1555,57 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         Text firstParagraph = (Text)textFlow.getChildren().get(0);
         lineHeight = Utils.getLineHeight(getSkinnable().getFont(), firstParagraph.getBoundsType());
         characterWidth = fontMetrics.get().getCharWidth('W');
+        // Invalidate stable line height when font metrics change
+        invalidateStableLineHeight();
+    }
+
+    /**
+     * Computes a stable line height for selection rendering that accounts for CJK characters
+     * and font fallback. Uses a representative string "Hg中" with TextBoundsType.LOGICAL to
+     * ensure consistent vertical alignment across lines.
+     * 
+     * This fixes the issue where selection rectangles misalign when CJK characters are present
+     * because per-Text bounds vary with different glyphs and font fallback.
+     * 
+     * @return stable line height in pixels, rounded to integer for pixel-perfect alignment
+     */
+    private double computeStableLineHeight() {
+        if (stableLineHeight > 0) {
+            return stableLineHeight;
+        }
+        
+        Font font = getSkinnable().getFont();
+        if (font == null) {
+            font = Font.getDefault();
+        }
+        
+        // Create or reuse measuring Text node with representative characters
+        // "Hg" covers Latin ascenders/descenders, "中" ensures CJK height is included
+        if (measuringText == null) {
+            measuringText = new Text("Hg中");
+            measuringText.setBoundsType(TextBoundsType.LOGICAL);
+            measuringText.setTextOrigin(VPos.TOP);
+        }
+        measuringText.setFont(font);
+        
+        // Apply CSS to get accurate bounds
+        measuringText.applyCss();
+        
+        // Use layout bounds height as the stable measurement
+        double height = measuringText.getLayoutBounds().getHeight();
+        
+        // Cache the stable height, rounded to integer pixels
+        stableLineHeight = Math.ceil(height);
+        
+        return stableLineHeight;
+    }
+    
+    /**
+     * Invalidates the cached stable line height, forcing recomputation on next access.
+     * Call this when font changes or other layout-affecting properties change.
+     */
+    private void invalidateStableLineHeight() {
+        stableLineHeight = 0.0;
     }
 
     private double getTextTranslateX() {
@@ -1796,7 +1851,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             final List<Node> paragraphNodesChildren = paragraphNodes.getChildren();
 
             int no = 0;
-            double oneLineHeight = 0;
+            // Use stable line height that accounts for CJK characters and font fallback
+            double oneLineHeight = computeStableLineHeight();
             for (Node paragraphNodesChild : paragraphNodesChildren) {
 
 //                Node node = paragraphNodesChildren.get(i);
@@ -1819,9 +1875,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 for (int i = 0; i < children.size(); i++) {
                     Text textNode = (Text) children.get(i);
 //                    codeArea.getSyntaxHighlighter().highlight(textNode);
-                    if (oneLineHeight == 0) {
-                        oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "1", 0, TextBoundsType.LOGICAL_VERTICAL_CENTER);
-                    }
+                    // Note: oneLineHeight is now computed once using stable measurement above
                     double unwrapWidth = computeTextWidth(textNode.getText(), textNode.getFont(), 0, codeArea.tabSizeProperty().get());
                     if (i > 0 && subX + unwrapWidth > wrappingWidth && codeArea.isWrapText()) {
                         // Not first of line and exceed the border. Move to new line
@@ -2094,11 +2148,12 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         textNode.setSelectionEnd(Math.min(end, paragraphLength));
                         PathElement[] selectionShape = textNode.getSelectionShape();
                         if (selectionShape != null && selectionShape.length > 0) {
-                            // Because the Text node can not have the same bound height. Don't ask me why :(
-                            // the Y coordinate has been adjusted When layout above.
-                            // We need to adjust the Y coordinate of the selection shape.
-                            // So that the selection shape will have no space between the line.
-                            double offset = oneLineHeight - textNode.getBoundsInLocal().getMaxY();
+                            // FIX: Use stable line height for consistent selection alignment
+                            // The stable line height accounts for CJK characters and font fallback,
+                            // preventing selection misalignment when CJK chars are added/removed.
+                            // Instead of using per-Text bounds (which vary), we use the stable measurement.
+                            double stableHeight = computeStableLineHeight();
+                            double offset = stableHeight - textNode.getBoundsInLocal().getMaxY();
                             if (((MoveTo)selectionShape[0]).getY() == 0 && offset > 0) {
                                 ((MoveTo)selectionShape[0]).setY(((MoveTo)selectionShape[0]).getY() - offset);
                                 ((LineTo)selectionShape[1]).setY(((LineTo)selectionShape[1]).getY() - offset);

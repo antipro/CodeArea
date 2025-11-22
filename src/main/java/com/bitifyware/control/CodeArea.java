@@ -447,6 +447,8 @@ public class CodeArea extends CodeInputControl {
                 @Override
                 public List<Text> decompose(String sentence, IntegerProperty tabSizeProperty, ChangeListener<TextBoundsType> callback, ObjectProperty<Font> fontProperty, ObjectProperty<Paint> selectionFillProperty) {
                     Text singleText = new Text(sentence);
+                    // Configure Text node with consistent bounds for stable selection rendering
+                    singleText.setBoundsType(TextBoundsType.LOGICAL);
                     singleText.setTextOrigin(javafx.geometry.VPos.TOP);
                     singleText.setManaged(false);
                     singleText.tabSizeProperty().bind(tabSizeProperty);
