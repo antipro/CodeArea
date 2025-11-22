@@ -147,7 +147,7 @@ public class CodeArea extends CodeInputControl {
 
                     // Append the first line to the intersecting paragraph and
                     // append the trailing text to the last line
-                    StringBuilder first = lines.get(0);
+                    StringBuilder first = lines.getFirst();
                     paragraph.insert(start, first);
                     line.append(trailingText);
                     fireParagraphListChangeEvent(paragraphIndex, paragraphIndex + 1,

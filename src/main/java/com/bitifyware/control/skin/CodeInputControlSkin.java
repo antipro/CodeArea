@@ -283,6 +283,13 @@ public abstract class CodeInputControlSkin<T extends CodeInputControl> extends S
                 }
             });
         }
+    }
+
+    @Override
+    public void install() {
+        super.install();
+
+        CodeInputControl control = getSkinnable();
 
         // IMPORTANT: both setOnInputMethodTextChanged() and setInputMethodRequests() are required for IME to work
         if (control.getOnInputMethodTextChanged() == null) {
