@@ -22,7 +22,9 @@ The selection rendering code was using per-Text node bounds to compute line heig
    - Platform-specific font rasterization
 3. **Selection Adjustment Logic**: Code at `CodeAreaSkin.java:2101-2106` adjusted selection Y coordinates based on `textNode.getBoundsInLocal().getMaxY()` which varies per-Text
 
-## Solution
+## Solution (UPDATED)
+
+**Note**: The solution was updated based on user feedback. Instead of adjusting shapes from `Text.getSelectionShape()`, the selection rendering now builds stable Path geometries directly, completely independent of Text node bounds.
 
 ### 1. Stable Line Height Computation
 
@@ -84,21 +86,37 @@ double oneLineHeight = computeStableLineHeight();
 
 This ensures consistent line height for layout regardless of actual text content.
 
-### 3. Fixed Selection Rendering
+### 3. Rewrote Selection Rendering (MAJOR CHANGE)
 
-Changed line 2154 in `CodeAreaSkin.java` from:
-```java
-double offset = oneLineHeight - textNode.getBoundsInLocal().getMaxY();
-```
+**Completely replaced the selection rendering logic** to build Path geometries directly instead of using `Text.getSelectionShape()`:
 
-To:
+**OLD APPROACH (didn't work):**
 ```java
-// FIX: Use stable line height for consistent selection alignment
-double stableHeight = computeStableLineHeight();
+PathElement[] selectionShape = textNode.getSelectionShape();
+// Adjust Y coordinates based on text bounds (still varied with CJK)
 double offset = stableHeight - textNode.getBoundsInLocal().getMaxY();
 ```
 
-This prevents selection misalignment by using a consistent height measurement.
+**NEW APPROACH (works correctly):**
+```java
+// Compute X positions from text width measurements
+String textBefore = textNode.getText().substring(0, selStart);
+String selectedText = textNode.getText().substring(selStart, selEnd);
+double xStart = Utils.computeTextWidth(font, textBefore, 0);
+double xEnd = xStart + Utils.computeTextWidth(font, selectedText, 0);
+
+// Build rectangle with stable height directly
+double stableHeight = computeStableLineHeight();
+selectionPath.getElements().addAll(
+    new MoveTo(lineStartX, 0),
+    new LineTo(lineEndX, 0),
+    new LineTo(lineEndX, stableHeight),  // ← Uses stable height!
+    new LineTo(lineStartX, stableHeight),
+    new ClosePath()
+);
+```
+
+**Key difference**: The new approach doesn't use `textNode.getSelectionShape()` at all. It computes X positions from text width and uses the stable height for Y dimensions, making the selection completely independent of Text node bounds variation.
 
 ### 4. Font Change Handling
 
@@ -180,11 +198,13 @@ mvn compile exec:java -Dexec.mainClass="com.bitifyware.example.TestSelectionLine
 
 ### Why This Approach Works
 
-1. **Stable Measurement**: Using "Hg中" ensures the line height accounts for the tallest possible combination of Latin and CJK glyphs
-2. **Font Fallback Handling**: The measurement happens after font fallback, so it captures the actual rendered height
-3. **Caching**: Computing the stable height once per font change is efficient
-4. **Platform Agnostic**: Works across Windows, macOS, and Linux without platform-specific hacks
-5. **Layout Consistent**: Uses the same TextBoundsType.LOGICAL as Text nodes for consistency
+1. **Completely Independent Geometry**: Selection paths are built directly, not derived from Text node shapes
+2. **Stable Measurement**: Using "Hg中" ensures the line height accounts for the tallest possible combination of Latin and CJK glyphs
+3. **Width from Text Measurements**: X positions computed using `Utils.computeTextWidth()` which is stable
+4. **Font Fallback Handling**: The stable height measurement happens after font fallback, so it captures the actual rendered height
+5. **Caching**: Computing the stable height once per font change is efficient
+6. **Platform Agnostic**: Works across Windows, macOS, and Linux without platform-specific hacks
+7. **No Text Node Changes**: Text rendering remains unchanged, only selection overlay uses stable geometry
 
 ### Performance Considerations
 
