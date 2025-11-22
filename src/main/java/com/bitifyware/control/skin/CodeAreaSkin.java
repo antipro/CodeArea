@@ -2198,20 +2198,22 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     selectionPath.setSmooth(false);
                     
                     // Use stable line height for Y coordinates
-                    double selY = Math.round(textFlow.getLayoutY());
+                    // Position the path relative to textFlow, with rectangle at local coordinates
                     double selHeight = stableHeight;
                     
                     // Build rectangle path with stable height
+                    // X coordinates are relative to the path's layoutX
                     selectionPath.getElements().addAll(
-                        new MoveTo(Math.round(lineStartX), 0),
-                        new LineTo(Math.round(lineEndX), 0),
-                        new LineTo(Math.round(lineEndX), selHeight),
-                        new LineTo(Math.round(lineStartX), selHeight),
+                        new MoveTo(0, 0),
+                        new LineTo(Math.round(lineEndX - lineStartX), 0),
+                        new LineTo(Math.round(lineEndX - lineStartX), selHeight),
+                        new LineTo(0, selHeight),
                         new ClosePath()
                     );
                     
-                    selectionPath.setLayoutX(0);
-                    selectionPath.setLayoutY(selY);
+                    // Position path at the start of selection
+                    selectionPath.setLayoutX(Math.round(lineStartX));
+                    selectionPath.setLayoutY(Math.round(textFlow.getLayoutY()));
                     
                     selectionHighlightGroup.getChildren().add(selectionPath);
                 }
