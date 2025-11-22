@@ -2132,126 +2132,91 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 }
             }
 
-            // Update selection fg and bg
+            // Update selection fg and bg using stable line height
+            // This creates selection rectangles directly instead of using Text.getSelectionShape()
+            // which varies with CJK characters and font fallback
             int start = selection.getStart();
             int end = selection.getEnd();
+            double stableHeight = computeStableLineHeight();
+            
             for (int i = 0, max = paragraphNodesChildren.size(); i < max; i++) {
                 TextFlow textFlow = (TextFlow)paragraphNodesChildren.get(i);
-                Path linePath = null;
-                List<PathElement[]> pathElements = new ArrayList<>();
-                double highlightWidth = 0.0;
+                double lineStartX = 0;
+                double lineEndX = 0;
+                boolean hasSelection = false;
+                
                 for (int j = 0; j < textFlow.getChildren().size(); j++) {
                     Text textNode = (Text) textFlow.getChildren().get(j);
                     int paragraphLength = textNode.getText().length();
+                    
                     if (end > start && start < paragraphLength) {
-                        textNode.setSelectionStart(start);
-                        textNode.setSelectionEnd(Math.min(end, paragraphLength));
-                        PathElement[] selectionShape = textNode.getSelectionShape();
-                        if (selectionShape != null && selectionShape.length > 0) {
-                            // FIX: Use stable line height for consistent selection alignment
-                            // The stable line height accounts for CJK characters and font fallback,
-                            // preventing selection misalignment when CJK chars are added/removed.
-                            // Instead of using per-Text bounds (which vary), we use the stable measurement.
-                            double stableHeight = computeStableLineHeight();
-                            double offset = stableHeight - textNode.getBoundsInLocal().getMaxY();
-                            if (((MoveTo)selectionShape[0]).getY() == 0 && offset > 0) {
-                                ((MoveTo)selectionShape[0]).setY(((MoveTo)selectionShape[0]).getY() - offset);
-                                ((LineTo)selectionShape[1]).setY(((LineTo)selectionShape[1]).getY() - offset);
-                                ((LineTo)selectionShape[4]).setY(((LineTo)selectionShape[4]).getY() - offset);
-                            }
-
-                            if (linePath != null && textNode.getLayoutX() == 0) {
-                                // New Line of Selection Draw previous linePath
-                                PathElement[] firstShape = pathElements.get(0);
-                                // MoveTo left top corner of fist shape
-                                linePath.getElements().add(firstShape[0]);
-                                PathElement[] lastShape = pathElements.get(pathElements.size()-1);
-                                // LineTo right top corner of last shape
-                                LineTo lineTo = new LineTo(highlightWidth, ((LineTo)lastShape[1]).getY());
-                                linePath.getElements().add(lineTo);
-                                // LineTo right bottom corner of last shape
-                                lineTo = new LineTo(highlightWidth, ((LineTo)lastShape[2]).getY());
-                                linePath.getElements().add(lineTo);
-                                // LineTo left bottom corner of first shape
-                                lineTo = new LineTo(((LineTo)firstShape[3]).getX(), ((LineTo)firstShape[3]).getY());
-                                linePath.getElements().add(lineTo);
-                                // LineTo left top corner of first shape
-                                lineTo = new LineTo(((LineTo)firstShape[4]).getX(), ((LineTo)firstShape[4]).getY());
-                                linePath.getElements().add(lineTo);
-                                selectionHighlightGroup.getChildren().add(linePath);
-                                linePath = null; // Reset for next line
-                                pathElements.clear();
-                                highlightWidth = 0.0;
-                            }
-                            pathElements.add(selectionShape);
-                            highlightWidth += ((LineTo)selectionShape[1]).getX();
-                            if (linePath == null) {
-                                // Set Start Point
-                                linePath = new Path();
-                                // Round coordinates for pixel-perfect alignment
-                                linePath.setLayoutX(Math.round(textNode.getLayoutX()));
-                                linePath.setLayoutY(Math.round(textFlow.getLayoutY() + textNode.getLayoutY()));
-                                linePath.setManaged(false);
-                                linePath.setSmooth(false);
-                                if (textNode.getBoundsInLocal().getWidth() < Utils.computeTextWidth(
-                                        textNode.getFont(), textNode.getText(), 0)) {
-                                    // There is a text node which have whole width of editor
-                                    linePath.getElements().addAll(pathElements.get(0));
-                                    selectionHighlightGroup.getChildren().add(linePath);
-                                    pathElements.clear();
-                                    linePath = null; // Reset for next line
-                                    highlightWidth = 0.0;
-                                }
-                            }
+                        // This text node contains selected text
+                        int selStart = start;
+                        int selEnd = Math.min(end, paragraphLength);
+                        
+                        // Compute X positions for selection start and end within this text node
+                        String textBefore = textNode.getText().substring(0, selStart);
+                        String selectedText = textNode.getText().substring(selStart, selEnd);
+                        
+                        double xStart = Utils.computeTextWidth(textNode.getFont(), textBefore, 0);
+                        double xEnd = xStart + Utils.computeTextWidth(textNode.getFont(), selectedText, 0);
+                        
+                        if (!hasSelection) {
+                            // Start of selection on this line
+                            lineStartX = textNode.getLayoutX() + xStart;
+                            hasSelection = true;
                         }
+                        
+                        lineEndX = textNode.getLayoutX() + xEnd;
+                        
+                        // Clear Text node's internal selection (we draw our own)
+                        textNode.setSelectionStart(-1);
+                        textNode.setSelectionEnd(-1);
+                    } else if (hasSelection && start >= paragraphLength) {
+                        // Selection continues but not in this text node
+                        textNode.setSelectionStart(-1);
+                        textNode.setSelectionEnd(-1);
                     } else if (end > start && start == paragraphLength && paragraphLength == 0) {
-                        // There is a blank line in selection
-                        textNode.setSelectionStart(0);
-                        textNode.setSelectionEnd(0);
-                        Path blankLinePath = new Path();
-                        // Round coordinates for pixel-perfect alignment
-                        blankLinePath.setLayoutX(Math.round(textNode.getLayoutX()));
-                        blankLinePath.setLayoutY(Math.round(textFlow.getLayoutY() + textNode.getLayoutY()));
-                        blankLinePath.setManaged(false);
-                        blankLinePath.setSmooth(false);
-                        // Create a 1px width PathElement to show the highlight
-                        PathElement[] selectionShape = new PathElement[] {
-                                new MoveTo(0, -textNode.getLayoutY()),
-                                new LineTo(1, -textNode.getLayoutY()),
-                                new LineTo(1, textNode.getLayoutBounds().getHeight()),
-                                new LineTo(0, textNode.getLayoutBounds().getHeight()),
-                                new LineTo(0, -textNode.getLayoutY())
-                        };
-                        blankLinePath.getElements().addAll(selectionShape);
-                        selectionHighlightGroup.getChildren().add(blankLinePath);
+                        // Empty line in selection
+                        hasSelection = true;
+                        lineStartX = textNode.getLayoutX();
+                        lineEndX = lineStartX + 1; // 1px width for empty line
+                        textNode.setSelectionStart(-1);
+                        textNode.setSelectionEnd(-1);
                     } else {
                         textNode.setSelectionStart(-1);
                         textNode.setSelectionEnd(-1);
                     }
+                    
                     start = Math.max(0, start - paragraphLength);
                     end   = Math.max(0, end   - paragraphLength);
                 }
-                if (!pathElements.isEmpty()) {
-                    // There is still some selection shape left in pathElements, Draw it
-                    PathElement[] firstShape = pathElements.get(0);
-                    // MoveTo left top corner of fist shape
-                    linePath.getElements().add(firstShape[0]);
-                    PathElement[] lastShape = pathElements.get(pathElements.size()-1);
-                    // LineTo right top corner of last shape
-                    LineTo lineTo = new LineTo(highlightWidth, ((LineTo)lastShape[1]).getY());
-                    linePath.getElements().add(lineTo);
-                    // LineTo right bottom corner of last shape
-                    lineTo = new LineTo(highlightWidth, ((LineTo)lastShape[2]).getY());
-                    linePath.getElements().add(lineTo);
-                    // LineTo left bottom corner of first shape
-                    lineTo = new LineTo(((LineTo)firstShape[3]).getX(), ((LineTo)firstShape[3]).getY());
-                    linePath.getElements().add(lineTo);
-                    // LineTo left top corner of first shape
-                    lineTo = new LineTo(((LineTo)firstShape[4]).getX(), ((LineTo)firstShape[4]).getY());
-                    linePath.getElements().add(lineTo);
-                    selectionHighlightGroup.getChildren().add(linePath);
-                    pathElements.clear();
+                
+                // Create selection rectangle for this line if it has selection
+                if (hasSelection) {
+                    Path selectionPath = new Path();
+                    selectionPath.setManaged(false);
+                    selectionPath.setSmooth(false);
+                    
+                    // Use stable line height for Y coordinates
+                    double selY = Math.round(textFlow.getLayoutY());
+                    double selHeight = stableHeight;
+                    
+                    // Build rectangle path with stable height
+                    selectionPath.getElements().addAll(
+                        new MoveTo(Math.round(lineStartX), 0),
+                        new LineTo(Math.round(lineEndX), 0),
+                        new LineTo(Math.round(lineEndX), selHeight),
+                        new LineTo(Math.round(lineStartX), selHeight),
+                        new ClosePath()
+                    );
+                    
+                    selectionPath.setLayoutX(0);
+                    selectionPath.setLayoutY(selY);
+                    
+                    selectionHighlightGroup.getChildren().add(selectionPath);
                 }
+                
                 start = Math.max(0, start - 1);
                 end   = Math.max(0, end   - 1);
             }
