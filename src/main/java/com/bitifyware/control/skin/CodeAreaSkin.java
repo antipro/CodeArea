@@ -2200,13 +2200,14 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     // Use stable line height for Y coordinates
                     // Position the path relative to textFlow, with rectangle at local coordinates
                     double selHeight = stableHeight;
+                    double selWidth = Math.round(lineEndX - lineStartX);
                     
                     // Build rectangle path with stable height
                     // X coordinates are relative to the path's layoutX
                     selectionPath.getElements().addAll(
                         new MoveTo(0, 0),
-                        new LineTo(Math.round(lineEndX - lineStartX), 0),
-                        new LineTo(Math.round(lineEndX - lineStartX), selHeight),
+                        new LineTo(selWidth, 0),
+                        new LineTo(selWidth, selHeight),
                         new LineTo(0, selHeight),
                         new ClosePath()
                     );
