@@ -2162,8 +2162,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         PathElement[] selectionShape = new PathElement[] {
                                 new MoveTo(0, -textNode.getLayoutY()),
                                 new LineTo(1, -textNode.getLayoutY()),
-                                new LineTo(1, textNode.getLayoutBounds().getHeight()),
-                                new LineTo(0, textNode.getLayoutBounds().getHeight()),
+                                new LineTo(1, oneLineHeight),
+                                new LineTo(0, oneLineHeight),
                                 new LineTo(0, -textNode.getLayoutY())
                         };
                         blankLinePath.getElements().addAll(selectionShape);
