@@ -1820,7 +1820,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     Text textNode = (Text) children.get(i);
 //                    codeArea.getSyntaxHighlighter().highlight(textNode);
                     if (oneLineHeight == 0) {
-                        oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "1", 0, TextBoundsType.LOGICAL_VERTICAL_CENTER);
+                        oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "1A人", 0, TextBoundsType.LOGICAL_VERTICAL_CENTER);
                     }
                     double unwrapWidth = computeTextWidth(textNode.getText(), textNode.getFont(), 0, codeArea.tabSizeProperty().get());
                     if (i > 0 && subX + unwrapWidth > wrappingWidth && codeArea.isWrapText()) {
