@@ -1842,10 +1842,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         subY += wrapHeight;
                     } else {
                         textNode.setWrappingWidth(0);
-                        if (textNode.getBoundsInParent().getHeight() < oneLineHeight) {
-                            // When Text node have different bound height. Adjust Y coordinate to align the baseline
-                            textNode.setLayoutY(Math.round(subY + oneLineHeight - textNode.getBoundsInParent().getHeight()));
-                        }
+//                        if (textNode.getBoundsInParent().getHeight() < oneLineHeight) {
+//                            // When Text node have different bound height. Adjust Y coordinate to align the baseline
+//                            textNode.setLayoutY(Math.round(subY + oneLineHeight - textNode.getBoundsInParent().getHeight()));
+//                        }
                         subX += unwrapWidth;
                     }
                 }
@@ -2098,12 +2098,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                             // the Y coordinate has been adjusted When layout above.
                             // We need to adjust the Y coordinate of the selection shape.
                             // So that the selection shape will have no space between the line.
-                            double offset = oneLineHeight - textNode.getBoundsInLocal().getMaxY();
-                            if (((MoveTo)selectionShape[0]).getY() == 0 && offset > 0) {
-                                ((MoveTo)selectionShape[0]).setY(((MoveTo)selectionShape[0]).getY() - offset);
-                                ((LineTo)selectionShape[1]).setY(((LineTo)selectionShape[1]).getY() - offset);
-                                ((LineTo)selectionShape[4]).setY(((LineTo)selectionShape[4]).getY() - offset);
-                            }
+//                            double offset = oneLineHeight - textNode.getBoundsInLocal().getMaxY();
+//                            if (((MoveTo)selectionShape[0]).getY() == 0 && offset > 0) {
+                                ((LineTo)selectionShape[2]).setY(oneLineHeight);
+                                ((LineTo)selectionShape[3]).setY(oneLineHeight);
+//                            }
 
                             if (linePath != null && textNode.getLayoutX() == 0) {
                                 // New Line of Selection Draw previous linePath
