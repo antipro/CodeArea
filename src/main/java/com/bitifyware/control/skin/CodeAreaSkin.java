@@ -1842,10 +1842,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         subY += wrapHeight;
                     } else {
                         textNode.setWrappingWidth(0);
-//                        if (textNode.getBoundsInParent().getHeight() < oneLineHeight) {
-//                            // When Text node have different bound height. Adjust Y coordinate to align the baseline
-//                            textNode.setLayoutY(Math.round(subY + oneLineHeight - textNode.getBoundsInParent().getHeight()));
-//                        }
+                        if (textNode.getBoundsInParent().getHeight() < oneLineHeight) {
+                            // When Text node have different bound height. Adjust Y coordinate to align the baseline
+                            textNode.setLayoutY(subY + oneLineHeight - textNode.getBoundsInParent().getHeight());
+                        }
                         subX += unwrapWidth;
                     }
                 }
@@ -2135,6 +2135,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                 // Round coordinates for pixel-perfect alignment
                                 linePath.setLayoutX(Math.round(textNode.getLayoutX()));
                                 linePath.setLayoutY(Math.round(textFlow.getLayoutY() + textNode.getLayoutY()));
+                                // FIXME I can not find out why Text node have different bound height,
+                                //  So here is a workaround, adjust the Y coordinate to align the bottom of selection shape to the bottom of line
+                                if (textNode.getBoundsInParent().getHeight() < oneLineHeight) {
+                                    linePath.setLayoutY(Math.round(textFlow.getLayoutY() + textNode.getLayoutY() - (oneLineHeight - textNode.getBoundsInParent().getHeight())));
+                                }
                                 linePath.setManaged(false);
                                 linePath.setSmooth(false);
                                 if (textNode.getBoundsInLocal().getWidth() < Utils.computeTextWidth(
