@@ -1822,7 +1822,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     if (oneLineHeight == 0) {
                         oneLineHeight = Utils.computeTextHeight(textNode.getFont(), "1A人", 0, TextBoundsType.LOGICAL_VERTICAL_CENTER);
                     }
-                    double unwrapWidth = computeTextWidth(textNode.getText(), textNode.getFont(), 0, codeArea.tabSizeProperty().get());
+                    double unwrapWidth = Utils.computeTextWidth(textNode.getFont(), textNode.getText(), 0);
                     if (i > 0 && subX + unwrapWidth > wrappingWidth && codeArea.isWrapText()) {
                         // Not first of line and exceed the border. Move to new line
                         subY += oneLineHeight;
