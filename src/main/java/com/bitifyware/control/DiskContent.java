@@ -461,20 +461,14 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
                 String line = readLine(lineIndex);
                 int lineLen = line.length();
                 
-                // Position range for this line (including the newline if not last line)
-                int lineEnd = currentPos + lineLen;
-                if (lineIndex < lineCount - 1) {
-                    lineEnd++; // Account for newline character
-                }
-                
-                // Check if position is in this line
-                if (charPos <= lineEnd) {
+                // Check if position is within this line's content
+                if (charPos >= currentPos && charPos <= currentPos + lineLen) {
                     int offset = charPos - currentPos;
-                    // Clamp offset to line length (newline position is beyond line end)
-                    return new int[] { lineIndex, Math.min(offset, lineLen) };
+                    return new int[] { lineIndex, offset };
                 }
                 
-                currentPos = lineEnd;
+                // Move to next line (account for newline character)
+                currentPos += lineLen + 1;
                 lineIndex++;
             }
             
