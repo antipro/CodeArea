@@ -33,7 +33,7 @@ import java.util.*;
 public class CodeArea extends CodeInputControl {
 
     protected static abstract class CodeAreaContent extends ContentBase {
-        protected final List<StringBuilder> paragraphs = new ArrayList<>();
+        protected List<StringBuilder> paragraphs;
     }
 
     // Observable list of paragraphs

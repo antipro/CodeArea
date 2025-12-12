@@ -19,6 +19,7 @@ final class InMemoryContent extends CodeAreaContent {
     private int contentLength = 0;
 
     InMemoryContent() {
+        paragraphs = new ArrayList<>();
         paragraphs.add(new StringBuilder(DEFAULT_PARAGRAPH_CAPACITY));
         paragraphList.setContent(this);
     }
