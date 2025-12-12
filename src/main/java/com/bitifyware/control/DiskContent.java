@@ -208,7 +208,7 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
                                currentLine.substring(offsetInLine);
                 replaceLine(lineIndex, newLine);
                 fireParagraphListChangeEvent(lineIndex, lineIndex + 1,
-                    Collections.singletonList((CharSequence) new StringBuilder(newLine)));
+                    Collections.singletonList(newLine));
             } else {
                 // Multi-line insert - split current line
                 String firstPart = currentLine.substring(0, offsetInLine) + newLines.get(0);
@@ -217,7 +217,7 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
                 // Replace current line with first part
                 replaceLine(lineIndex, firstPart);
                 fireParagraphListChangeEvent(lineIndex, lineIndex + 1,
-                    Collections.singletonList((CharSequence) new StringBuilder(firstPart)));
+                    Collections.singletonList(firstPart));
                 
                 // Insert middle lines
                 for (int i = 1; i < newLines.size() - 1; i++) {
@@ -228,6 +228,10 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
                 insertLine(lineIndex + newLines.size() - 1, lastPart);
                 
                 // Fire event for inserted lines
+                List<CharSequence> insertedLines = new ArrayList<>();
+                for (int i = 1; i < newLines.size(); i++) {
+                    insertedLines.add(newLines.get(i));
+                }
                 fireParagraphListChangeEvent(lineIndex + 1, lineIndex + newLines.size(),
                     Collections.emptyList());
             }
@@ -273,7 +277,7 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
                 String newLine = line.substring(0, startOffset) + line.substring(endOffset);
                 replaceLine(startLine, newLine);
                 fireParagraphListChangeEvent(startLine, startLine + 1,
-                    Collections.singletonList((CharSequence) new StringBuilder(newLine)));
+                    Collections.singletonList(line));
             } else {
                 // Delete spans multiple lines
                 String firstLine = readLine(startLine);
@@ -283,7 +287,7 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
                 // Build list of removed lines
                 List<CharSequence> removed = new ArrayList<>();
                 for (int i = startLine; i <= endLine; i++) {
-                    removed.add(new StringBuilder(readLine(i)));
+                    removed.add(readLine(i));
                 }
                 
                 // Delete lines from startLine+1 to endLine (inclusive)
@@ -296,7 +300,7 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
                 
                 fireParagraphListChangeEvent(startLine, startLine, removed);
                 fireParagraphListChangeEvent(startLine, startLine + 1,
-                    Collections.singletonList((CharSequence) new StringBuilder(mergedLine)));
+                    Collections.singletonList(mergedLine));
             }
             
             contentLength -= length;
@@ -474,8 +478,12 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
                 lineIndex++;
             }
             
-            // Position is at the very end
-            return new int[] { Math.max(0, lineCount - 1), 0 };
+            // Position is at the very end - find the last line's length
+            if (lineCount > 0) {
+                String lastLine = readLine(lineCount - 1);
+                return new int[] { lineCount - 1, lastLine.length() };
+            }
+            return new int[] { 0, 0 };
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to find line position", e);
         }

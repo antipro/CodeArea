@@ -71,7 +71,7 @@ public final class ContentSwapper {
      * @throws ReflectiveOperationException if reflection fails (field not found, access denied, etc.)
      * @throws IllegalArgumentException if codeArea or newContent is null
      */
-    public static void swapContent(CodeArea codeArea, CodeInputControl.Content newContent) 
+    public static void swapContent(CodeArea codeArea, CodeInputControl.ContentBase newContent) 
             throws ReflectiveOperationException {
         if (codeArea == null) {
             throw new IllegalArgumentException("codeArea cannot be null");
@@ -104,7 +104,7 @@ public final class ContentSwapper {
      * @throws ReflectiveOperationException if reflection fails
      * @throws IllegalArgumentException if control or newContent is null
      */
-    public static void swapContent(CodeInputControl control, CodeInputControl.Content newContent) 
+    public static void swapContent(CodeInputControl control, CodeInputControl.ContentBase newContent) 
             throws ReflectiveOperationException {
         if (control == null) {
             throw new IllegalArgumentException("control cannot be null");
