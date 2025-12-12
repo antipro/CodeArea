@@ -99,9 +99,17 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
      * @throws UncheckedIOException if the temporary file cannot be created
      */
     public DiskContent(String initialText) {
-        this();
-        if (initialText != null && !initialText.isEmpty()) {
-            insert(0, initialText, true);
+        try {
+            tempFile = Files.createTempFile("codearea-", ".txt");
+            Files.writeString(tempFile, "", StandardCharsets.UTF_8);
+            paragraphs = new DiskBackedParagraphList();
+            paragraphList.setContent(this);
+            
+            if (initialText != null && !initialText.isEmpty()) {
+                insert(0, initialText, false);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to create temporary file for DiskContent", e);
         }
     }
     
@@ -116,37 +124,46 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
             return "";
         }
         
-        StringBuilder result = new StringBuilder(length);
-        
-        // Find the starting line and offset within that line
-        int[] startPos = findLineAndOffset(start);
-        int lineIndex = startPos[0];
-        int offsetInLine = startPos[1];
-        
-        int remaining = length;
-        
-        while (remaining > 0 && lineIndex < lineCount) {
-            String line = readLine(lineIndex);
-            int lineLen = line.length();
+        try {
+            StringBuilder result = new StringBuilder(length);
             
-            // How much to read from this line
-            int toRead = Math.min(remaining, lineLen - offsetInLine);
-            if (toRead > 0) {
-                result.append(line, offsetInLine, offsetInLine + toRead);
-                remaining -= toRead;
+            // Find the starting line and offset within that line
+            int[] startPos = findLineAndOffset(start);
+            int lineIndex = startPos[0];
+            int offsetInLine = startPos[1];
+            
+            int charsRead = 0;
+            
+            while (charsRead < length && lineIndex < lineCount) {
+                String line = readLine(lineIndex);
+                int lineLen = line.length();
+                
+                // Calculate how many chars to read from this line
+                int available = lineLen - offsetInLine;
+                int toRead = Math.min(available, length - charsRead);
+                
+                if (toRead > 0) {
+                    result.append(line, offsetInLine, offsetInLine + toRead);
+                    charsRead += toRead;
+                }
+                
+                // If we've read to the end of the line and need more, add newline
+                if (charsRead < length && offsetInLine + toRead >= lineLen) {
+                    // Check if there's a newline character at this position
+                    if (lineIndex < lineCount - 1) {
+                        result.append('\n');
+                        charsRead++;
+                    }
+                }
+                
+                lineIndex++;
+                offsetInLine = 0;
             }
             
-            // Add newline if we're moving to next line and not at the end
-            if (offsetInLine + toRead >= lineLen && remaining > 0 && lineIndex < lineCount - 1) {
-                result.append('\n');
-                remaining--;
-            }
-            
-            lineIndex++;
-            offsetInLine = 0;
+            return result.toString();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read text", e);
         }
-        
-        return result.toString();
     }
     
     @Override
@@ -398,7 +415,6 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
     void insertLine(int lineIndex, String content) throws IOException {
         List<String> lines = readAllLines();
         lines.add(lineIndex, content);
-        lineCount++;
         writeAllLines(lines);
     }
     
@@ -414,7 +430,6 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
             throw new IndexOutOfBoundsException("lineIndex=" + lineIndex + ", lineCount=" + lines.size());
         }
         lines.remove(lineIndex);
-        lineCount--;
         writeAllLines(lines);
     }
     
@@ -435,13 +450,20 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
                 String line = readLine(lineIndex);
                 int lineLen = line.length();
                 
-                // Check if position is in this line
-                if (currentPos + lineLen >= charPos) {
-                    return new int[] { lineIndex, charPos - currentPos };
+                // Position range for this line (including the newline if not last line)
+                int lineEnd = currentPos + lineLen;
+                if (lineIndex < lineCount - 1) {
+                    lineEnd++; // Account for newline character
                 }
                 
-                // Add line length + newline character
-                currentPos += lineLen + 1;
+                // Check if position is in this line
+                if (charPos <= lineEnd) {
+                    int offset = charPos - currentPos;
+                    // Clamp offset to line length (newline position is beyond line end)
+                    return new int[] { lineIndex, Math.min(offset, lineLen) };
+                }
+                
+                currentPos = lineEnd;
                 lineIndex++;
             }
             
@@ -507,6 +529,7 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
             Files.write(tempTarget, lines, StandardCharsets.UTF_8);
             Files.move(tempTarget, tempFile, StandardCopyOption.REPLACE_EXISTING, 
                       StandardCopyOption.ATOMIC_MOVE);
+            lineCount = lines.size();
         } catch (IOException e) {
             Files.deleteIfExists(tempTarget);
             throw e;
