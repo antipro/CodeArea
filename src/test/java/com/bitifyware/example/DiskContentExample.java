@@ -1,4 +1,4 @@
-package com.bitifyware.control.virtual;
+package com.bitifyware.example;
 
 import com.bitifyware.control.CodeArea;
 import com.bitifyware.control.ContentSwapper;
@@ -29,7 +29,7 @@ import javafx.stage.Stage;
  * 
  * <h3>Running the Example</h3>
  * <pre>
- * java com.bitifyware.control.virtual.DiskContentExample
+ * java com.bitifyware.example.DiskContentExample
  * </pre>
  * 
  * @see DiskContent
@@ -48,7 +48,7 @@ public class DiskContentExample extends Application {
         BorderPane root = new BorderPane();
         
         // Create CodeArea with initial content
-        codeArea = new CodeArea("Initial in-memory content.\nThis will be replaced.");
+        codeArea = new CodeArea("Initial in-memory content.\nThis will be replaced.", true);
         
         // Status label
         statusLabel = new Label("Status: Using in-memory content");

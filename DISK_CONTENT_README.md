@@ -98,7 +98,7 @@ new Thread(loadTask).start();
 Run the demo:
 
 ```bash
-java com.bitifyware.control.virtual.DiskContentExample
+java com.bitifyware.example.DiskContentExample
 ```
 
 Buttons:
