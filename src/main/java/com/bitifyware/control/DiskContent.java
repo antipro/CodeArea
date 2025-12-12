@@ -83,8 +83,11 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
     public DiskContent() {
         try {
             tempFile = Files.createTempFile("codearea-", ".txt");
-            // Initialize with empty content (single empty line)
-            Files.writeString(tempFile, "", StandardCharsets.UTF_8);
+            // Initialize with single empty line
+            List<String> initialLines = new ArrayList<>();
+            initialLines.add("");
+            Files.write(tempFile, initialLines, StandardCharsets.UTF_8);
+            lineCount = 1;
             paragraphs = new DiskBackedParagraphList();
             paragraphList.setContent(this);
         } catch (IOException e) {
@@ -101,7 +104,11 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
     public DiskContent(String initialText) {
         try {
             tempFile = Files.createTempFile("codearea-", ".txt");
-            Files.writeString(tempFile, "", StandardCharsets.UTF_8);
+            // Initialize with single empty line
+            List<String> initialLines = new ArrayList<>();
+            initialLines.add("");
+            Files.write(tempFile, initialLines, StandardCharsets.UTF_8);
+            lineCount = 1;
             paragraphs = new DiskBackedParagraphList();
             paragraphList.setContent(this);
             
@@ -273,9 +280,9 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
                 String lastLine = readLine(endLine);
                 String mergedLine = firstLine.substring(0, startOffset) + lastLine.substring(endOffset);
                 
-                // Remove lines in between
+                // Build list of removed lines
                 List<CharSequence> removed = new ArrayList<>();
-                for (int i = startLine; i < endLine; i++) {
+                for (int i = startLine; i <= endLine; i++) {
                     removed.add(new StringBuilder(readLine(i)));
                 }
                 
@@ -506,6 +513,10 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
      */
     private List<String> readAllLines() throws IOException {
         List<String> lines = Files.readAllLines(tempFile, StandardCharsets.UTF_8);
+        // Ensure we always have at least one line
+        if (lines.isEmpty()) {
+            lines.add("");
+        }
         // Strip trailing \r from each line (TODO: full CRLF preservation)
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
