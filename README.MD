@@ -3,4 +3,4 @@
 ## TODO
 - [x] Syntax Highlighting Interface
   - [x] Support Color Scheme
-  - [ ] Support Highlighting Words
+  - [x] Support Highlighting Words
