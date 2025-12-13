@@ -201,6 +201,9 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
             
             String currentLine = readLine(lineIndex);
             
+            // Clear cache before making changes so UI reads fresh data
+            lineCache.clear();
+            
             if (newLines.size() == 1) {
                 // Single line insert - just modify the current line
                 String newLine = currentLine.substring(0, offsetInLine) + 
@@ -237,7 +240,6 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
             }
             
             contentLength += textLength;
-            lineCache.clear(); // Invalidate cache after modification
             
             if (notifyListeners) {
                 fireValueChangedEvent();
@@ -270,6 +272,9 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
             int startOffset = startPos[1];
             int endLine = endPos[0];
             int endOffset = endPos[1];
+            
+            // Clear cache before making changes so UI reads fresh data
+            lineCache.clear();
             
             if (startLine == endLine) {
                 // Delete within single line
@@ -304,7 +309,6 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
             }
             
             contentLength -= length;
-            lineCache.clear(); // Invalidate cache after modification
             
             if (notifyListeners) {
                 fireValueChangedEvent();
