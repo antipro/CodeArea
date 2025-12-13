@@ -1,7 +1,6 @@
 package com.bitifyware.example;
 
 import com.bitifyware.control.CodeArea;
-import com.bitifyware.control.ContentSwapper;
 import com.bitifyware.control.DiskContent;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -9,7 +8,10 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+import org.scenicview.ScenicView;
 
 /**
  * Example JavaFX application demonstrating the use of DiskContent with CodeArea.
@@ -33,13 +35,11 @@ import javafx.stage.Stage;
  * </pre>
  * 
  * @see DiskContent
- * @see ContentSwapper
  * @see CodeArea
  */
 public class DiskContentExample extends Application {
     
     private CodeArea codeArea;
-    private DiskContent diskContent;
     private Label statusLabel;
     
     @Override
@@ -49,7 +49,7 @@ public class DiskContentExample extends Application {
         
         // Create CodeArea with initial content
         codeArea = new CodeArea("Initial in-memory content.\nThis will be replaced.", true);
-        
+        codeArea.setFont(Font.font("Monospace", FontWeight.NORMAL, 18));
         // Status label
         statusLabel = new Label("Status: Using in-memory content");
         
@@ -63,23 +63,21 @@ public class DiskContentExample extends Application {
         loadSmallDiskContentBtn.setOnAction(e -> loadSmallDiskContent());
         
         Button showStatsBtn = new Button("Show Stats");
-        showStatsBtn.setOnAction(e -> showStats());
-        
+
         buttonBar.getChildren().addAll(loadDiskContentBtn, loadSmallDiskContentBtn, showStatsBtn);
         
         // Layout
         root.setCenter(codeArea);
         root.setTop(buttonBar);
         root.setBottom(statusLabel);
-        
+
         // Create and show the scene
         Scene scene = new Scene(root, 800, 600);
+        ScenicView.show(scene);
         primaryStage.setTitle("DiskContent Example - CodeArea with Disk-Backed Storage");
         primaryStage.setScene(scene);
         primaryStage.show();
-        
-        // Cleanup on close
-        primaryStage.setOnCloseRequest(e -> cleanup());
+
     }
     
     /**
@@ -98,22 +96,13 @@ public class DiskContentExample extends Application {
                         .append("Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n");
             }
             
-            // Create DiskContent with the large text
-            if (diskContent != null) {
-                diskContent.close(); // Clean up old content
-            }
-            diskContent = new DiskContent(largeText.toString());
-            
             statusLabel.setText("Status: Swapping to disk content...");
             
-            // Swap the content using reflection
-            ContentSwapper.swapContent(codeArea, diskContent);
-            
             // Update the CodeArea to reflect the new content
-            codeArea.setText(diskContent.get());
+            codeArea.setText(largeText.toString());
             
-            statusLabel.setText("Status: Using disk-backed content (10,000 lines, " + 
-                              diskContent.length() + " characters)");
+            statusLabel.setText("Status: Using disk-backed content (10,000 lines, " +
+                    largeText.length() + " characters)");
             
             System.out.println("Successfully loaded large disk content");
             
@@ -136,18 +125,11 @@ public class DiskContentExample extends Application {
                              "Line 4: The changes are persisted to disk.\n" +
                              "Line 5: End of example content.";
             
-            // Create DiskContent with the small text
-            if (diskContent != null) {
-                diskContent.close();
-            }
-            diskContent = new DiskContent(smallText);
-            
             // Swap the content
-            ContentSwapper.swapContent(codeArea, diskContent);
-            codeArea.setText(diskContent.get());
+            codeArea.setText(smallText);
             
-            statusLabel.setText("Status: Using disk-backed content (5 lines, " + 
-                              diskContent.length() + " characters)");
+            statusLabel.setText("Status: Using disk-backed content (5 lines, " +
+                    smallText.length() + " characters)");
             
             System.out.println("Successfully loaded small disk content");
             
@@ -155,36 +137,6 @@ public class DiskContentExample extends Application {
             statusLabel.setText("Status: Error - " + e.getMessage());
             e.printStackTrace();
         }
-    }
-    
-    /**
-     * Shows statistics about the current content.
-     */
-    private void showStats() {
-        if (diskContent != null) {
-            int charCount = diskContent.length();
-            int lineCount = diskContent.getParagraphList().size();
-            statusLabel.setText(String.format("Status: %d lines, %d characters (disk-backed)", 
-                                             lineCount, charCount));
-        } else {
-            int charCount = codeArea.getLength();
-            statusLabel.setText(String.format("Status: %d characters (in-memory)", charCount));
-        }
-    }
-    
-    /**
-     * Cleanup resources on application exit.
-     */
-    private void cleanup() {
-        if (diskContent != null) {
-            diskContent.close();
-            System.out.println("DiskContent cleaned up");
-        }
-    }
-    
-    @Override
-    public void stop() {
-        cleanup();
     }
     
     public static void main(String[] args) {
