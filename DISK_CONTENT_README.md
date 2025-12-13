@@ -6,21 +6,30 @@
 import com.bitifyware.control.*;
 
 // Create disk-backed content
-DiskContent content = new DiskContent("Your large text content here...");
+InDiskContent content = new InDiskContent("Your large text content here...");
 
-// Create CodeArea
-CodeArea codeArea = new CodeArea();
+        // Create CodeArea
+        CodeArea codeArea = new CodeArea();
 
 // Swap to disk-backed content
-try {
-    ContentSwapper.swapContent(codeArea, content);
-    codeArea.setText(content.get());
-} catch (ReflectiveOperationException e) {
-    e.printStackTrace();
+try{
+        ContentSwapper.
+
+        swapContent(codeArea, content);
+    codeArea.
+
+        setText(content.get());
+        }catch(
+        ReflectiveOperationException e){
+        e.
+
+        printStackTrace();
 }
 
 // Clean up when done
-content.close();
+        content.
+
+        close();
 ```
 
 ## What's New

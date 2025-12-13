@@ -171,7 +171,7 @@ public class CodeArea extends CodeInputControl {
     }
 
     public CodeArea(String text, boolean large) {
-        super(large ? new DiskContent() : new InMemoryContent());
+        super(large ? new InDiskContent() : new InMemoryContent());
         getStyleClass().addAll("text-area", "code-area");
         setAccessibleRole(AccessibleRole.TEXT_AREA);
         setText(text);

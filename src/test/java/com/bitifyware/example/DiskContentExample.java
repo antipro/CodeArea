@@ -1,7 +1,7 @@
 package com.bitifyware.example;
 
 import com.bitifyware.control.CodeArea;
-import com.bitifyware.control.DiskContent;
+import com.bitifyware.control.InDiskContent;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -34,7 +34,7 @@ import org.scenicview.ScenicView;
  * java com.bitifyware.example.DiskContentExample
  * </pre>
  * 
- * @see DiskContent
+ * @see InDiskContent
  * @see CodeArea
  */
 public class DiskContentExample extends Application {

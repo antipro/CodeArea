@@ -1,7 +1,6 @@
 package com.bitifyware.control;
 
 import com.bitifyware.control.CodeArea.CodeAreaContent;
-import com.bitifyware.control.CodeArea.ParagraphList;
 import com.bitifyware.control.CodeArea.ParagraphListChange;
 import com.sun.javafx.collections.ListListenerHelper;
 import javafx.beans.InvalidationListener;
@@ -9,13 +8,10 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 /**
@@ -57,7 +53,7 @@ import java.util.*;
  * @see InMemoryContent
  * @see ContentSwapper
  */
-public final class DiskContent extends CodeAreaContent implements AutoCloseable {
+public final class InDiskContent extends CodeAreaContent implements AutoCloseable {
     
     private static final int DEFAULT_PARAGRAPH_CAPACITY = 32;
     private static final int CACHE_SIZE = 50; // LRU cache for recently accessed lines
@@ -80,7 +76,7 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
      * 
      * @throws UncheckedIOException if the temporary file cannot be created
      */
-    public DiskContent() {
+    public InDiskContent() {
         try {
             tempFile = Files.createTempFile("codearea-", ".txt");
             // Initialize with single empty line
@@ -101,7 +97,7 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
      * @param initialText the initial text content
      * @throws UncheckedIOException if the temporary file cannot be created
      */
-    public DiskContent(String initialText) {
+    public InDiskContent(String initialText) {
         try {
             tempFile = Files.createTempFile("codearea-", ".txt");
             // Initialize with single empty line
