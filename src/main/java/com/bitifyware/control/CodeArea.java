@@ -34,6 +34,8 @@ public class CodeArea extends CodeInputControl {
 
     protected static abstract class CodeAreaContent extends ContentBase {
         protected List<StringBuilder> paragraphs;
+
+        public abstract ObservableList<CharSequence> getParagraphList();
     }
 
     // Observable list of paragraphs
@@ -168,6 +170,13 @@ public class CodeArea extends CodeInputControl {
         setText(text);
     }
 
+    public CodeArea(String text, boolean large) {
+        super(large ? new InDiskContent() : new InMemoryContent());
+        getStyleClass().addAll("text-area", "code-area");
+        setAccessibleRole(AccessibleRole.TEXT_AREA);
+        setText(text);
+    }
+
     @Override final void textUpdated() {
         setScrollTop(0);
         setScrollLeft(0);
@@ -180,7 +189,7 @@ public class CodeArea extends CodeInputControl {
      * text area's content
      */
     public ObservableList<CharSequence> getParagraphs() {
-        return ((InMemoryContent)getContent()).getParagraphList();
+        return ((CodeAreaContent)getContent()).getParagraphList();
     }
 
 
