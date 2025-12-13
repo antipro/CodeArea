@@ -191,6 +191,9 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
         }
         
         try {
+            // Clear cache FIRST so all reads get fresh data
+            lineCache.clear();
+            
             // Split text into lines
             List<String> newLines = splitIntoLines(text);
             
@@ -200,9 +203,6 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
             int offsetInLine = pos[1];
             
             String currentLine = readLine(lineIndex);
-            
-            // Clear cache before making changes so UI reads fresh data
-            lineCache.clear();
             
             if (newLines.size() == 1) {
                 // Single line insert - just modify the current line
@@ -265,6 +265,9 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
         }
         
         try {
+            // Clear cache FIRST so all reads get fresh data
+            lineCache.clear();
+            
             int[] startPos = findLineAndOffset(start);
             int[] endPos = findLineAndOffset(end);
             
@@ -272,9 +275,6 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
             int startOffset = startPos[1];
             int endLine = endPos[0];
             int endOffset = endPos[1];
-            
-            // Clear cache before making changes so UI reads fresh data
-            lineCache.clear();
             
             if (startLine == endLine) {
                 // Delete within single line
@@ -540,6 +540,12 @@ public final class DiskContent extends CodeAreaContent implements AutoCloseable 
      * @throws IOException if writing fails
      */
     private void writeAllLines(List<String> lines) throws IOException {
+        // Ensure we always have at least one line (even if empty)
+        if (lines.isEmpty()) {
+            lines = new ArrayList<>();
+            lines.add("");
+        }
+        
         // Write to temporary file then atomic move
         Path tempTarget = Files.createTempFile("codearea-tmp-", ".txt");
         try {
