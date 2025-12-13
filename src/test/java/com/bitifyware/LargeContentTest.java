@@ -1,7 +1,6 @@
 package com.bitifyware;
 
 import com.bitifyware.control.CodeArea;
-import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -23,7 +22,7 @@ public class LargeContentTest extends ApplicationTest {
     }
 
     @Test
-    public void should_contain_button_with_text() throws InterruptedException {
+    public void largeText() throws InterruptedException {
 
         StringBuilder largeText = new StringBuilder();
         for (int i = 0; i < 100000; i++) {
