@@ -245,6 +245,33 @@
                     </compilerArgs>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M5</version>
+                <configuration>
+                    <argLine>
+                        -ea
+                        --add-exports javafx.base/com.sun.javafx.binding=com.bitifyware.codearea
+                        --add-exports javafx.base/com.sun.javafx.binding=ALL-UNNAMED
+                        --add-exports javafx.graphics/com.sun.javafx.application=ALL-UNNAMED
+                        --add-exports javafx.graphics/com.sun.javafx.util=com.bitifyware.codearea
+                        --add-exports javafx.graphics/com.sun.javafx.application=com.bitifyware.codearea
+                        --add-exports javafx.base/com.sun.javafx.collections=ALL-UNNAMED
+                        --add-exports javafx.base/com.sun.javafx.collections=com.bitifyware.codearea
+                        --add-exports javafx.controls/com.sun.javafx.scene.control.behavior=com.bitifyware.codearea
+                        --add-exports javafx.controls/com.sun.javafx.scene.control=com.bitifyware.codearea
+                        --add-exports javafx.controls/com.sun.javafx.scene.control.skin.resources=com.bitifyware.codearea
+                        --add-exports javafx.controls/com.sun.javafx.scene.control.inputmap=com.bitifyware.codearea
+                        --add-exports javafx.controls/com.sun.javafx.scene.control.skin=com.bitifyware.codearea
+                        --add-exports javafx.graphics/com.sun.javafx.tk=com.bitifyware.codearea
+                        --add-exports javafx.graphics/com.sun.javafx.scene.input=com.bitifyware.codearea
+                        --add-exports javafx.graphics/com.sun.javafx.scene.text=com.bitifyware.codearea
+                        --add-exports javafx.graphics/com.sun.javafx.geom=com.bitifyware.codearea
+                        --add-exports javafx.base/com.sun.javafx=com.bitifyware.codearea
+                    </argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
