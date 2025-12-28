@@ -16,6 +16,7 @@ import javafx.css.*;
 import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
 import javafx.geometry.Point2D;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.Skin;
@@ -313,6 +314,9 @@ public class CodeArea extends CodeInputControl {
         });
     }
 
+    public Rectangle2D getCharacterBounds(int index) {
+        return ((CodeAreaSkin)getSkin()).getCharacterBounds(index);
+    }
 
     private final ObjectProperty<EventHandler<ContextMenuEvent>> gutterEventHandlerProperty =
             new SimpleObjectProperty<>(this, "gutterEventHandler=");
