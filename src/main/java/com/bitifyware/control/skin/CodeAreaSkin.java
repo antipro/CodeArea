@@ -1621,6 +1621,23 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         return promptNode;
     }
 
+    /**
+     * Gets the Y position of a specific line (paragraph) in the content view.
+     * 
+     * @param lineIndex the zero-based line index
+     * @return the Y position of the line, or -1 if the line index is invalid
+     */
+    public double getLineYPosition(int lineIndex) {
+        List<Node> paragraphNodesChildren = paragraphNodes.getChildren();
+        
+        if (lineIndex < 0 || lineIndex >= paragraphNodesChildren.size()) {
+            return -1;
+        }
+        
+        TextFlow targetFlow = (TextFlow) paragraphNodesChildren.get(lineIndex);
+        return targetFlow.getLayoutY();
+    }
+
     void addLineNumber(int no, double prefHeight) {
         Label label;
         if (no < gutter.getChildren().size()) {
