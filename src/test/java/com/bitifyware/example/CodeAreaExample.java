@@ -38,7 +38,8 @@ public class CodeAreaExample extends Application {
         sb.append("Line 2: すばしっこい茶色の狐は怠け者の犬を飛び越えます\n");
         sb.append("Line 3: Le rapide renard brun saute par-dessus le chien paresseux\n");
         sb.append("Line 4: Проворная коричневая лиса перепрыгивает через ленивую собаку\n");
-        for (int i = 5; i < 50; i++) {
+        int totalLines = 50;
+        for (int i = 5; i < totalLines; i++) {
             sb.append("Line ").append(i).append(": This is sample text on line ").append(i).append("\n");
         }
         String text = sb.toString();
@@ -119,7 +120,7 @@ public class CodeAreaExample extends Application {
         // ScrollToLine controls
         Label scrollToLineLabel = new Label("Go to line:");
         toolBar.getItems().add(scrollToLineLabel);
-        Spinner<Integer> scrollToLineSpinner = new Spinner<>(0, 49, 0);
+        Spinner<Integer> scrollToLineSpinner = new Spinner<>(0, totalLines - 1, 0);
         scrollToLineSpinner.setPrefWidth(80);
         toolBar.getItems().add(scrollToLineSpinner);
         Button scrollToLineButton = new Button("Scroll");
