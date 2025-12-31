@@ -5,6 +5,7 @@ import com.bitifyware.control.syntax.DemoSyntax;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.VBox;
@@ -29,14 +30,19 @@ public class CodeAreaExample extends Application {
         CodeArea codeArea = new CodeArea();
 //        TextArea codeArea = new TextArea();
         codeArea.setFont(Font.font("Monospace", FontWeight.NORMAL, 24));
-        String text = """
-                The quick brown fox jumps over the lazy dog
-                敏捷的棕色狐狸跳过懒惰的狗
-                すばしっこい茶色の狐は怠け者の犬を飛び越えます
-                Le rapide renard brun saute par-dessus le chien paresseux
-                Проворная коричневая лиса перепрыгивает через ленивую собаку
-                The quick brown fox jumps over the lazy dog 敏捷的棕色狐狸跳过懒惰的狗 すばしっこい茶色の狐は怠け者の犬を飛び越えます Le rapide renard brun saute par-dessus le chien paresseux Проворная коричневая лиса перепрыгивает через ленивую собаку
-                """;
+        
+        // Create sample text with more lines for scrolling demonstration
+        StringBuilder sb = new StringBuilder();
+        sb.append("Line 0: The quick brown fox jumps over the lazy dog\n");
+        sb.append("Line 1: 敏捷的棕色狐狸跳过懒惰的狗\n");
+        sb.append("Line 2: すばしっこい茶色の狐は怠け者の犬を飛び越えます\n");
+        sb.append("Line 3: Le rapide renard brun saute par-dessus le chien paresseux\n");
+        sb.append("Line 4: Проворная коричневая лиса перепрыгивает через ленивую собаку\n");
+        int totalLines = 50;
+        for (int i = 5; i < totalLines; i++) {
+            sb.append("Line ").append(i).append(": This is sample text on line ").append(i).append("\n");
+        }
+        String text = sb.toString();
         codeArea.setText(text);
 //        codeArea.setWrapText(true);
         codeArea.setPrefWidth(700);
@@ -110,6 +116,19 @@ public class CodeAreaExample extends Application {
             codeArea.redo();
         });
         toolBar.getItems().add(reDoButton);
+        
+        // ScrollToLine controls
+        Label scrollToLineLabel = new Label("Go to line:");
+        toolBar.getItems().add(scrollToLineLabel);
+        Spinner<Integer> scrollToLineSpinner = new Spinner<>(0, totalLines - 1, 0);
+        scrollToLineSpinner.setPrefWidth(80);
+        toolBar.getItems().add(scrollToLineSpinner);
+        Button scrollToLineButton = new Button("Scroll");
+        scrollToLineButton.setOnAction(event -> {
+            int line = scrollToLineSpinner.getValue();
+            codeArea.scrollToLine(line);
+        });
+        toolBar.getItems().add(scrollToLineButton);
 
         // Demonstrate the getTextAtPosition method and underline functionality
         codeArea.setOnMouseMoved(event -> {

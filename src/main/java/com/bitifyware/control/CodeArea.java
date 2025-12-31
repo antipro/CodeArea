@@ -538,6 +538,25 @@ public class CodeArea extends CodeInputControl {
         skin.clearUnderlines();
     }
 
+    /**
+     * Scrolls the vertical scroll bar to move the specified line to the top of the viewport
+     * and resets the horizontal scroll bar to the start (left position).
+     * 
+     * @param line the zero-based line index to scroll to
+     */
+    public void scrollToLine(int line) {
+        CodeAreaSkin skin = (CodeAreaSkin) getSkin();
+        if (skin == null) {
+            return;
+        }
+        
+        double yPosition = skin.getLineYPosition(line);
+        if (yPosition >= 0) {
+            setScrollTop(yPosition);
+            setScrollLeft(0);
+        }
+    }
+
     /* *************************************************************************
      *                                                                         *
      * Stylesheet Handling                                                     *
