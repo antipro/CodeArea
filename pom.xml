@@ -269,6 +269,9 @@
                         --add-exports javafx.graphics/com.sun.javafx.scene.text=com.bitifyware.codearea
                         --add-exports javafx.graphics/com.sun.javafx.geom=com.bitifyware.codearea
                         --add-exports javafx.base/com.sun.javafx=com.bitifyware.codearea
+                        --add-exports javafx.graphics/com.sun.glass.ui=ALL-UNNAMED
+                        --add-opens javafx.graphics/com.sun.glass.ui=ALL-UNNAMED
+                        --add-opens javafx.graphics/com.sun.javafx.tk.quantum=ALL-UNNAMED
                     </argLine>
                 </configuration>
             </plugin>
