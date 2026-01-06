@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
  * Note: This test requires a GUI environment to run.
  * Tests will be skipped on headless environments or unsupported platforms.
  */
-public class TextAreaTest extends ApplicationTest {
+public class CodeAreaTest extends ApplicationTest {
 
     private CodeArea codeArea;
 
