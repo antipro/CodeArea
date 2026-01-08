@@ -49,11 +49,6 @@
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-web</artifactId>
-            <version>${javafx.version}</version>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/net.raumzeitfalle.fx/scenic-view -->
         <dependency>
             <groupId>net.raumzeitfalle.fx</groupId>
@@ -75,10 +70,6 @@
                 <exclusion>
                     <groupId>org.openjfx</groupId>
                     <artifactId>javafx-fxml</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>javafx-web</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>org.openjfx</groupId>
