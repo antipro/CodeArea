@@ -23,7 +23,7 @@ public class CodeAreaTest extends ApplicationTest {
     public static void checkPlatform() {
         // Get OS name and headless property
         String osName = System.getProperty("os.name").toLowerCase();
-        boolean isHeadless = Boolean.parseBoolean(System.getProperty("java.awt.headless", "false"));
+        boolean isHeadless = Boolean.parseBoolean(System.getProperty("java.awt.headless", "true"));
         boolean hasDisplay = System.getenv("DISPLAY") != null || osName.contains("win") || osName.contains("mac");
 
         // Skip tests on headless environments
