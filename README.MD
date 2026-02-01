@@ -5,6 +5,8 @@ It is based on TextArea component of JavaFX 23.
 
 According to Open Source Initiative (OSI), the code is licensed under the GPL-2.0 License.
 
+![Screenshot](./docs/screenshot.png)
+
 ## TODO
 - [x] Syntax Highlighting Interface
   - [x] Support Color Scheme
