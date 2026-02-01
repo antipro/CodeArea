@@ -3,7 +3,7 @@ This component provides a code area with syntax highlighting capabilities. It is
 
 It is based on TextArea component of JavaFX 23.
 
-According to Open Source Initiative (OSI), the code is licensed under the MIT License.
+According to Open Source Initiative (OSI), the code is licensed under the GPL-2.0 License.
 
 ## TODO
 - [x] Syntax Highlighting Interface
