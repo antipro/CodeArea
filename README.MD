@@ -11,3 +11,6 @@ According to Open Source Initiative (OSI), the code is licensed under the MIT Li
   - [x] Support Highlighting Words
   - [x] Support Underline
   - [x] Support Highlighting Quotes
+
+## Tools Powered By this Component
+* [SQLife](http://bitifyware.com)
