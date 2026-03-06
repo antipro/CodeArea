@@ -2182,11 +2182,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         blankLinePath.setSmooth(false);
                         // Create a 1px width PathElement to show the highlight
                         PathElement[] selectionShape = new PathElement[] {
-                                new MoveTo(0, -textNode.getLayoutY()),
-                                new LineTo(1, -textNode.getLayoutY()),
+                                new MoveTo(0, 0),
+                                new LineTo(1, 0),
                                 new LineTo(1, oneLineHeight),
                                 new LineTo(0, oneLineHeight),
-                                new LineTo(0, -textNode.getLayoutY())
+                                new LineTo(0, 0)
                         };
                         blankLinePath.getElements().addAll(selectionShape);
                         selectionHighlightGroup.getChildren().add(blankLinePath);
