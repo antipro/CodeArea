@@ -2111,14 +2111,21 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         textNode.setSelectionEnd(Math.min(end, paragraphLength));
                         PathElement[] selectionShape = textNode.getSelectionShape();
                         if (selectionShape != null && selectionShape.length > 0) {
-                            double topOffset = ((MoveTo) selectionShape[0]).getY();
-                            if (topOffset != 0) {
-                                double offset = -topOffset;
+                            double minY = Double.POSITIVE_INFINITY;
+                            for (PathElement element : selectionShape) {
+                                if (element instanceof MoveTo moveTo) {
+                                    minY = Math.min(minY, moveTo.getY());
+                                } else if (element instanceof LineTo lineTo) {
+                                    minY = Math.min(minY, lineTo.getY());
+                                }
+                            }
+                            double offsetY = minY < 0 ? -minY : 0;
+                            if (offsetY != 0) {
                                 for (PathElement element : selectionShape) {
                                     if (element instanceof MoveTo moveTo) {
-                                        moveTo.setY(moveTo.getY() + offset);
+                                        moveTo.setY(moveTo.getY() + offsetY);
                                     } else if (element instanceof LineTo lineTo) {
-                                        lineTo.setY(lineTo.getY() + offset);
+                                        lineTo.setY(lineTo.getY() + offsetY);
                                     }
                                 }
                             }
