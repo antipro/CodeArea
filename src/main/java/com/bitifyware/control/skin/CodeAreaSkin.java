@@ -2111,6 +2111,17 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         textNode.setSelectionEnd(Math.min(end, paragraphLength));
                         PathElement[] selectionShape = textNode.getSelectionShape();
                         if (selectionShape != null && selectionShape.length > 0) {
+                            double topOffset = ((MoveTo) selectionShape[0]).getY();
+                            if (topOffset != 0) {
+                                double offset = -topOffset;
+                                for (PathElement element : selectionShape) {
+                                    if (element instanceof MoveTo moveTo) {
+                                        moveTo.setY(moveTo.getY() + offset);
+                                    } else if (element instanceof LineTo lineTo) {
+                                        lineTo.setY(lineTo.getY() + offset);
+                                    }
+                                }
+                            }
                             // Because the Text node can not have the same bound height. Don't ask me why :(
                             // the Y coordinate has been adjusted When layout above.
                             // We need to adjust the Y coordinate of the selection shape.
