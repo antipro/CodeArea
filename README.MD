@@ -13,6 +13,7 @@ According to Open Source Initiative (OSI), the code is licensed under the GPL-2.
   - [x] Support Highlighting Words
   - [x] Support Underline
   - [x] Support Highlighting Quotes
+  - [x] Support Red/Green Empty Lines
 
 ## Tools Powered By this Component
 * [SQLife](http://bitifyware.com)
