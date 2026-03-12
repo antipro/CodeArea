@@ -1862,6 +1862,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         emptyRegion.setBackground(new Background(new BackgroundFill(emptyLine.getColor(), CornerRadii.EMPTY, Insets.EMPTY)));
                         emptyRegion.setPrefWidth(wrappingWidth);
                         emptyRegion.setPrefHeight(oneLineHeight);
+                        emptyRegion.resize(wrappingWidth, oneLineHeight);
                         emptyRegion.setLayoutX(leftPadding);
                         emptyRegion.setLayoutY(y);
                         contentView.getChildren().add(emptyRegion);
@@ -1939,6 +1940,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     emptyRegion.setBackground(new Background(new BackgroundFill(emptyLine.getColor(), CornerRadii.EMPTY, Insets.EMPTY)));
                     emptyRegion.setPrefWidth(wrappingWidth);
                     emptyRegion.setPrefHeight(oneLineHeight);
+                    emptyRegion.resize(wrappingWidth, oneLineHeight);
                     emptyRegion.setLayoutX(leftPadding);
                     emptyRegion.setLayoutY(y);
                     contentView.getChildren().add(emptyRegion);
