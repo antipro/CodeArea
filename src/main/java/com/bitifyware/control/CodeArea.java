@@ -21,6 +21,7 @@ import javafx.scene.AccessibleRole;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.Skin;
 import javafx.scene.input.ContextMenuEvent;
+import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
@@ -139,6 +140,54 @@ public class CodeArea extends CodeInputControl {
         @Override
         protected int[] getPermutation() {
             return new int[0];
+        }
+    }
+
+    /**
+     * Describes an empty line to be rendered in the CodeArea for file diff support.
+     * An empty line is a visual-only line with a colored background that does not
+     * contain any text content. It is rendered at the specified paragraph index
+     * position in the code area.
+     */
+    public static final class EmptyLine {
+        private final int paragraphIndex;
+        private final Color color;
+
+        /**
+         * Creates a new EmptyLine.
+         *
+         * @param paragraphIndex the paragraph index before which this empty line
+         *                       should be rendered (0-based). Use the paragraph count
+         *                       to place it after the last paragraph.
+         * @param color          the background color of the empty line
+         */
+        public EmptyLine(int paragraphIndex, Color color) {
+            if (paragraphIndex < 0) {
+                throw new IllegalArgumentException("paragraphIndex cannot be negative.");
+            }
+            if (color == null) {
+                throw new IllegalArgumentException("color cannot be null.");
+            }
+            this.paragraphIndex = paragraphIndex;
+            this.color = color;
+        }
+
+        /**
+         * Gets the paragraph index before which this empty line should be rendered.
+         *
+         * @return the paragraph index
+         */
+        public int getParagraphIndex() {
+            return paragraphIndex;
+        }
+
+        /**
+         * Gets the background color of this empty line.
+         *
+         * @return the background color
+         */
+        public Color getColor() {
+            return color;
         }
     }
 
@@ -305,6 +354,36 @@ public class CodeArea extends CodeInputControl {
 
     public void clearErrorPos() {
         errorPosList.clear();
+    }
+
+    private final ObservableList<EmptyLine> emptyLines = FXCollections.observableArrayList();
+
+    /**
+     * Adds an empty line at the specified paragraph index with the given background color.
+     * Empty lines are visual-only lines used for file diff support. They do not contain
+     * any text content and do not affect text indexing or caret positioning.
+     *
+     * @param paragraphIndex the paragraph index before which the empty line should appear
+     * @param color          the background color of the empty line
+     */
+    public void addEmptyLine(int paragraphIndex, Color color) {
+        emptyLines.add(new EmptyLine(paragraphIndex, color));
+    }
+
+    /**
+     * Returns the observable list of empty lines.
+     *
+     * @return the observable list of empty lines
+     */
+    public ObservableList<EmptyLine> getEmptyLines() {
+        return emptyLines;
+    }
+
+    /**
+     * Clears all empty lines.
+     */
+    public void clearEmptyLines() {
+        emptyLines.clear();
     }
 
     {
