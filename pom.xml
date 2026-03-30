@@ -50,41 +50,41 @@
             <version>${javafx.version}</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/net.raumzeitfalle.fx/scenic-view -->
-        <dependency>
-            <groupId>net.raumzeitfalle.fx</groupId>
-            <artifactId>scenic-view</artifactId>
-            <version>11.0.2</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>javafx-controls</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>javafx-graphics</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>javafx-base</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>javafx-fxml</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>javafx-media</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>javafx-swing</artifactId>
-                </exclusion>
-                <!--<exclusion>-->
-                <!--    <groupId>org.openjfx</groupId>-->
-                <!--    <artifactId>javafx-web</artifactId>-->
-                <!--</exclusion>-->
-            </exclusions>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>net.raumzeitfalle.fx</groupId>-->
+<!--            <artifactId>scenic-view</artifactId>-->
+<!--            <version>11.0.2</version>-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.openjfx</groupId>-->
+<!--                    <artifactId>javafx-controls</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.openjfx</groupId>-->
+<!--                    <artifactId>javafx-graphics</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.openjfx</groupId>-->
+<!--                    <artifactId>javafx-base</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.openjfx</groupId>-->
+<!--                    <artifactId>javafx-fxml</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.openjfx</groupId>-->
+<!--                    <artifactId>javafx-media</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.openjfx</groupId>-->
+<!--                    <artifactId>javafx-swing</artifactId>-->
+<!--                </exclusion>-->
+<!--                &lt;!&ndash;<exclusion>&ndash;&gt;-->
+<!--                &lt;!&ndash;    <groupId>org.openjfx</groupId>&ndash;&gt;-->
+<!--                &lt;!&ndash;    <artifactId>javafx-web</artifactId>&ndash;&gt;-->
+<!--                &lt;!&ndash;</exclusion>&ndash;&gt;-->
+<!--            </exclusions>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.testfx</groupId>
             <artifactId>testfx-junit</artifactId>

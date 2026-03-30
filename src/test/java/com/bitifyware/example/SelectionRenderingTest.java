@@ -9,7 +9,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import org.scenicview.ScenicView;
+//import org.scenicview.ScenicView;
 
 /**
  * Test application to demonstrate and verify selection/highlight rendering fixes.
@@ -77,7 +77,7 @@ public class SelectionRenderingTest extends Application {
         System.out.println("Using DemoSyntax highlighter - creates multiple Text nodes per line");
         System.out.println("To test: Select text across multiple lines and observe if the highlight aligns with glyphs");
         System.out.println("Note: Each line has multiple Text nodes (one per word), which tests the real issue");
-        ScenicView.show(scene);
+//        ScenicView.show(scene);
     }
 
     public static void main(String[] args) {

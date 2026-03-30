@@ -11,7 +11,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
-import org.scenicview.ScenicView;
+//import org.scenicview.ScenicView;
 
 /**
  * Example JavaFX application demonstrating the use of DiskContent with CodeArea.
@@ -73,7 +73,7 @@ public class DiskContentExample extends Application {
 
         // Create and show the scene
         Scene scene = new Scene(root, 800, 600);
-        ScenicView.show(scene);
+//        ScenicView.show(scene);
         primaryStage.setTitle("DiskContent Example - CodeArea with Disk-Backed Storage");
         primaryStage.setScene(scene);
         primaryStage.show();

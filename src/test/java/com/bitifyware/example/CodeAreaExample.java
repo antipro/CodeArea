@@ -12,7 +12,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
-import org.scenicview.ScenicView;
+//import org.scenicview.ScenicView;
 
 import java.util.Objects;
 
@@ -156,6 +156,6 @@ public class CodeAreaExample extends Application {
         primaryStage.setX(100);
         primaryStage.setY(100);
         primaryStage.show();
-        ScenicView.show(scene);
+//        ScenicView.show(scene);
     }
 }
