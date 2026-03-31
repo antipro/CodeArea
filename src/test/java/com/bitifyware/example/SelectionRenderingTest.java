@@ -10,6 +10,9 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 //import org.scenicview.ScenicView;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Test application to demonstrate and verify selection/highlight rendering fixes.
@@ -21,6 +24,7 @@ import javafx.stage.Stage;
  * 
  * To run: mvn compile exec:java -Dexec.mainClass="com.bitifyware.example.SelectionRenderingTest"
  */
+@Slf4j
 public class SelectionRenderingTest extends Application {
 
     @Override
@@ -70,14 +74,24 @@ public class SelectionRenderingTest extends Application {
         primaryStage.setTitle("Selection Rendering Test - CodeArea (Multi-Text-Node)");
         primaryStage.setScene(scene);
         primaryStage.show();
-        
+
+        // If ScenicView is available in the classpath (added by a specific profile), show it via reflection
+        try {
+            Class<?> scenic = Class.forName("org.scenicview.ScenicView");
+            java.lang.reflect.Method show = scenic.getMethod("show", javafx.scene.Scene.class);
+            show.invoke(null, scene);
+        } catch (ClassNotFoundException ignored) {
+            // ScenicView not present - fine
+        } catch (Exception ex) {
+            log.error("Failed to show ScenicView", ex);
+        }
+
         // Log text node properties for debugging
         System.out.println("=== Text Node Properties Diagnostic ===");
         System.out.println("Font: " + codeArea.getFont());
         System.out.println("Using DemoSyntax highlighter - creates multiple Text nodes per line");
         System.out.println("To test: Select text across multiple lines and observe if the highlight aligns with glyphs");
         System.out.println("Note: Each line has multiple Text nodes (one per word), which tests the real issue");
-//        ScenicView.show(scene);
     }
 
     public static void main(String[] args) {

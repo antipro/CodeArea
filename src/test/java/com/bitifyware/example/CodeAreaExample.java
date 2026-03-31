@@ -13,12 +13,16 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 //import org.scenicview.ScenicView;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
 /**
  * @author antipro
  */
+@Slf4j
 public class CodeAreaExample extends Application {
 
     public static void main(String[] args) {
@@ -156,6 +160,15 @@ public class CodeAreaExample extends Application {
         primaryStage.setX(100);
         primaryStage.setY(100);
         primaryStage.show();
-//        ScenicView.show(scene);
+        // If ScenicView is available in the classpath (added by a specific profile), show it via reflection
+        try {
+            Class<?> scenic = Class.forName("org.scenicview.ScenicView");
+            java.lang.reflect.Method show = scenic.getMethod("show", javafx.scene.Scene.class);
+            show.invoke(null, scene);
+        } catch (ClassNotFoundException ignored) {
+            // ScenicView not present - fine
+        } catch (Exception ex) {
+            log.error("Failed to show ScenicView", ex);
+        }
     }
 }

@@ -13,11 +13,23 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <proguard.version>7.6.1</proguard.version>
+        <logback.version>1.5.6</logback.version>
+        <lombok.version>1.18.36</lombok.version>
         <proguard.maven.plugin.version>2.6.1</proguard.maven.plugin.version>
         <javafx.version>23.0.1</javafx.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.openjfx -->
         <dependency>
             <groupId>org.openjfx</groupId>
@@ -49,42 +61,6 @@
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/net.raumzeitfalle.fx/scenic-view -->
-<!--        <dependency>-->
-<!--            <groupId>net.raumzeitfalle.fx</groupId>-->
-<!--            <artifactId>scenic-view</artifactId>-->
-<!--            <version>11.0.2</version>-->
-<!--            <exclusions>-->
-<!--                <exclusion>-->
-<!--                    <groupId>org.openjfx</groupId>-->
-<!--                    <artifactId>javafx-controls</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>org.openjfx</groupId>-->
-<!--                    <artifactId>javafx-graphics</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>org.openjfx</groupId>-->
-<!--                    <artifactId>javafx-base</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>org.openjfx</groupId>-->
-<!--                    <artifactId>javafx-fxml</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>org.openjfx</groupId>-->
-<!--                    <artifactId>javafx-media</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>org.openjfx</groupId>-->
-<!--                    <artifactId>javafx-swing</artifactId>-->
-<!--                </exclusion>-->
-<!--                &lt;!&ndash;<exclusion>&ndash;&gt;-->
-<!--                &lt;!&ndash;    <groupId>org.openjfx</groupId>&ndash;&gt;-->
-<!--                &lt;!&ndash;    <artifactId>javafx-web</artifactId>&ndash;&gt;-->
-<!--                &lt;!&ndash;</exclusion>&ndash;&gt;-->
-<!--            </exclusions>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>org.testfx</groupId>
             <artifactId>testfx-junit</artifactId>
@@ -100,6 +76,51 @@
     </dependencies>
 
     <profiles>
+        <profile>
+            <id>scenic-view-debug</id>
+            <dependencies>
+                <dependency>
+                    <groupId>net.raumzeitfalle.fx</groupId>
+                    <artifactId>scenic-view</artifactId>
+                    <version>11.0.2</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.openjfx</groupId>
+                            <artifactId>javafx-controls</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.openjfx</groupId>
+                            <artifactId>javafx-graphics</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.openjfx</groupId>
+                            <artifactId>javafx-base</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.openjfx</groupId>
+                            <artifactId>javafx-fxml</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.openjfx</groupId>
+                            <artifactId>javafx-web</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.openjfx</groupId>
+                            <artifactId>javafx-media</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.openjfx</groupId>
+                            <artifactId>javafx-swing</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>javafx-web</artifactId>
+                    <version>${javafx.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
         <profile>
             <id>release</id>
             <build>

@@ -12,6 +12,9 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 //import org.scenicview.ScenicView;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Example JavaFX application demonstrating the use of DiskContent with CodeArea.
@@ -37,8 +40,9 @@ import javafx.stage.Stage;
  * @see InDiskContent
  * @see CodeArea
  */
+@Slf4j
 public class DiskContentExample extends Application {
-    
+
     private CodeArea codeArea;
     private Label statusLabel;
     
@@ -73,7 +77,16 @@ public class DiskContentExample extends Application {
 
         // Create and show the scene
         Scene scene = new Scene(root, 800, 600);
-//        ScenicView.show(scene);
+        // If ScenicView is available in the classpath (added by a specific profile), show it via reflection
+        try {
+            Class<?> scenic = Class.forName("org.scenicview.ScenicView");
+            java.lang.reflect.Method show = scenic.getMethod("show", javafx.scene.Scene.class);
+            show.invoke(null, scene);
+        } catch (ClassNotFoundException ignored) {
+            // ScenicView not present - fine
+        } catch (Exception ex) {
+            log.error("Failed to show ScenicView", ex);
+        }
         primaryStage.setTitle("DiskContent Example - CodeArea with Disk-Backed Storage");
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -108,7 +121,7 @@ public class DiskContentExample extends Application {
             
         } catch (Exception e) {
             statusLabel.setText("Status: Error - " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error loading large disk content", e);
         }
     }
     
@@ -135,7 +148,7 @@ public class DiskContentExample extends Application {
             
         } catch (Exception e) {
             statusLabel.setText("Status: Error - " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error loading small disk content", e);
         }
     }
     
