@@ -152,6 +152,7 @@ public class CodeArea extends CodeInputControl {
     public static final class EmptyLine {
         private final int paragraphIndex;
         private final Color color;
+        private final String styleClass;
 
         /**
          * Creates a new EmptyLine.
@@ -162,14 +163,31 @@ public class CodeArea extends CodeInputControl {
          * @param color          the background color of the empty line
          */
         public EmptyLine(int paragraphIndex, Color color) {
+            this(paragraphIndex, color, null);
+        }
+
+        /**
+         * Creates a new EmptyLine.
+         *
+         * @param paragraphIndex the paragraph index before which this empty line
+         *                       should be rendered (0-based). Use the paragraph count
+         *                       to place it after the last paragraph.
+         * @param styleClass     the CSS style class applied to the rendered empty line
+         */
+        public EmptyLine(int paragraphIndex, String styleClass) {
+            this(paragraphIndex, null, styleClass);
+        }
+
+        private EmptyLine(int paragraphIndex, Color color, String styleClass) {
             if (paragraphIndex < 0) {
                 throw new IllegalArgumentException("paragraphIndex cannot be negative.");
             }
-            if (color == null) {
-                throw new IllegalArgumentException("color cannot be null.");
+            if (color == null && (styleClass == null || styleClass.isBlank())) {
+                throw new IllegalArgumentException("color or styleClass cannot both be null.");
             }
             this.paragraphIndex = paragraphIndex;
             this.color = color;
+            this.styleClass = styleClass;
         }
 
         /**
@@ -189,6 +207,10 @@ public class CodeArea extends CodeInputControl {
         public Color getColor() {
             return color;
         }
+
+        public String getStyleClass() {
+            return styleClass;
+        }
     }
 
     /**
@@ -199,16 +221,26 @@ public class CodeArea extends CodeInputControl {
     public static final class LineBackground {
         private final int paragraphIndex;
         private final Color color;
+        private final String styleClass;
 
         public LineBackground(int paragraphIndex, Color color) {
+            this(paragraphIndex, color, null);
+        }
+
+        public LineBackground(int paragraphIndex, String styleClass) {
+            this(paragraphIndex, null, styleClass);
+        }
+
+        private LineBackground(int paragraphIndex, Color color, String styleClass) {
             if (paragraphIndex < 0) {
                 throw new IllegalArgumentException("paragraphIndex cannot be negative.");
             }
-            if (color == null) {
-                throw new IllegalArgumentException("color cannot be null.");
+            if (color == null && (styleClass == null || styleClass.isBlank())) {
+                throw new IllegalArgumentException("color or styleClass cannot both be null.");
             }
             this.paragraphIndex = paragraphIndex;
             this.color = color;
+            this.styleClass = styleClass;
         }
 
         public int getParagraphIndex() {
@@ -217,6 +249,10 @@ public class CodeArea extends CodeInputControl {
 
         public Color getColor() {
             return color;
+        }
+
+        public String getStyleClass() {
+            return styleClass;
         }
     }
 
@@ -437,6 +473,18 @@ public class CodeArea extends CodeInputControl {
     }
 
     /**
+     * Adds an empty line at the specified paragraph index with the given style class.
+     * Empty lines are visual-only lines used for file diff support. They do not contain
+     * any text content and do not affect text indexing or caret positioning.
+     *
+     * @param paragraphIndex the paragraph index before which the empty line should appear
+     * @param styleClass     the CSS style class applied to the rendered empty line
+     */
+    public void addEmptyLine(int paragraphIndex, String styleClass) {
+        emptyLines.add(new EmptyLine(paragraphIndex, styleClass));
+    }
+
+    /**
      * Returns the observable list of empty lines.
      *
      * @return the observable list of empty lines
@@ -463,6 +511,17 @@ public class CodeArea extends CodeInputControl {
      */
     public void addLineBackground(int paragraphIndex, Color color) {
         lineBackgrounds.add(new LineBackground(paragraphIndex, color));
+    }
+
+    /**
+     * Adds a background style class to the paragraph at the given index for diff highlighting.
+     * The style persists across layout passes until cleared.
+     *
+     * @param paragraphIndex the 0-based paragraph (line) index
+     * @param styleClass     the CSS style class to apply
+     */
+    public void addLineBackground(int paragraphIndex, String styleClass) {
+        lineBackgrounds.add(new LineBackground(paragraphIndex, styleClass));
     }
 
     public ObservableList<LineBackground> getLineBackgrounds() {

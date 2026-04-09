@@ -1660,10 +1660,24 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     }
 
     void addLineNumber(int no, double prefHeight) {
-        addLineNumber(no, prefHeight, String.valueOf(no + 1), null);
+        addLineNumber(no, prefHeight, String.valueOf(no + 1), null, null);
     }
 
-    private void addLineNumber(int gutterIndex, double prefHeight, String text, Color bgColor) {
+    private void applyDecorStyleClass(Node node, String styleClass) {
+        String propertyKey = "code-area-decoration-style-class";
+        Object previousStyleClass = node.getProperties().get(propertyKey);
+        if (previousStyleClass instanceof String previous && !previous.isBlank()) {
+            node.getStyleClass().remove(previous);
+        }
+        if (styleClass != null && !styleClass.isBlank() && !node.getStyleClass().contains(styleClass)) {
+            node.getStyleClass().add(styleClass);
+            node.getProperties().put(propertyKey, styleClass);
+        } else {
+            node.getProperties().remove(propertyKey);
+        }
+    }
+
+    private void addLineNumber(int gutterIndex, double prefHeight, String text, Color bgColor, String styleClass) {
         Label label;
         if (gutterIndex < gutter.getChildren().size()) {
             label = (Label) gutter.getChildren().get(gutterIndex);
@@ -1689,6 +1703,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         } else {
             label.setBackground(null);
         }
+        applyDecorStyleClass(label, styleClass);
     }
 
     /* ************************************************************************
@@ -1864,9 +1879,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             }
 
             // Build line background map: paragraphIndex -> Color
-            Map<Integer, Color> lineBackgroundMap = new HashMap<>();
+            Map<Integer, CodeArea.LineBackground> lineBackgroundMap = new HashMap<>();
             for (CodeArea.LineBackground lb : codeArea.getLineBackgrounds()) {
-                lineBackgroundMap.put(lb.getParagraphIndex(), lb.getColor());
+                lineBackgroundMap.put(lb.getParagraphIndex(), lb);
             }
 
             int gutterIdx = 0;
@@ -1880,14 +1895,17 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         Region emptyRegion = new Region();
                         emptyRegion.getStyleClass().add("empty-line");
                         emptyRegion.setManaged(false);
-                        emptyRegion.setBackground(new Background(new BackgroundFill(emptyLine.getColor(), CornerRadii.EMPTY, Insets.EMPTY)));
+                        emptyRegion.setBackground(emptyLine.getColor() != null
+                                ? new Background(new BackgroundFill(emptyLine.getColor(), CornerRadii.EMPTY, Insets.EMPTY))
+                                : null);
+                        applyDecorStyleClass(emptyRegion, emptyLine.getStyleClass());
                         emptyRegion.setPrefWidth(wrappingWidth);
                         emptyRegion.setPrefHeight(oneLineHeight);
                         emptyRegion.resize(wrappingWidth, oneLineHeight);
                         emptyRegion.setLayoutX(leftPadding);
                         emptyRegion.setLayoutY(y);
                         contentView.getChildren().add(emptyRegion);
-                        addLineNumber(gutterIdx++, oneLineHeight, "", emptyLine.getColor());
+                        addLineNumber(gutterIdx++, oneLineHeight, "", emptyLine.getColor(), emptyLine.getStyleClass());
                         y += oneLineHeight;
                     }
                 }
@@ -1905,10 +1923,12 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 textFlow.setPrefWidth(wrappingWidth);
                 textFlow.setLayoutX(leftPadding);
                 textFlow.setLayoutY(y);
-                Color lineBg = lineBackgroundMap.get(pIdx);
+                CodeArea.LineBackground lineBackground = lineBackgroundMap.get(pIdx);
+                Color lineBg = lineBackground == null ? null : lineBackground.getColor();
                 textFlow.setBackground(lineBg != null
                         ? new Background(new BackgroundFill(lineBg, CornerRadii.EMPTY, Insets.EMPTY))
                         : null);
+                applyDecorStyleClass(textFlow, lineBackground == null ? null : lineBackground.getStyleClass());
                 double subX = 0;
                 double subY = 0;
                 ObservableList<Node> children = textFlow.getChildren();
@@ -1951,7 +1971,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     textFlow.setPrefHeight(subY + oneLineHeight);
                 }
                 y += textFlow.getPrefHeight();
-                addLineNumber(gutterIdx++, textFlow.getPrefHeight(), String.valueOf(lineNo++), null);
+                addLineNumber(gutterIdx++, textFlow.getPrefHeight(), String.valueOf(lineNo++), null, null);
             }
 
             // Render empty lines after the last paragraph
@@ -1961,14 +1981,17 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     Region emptyRegion = new Region();
                     emptyRegion.getStyleClass().add("empty-line");
                     emptyRegion.setManaged(false);
-                    emptyRegion.setBackground(new Background(new BackgroundFill(emptyLine.getColor(), CornerRadii.EMPTY, Insets.EMPTY)));
+                    emptyRegion.setBackground(emptyLine.getColor() != null
+                            ? new Background(new BackgroundFill(emptyLine.getColor(), CornerRadii.EMPTY, Insets.EMPTY))
+                            : null);
+                    applyDecorStyleClass(emptyRegion, emptyLine.getStyleClass());
                     emptyRegion.setPrefWidth(wrappingWidth);
                     emptyRegion.setPrefHeight(oneLineHeight);
                     emptyRegion.resize(wrappingWidth, oneLineHeight);
                     emptyRegion.setLayoutX(leftPadding);
                     emptyRegion.setLayoutY(y);
                     contentView.getChildren().add(emptyRegion);
-                    addLineNumber(gutterIdx++, oneLineHeight, "", emptyLine.getColor());
+                    addLineNumber(gutterIdx++, oneLineHeight, "", emptyLine.getColor(), emptyLine.getStyleClass());
                     y += oneLineHeight;
                 }
             }
