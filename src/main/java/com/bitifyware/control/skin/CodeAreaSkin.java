@@ -215,9 +215,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         rangeHighlightPath.getStyleClass().add("range-highlight");
         rangeHighlightPath.setVisible(false);
         contentView.getChildren().add(rangeHighlightPath);
-        intraHighlightGroup.setManaged(false);
-        intraHighlightGroup.setMouseTransparent(true);
-        contentView.getChildren().add(intraHighlightGroup);
         mouseUnderlinePath.setManaged(false);
         mouseUnderlinePath.getStyleClass().add("mouse-underline");
         mouseUnderlinePath.setVisible(false);
@@ -232,6 +229,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         // Add content view
         paragraphNodes.setManaged(false);
         contentView.getChildren().add(paragraphNodes);
+
+        // Intra-line diff highlights rendered above text for "highlighter pen" effect
+        intraHighlightGroup.setManaged(false);
+        intraHighlightGroup.setMouseTransparent(true);
+        contentView.getChildren().add(intraHighlightGroup);
 
         // Add caret
         caretPath.setManaged(false);
