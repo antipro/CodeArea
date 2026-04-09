@@ -192,6 +192,72 @@ public class CodeArea extends CodeInputControl {
     }
 
     /**
+     * Describes a background color applied to a real text paragraph (line) for diff support.
+     * Unlike {@link EmptyLine}, this decorates an existing text row rather than inserting
+     * a phantom row.
+     */
+    public static final class LineBackground {
+        private final int paragraphIndex;
+        private final Color color;
+
+        public LineBackground(int paragraphIndex, Color color) {
+            if (paragraphIndex < 0) {
+                throw new IllegalArgumentException("paragraphIndex cannot be negative.");
+            }
+            if (color == null) {
+                throw new IllegalArgumentException("color cannot be null.");
+            }
+            this.paragraphIndex = paragraphIndex;
+            this.color = color;
+        }
+
+        public int getParagraphIndex() {
+            return paragraphIndex;
+        }
+
+        public Color getColor() {
+            return color;
+        }
+    }
+
+    /**
+     * Describes a colored highlight span within the text for intra-line diff support.
+     * Start and end are absolute character offsets into the full text content.
+     */
+    public static final class IntraLineHighlight {
+        private final int start;
+        private final int end;
+        private final Color color;
+
+        public IntraLineHighlight(int start, int end, Color color) {
+            if (start < 0) {
+                throw new IllegalArgumentException("start cannot be negative.");
+            }
+            if (end <= start) {
+                throw new IllegalArgumentException("end must be greater than start.");
+            }
+            if (color == null) {
+                throw new IllegalArgumentException("color cannot be null.");
+            }
+            this.start = start;
+            this.end = end;
+            this.color = color;
+        }
+
+        public int getStart() {
+            return start;
+        }
+
+        public int getEnd() {
+            return end;
+        }
+
+        public Color getColor() {
+            return color;
+        }
+    }
+
+    /**
      * The default value for {@link #prefColumnCountProperty() prefColumnCount}.
      */
     public static final int DEFAULT_PREF_COLUMN_COUNT = 40;
@@ -386,10 +452,55 @@ public class CodeArea extends CodeInputControl {
         emptyLines.clear();
     }
 
+    private final ObservableList<LineBackground> lineBackgrounds = FXCollections.observableArrayList();
+
+    /**
+     * Adds a background color to the paragraph at the given index for diff highlighting.
+     * The color persists across layout passes until cleared.
+     *
+     * @param paragraphIndex the 0-based paragraph (line) index
+     * @param color          the background color to apply
+     */
+    public void addLineBackground(int paragraphIndex, Color color) {
+        lineBackgrounds.add(new LineBackground(paragraphIndex, color));
+    }
+
+    public ObservableList<LineBackground> getLineBackgrounds() {
+        return lineBackgrounds;
+    }
+
+    public void clearLineBackgrounds() {
+        lineBackgrounds.clear();
+    }
+
+    private final ObservableList<IntraLineHighlight> intraLineHighlights = FXCollections.observableArrayList();
+
+    /**
+     * Adds a colored highlight span over an absolute character range in the text.
+     * Intended for intra-line diff highlighting of changed character regions.
+     *
+     * @param start absolute character offset (inclusive)
+     * @param end   absolute character offset (exclusive)
+     * @param color the fill color of the highlight
+     */
+    public void addIntraLineHighlight(int start, int end, Color color) {
+        intraLineHighlights.add(new IntraLineHighlight(start, end, color));
+    }
+
+    public ObservableList<IntraLineHighlight> getIntraLineHighlights() {
+        return intraLineHighlights;
+    }
+
+    public void clearIntraLineHighlights() {
+        intraLineHighlights.clear();
+    }
+
     {
         textProperty().addListener((observable, oldValue, newValue) -> {
             errorPosList.clear();
             highlightedRange.set(null);
+            lineBackgrounds.clear();
+            intraLineHighlights.clear();
         });
     }
 

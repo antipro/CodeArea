@@ -108,6 +108,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     private final Path rangeHighlightPath = new Path();
 
+    private final Group intraHighlightGroup = new Group();
+
     private Timeline scrollSelectionTimeline = new Timeline();
     private EventHandler<ActionEvent> scrollSelectionHandler = event -> {
         switch (scrollDirection) {
@@ -213,6 +215,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         rangeHighlightPath.getStyleClass().add("range-highlight");
         rangeHighlightPath.setVisible(false);
         contentView.getChildren().add(rangeHighlightPath);
+        intraHighlightGroup.setManaged(false);
+        intraHighlightGroup.setMouseTransparent(true);
+        contentView.getChildren().add(intraHighlightGroup);
         mouseUnderlinePath.setManaged(false);
         mouseUnderlinePath.getStyleClass().add("mouse-underline");
         mouseUnderlinePath.setVisible(false);
@@ -338,6 +343,14 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         });
 
         control.getEmptyLines().addListener((ListChangeListener<CodeArea.EmptyLine>) change -> {
+            contentView.requestLayout();
+        });
+
+        control.getLineBackgrounds().addListener((ListChangeListener<CodeArea.LineBackground>) change -> {
+            contentView.requestLayout();
+        });
+
+        control.getIntraLineHighlights().addListener((ListChangeListener<CodeArea.IntraLineHighlight>) change -> {
             contentView.requestLayout();
         });
 
@@ -1848,6 +1861,12 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 emptyLineMap.computeIfAbsent(emptyLine.getParagraphIndex(), k -> new ArrayList<>()).add(emptyLine);
             }
 
+            // Build line background map: paragraphIndex -> Color
+            Map<Integer, Color> lineBackgroundMap = new HashMap<>();
+            for (CodeArea.LineBackground lb : codeArea.getLineBackgrounds()) {
+                lineBackgroundMap.put(lb.getParagraphIndex(), lb.getColor());
+            }
+
             int gutterIdx = 0;
             int lineNo = 1;
             for (int pIdx = 0; pIdx < paragraphNodesChildren.size(); pIdx++) {
@@ -1884,7 +1903,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 textFlow.setPrefWidth(wrappingWidth);
                 textFlow.setLayoutX(leftPadding);
                 textFlow.setLayoutY(y);
-                textFlow.setBackground(null);
+                Color lineBg = lineBackgroundMap.get(pIdx);
+                textFlow.setBackground(lineBg != null
+                        ? new Background(new BackgroundFill(lineBg, CornerRadii.EMPTY, Insets.EMPTY))
+                        : null);
                 double subX = 0;
                 double subY = 0;
                 ObservableList<Node> children = textFlow.getChildren();
@@ -2081,6 +2103,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 if (codeArea.getHighlightedRange() != null) {
                     updateHighlightRange(codeArea.getHighlightedRange());
                 }
+                updateIntraLineHighlights();
 
                 List<Text> textNodes = paragraphNodes.getChildren().stream()
                         .map(n -> (TextFlow)n)
@@ -2400,6 +2423,62 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 globalOffset++; // Account for the newline character
             }
             rangeHighlightPath.setVisible(found);
+        }
+
+        private void updateIntraLineHighlights() {
+            intraHighlightGroup.getChildren().clear();
+            List<CodeArea.IntraLineHighlight> highlights = codeArea.getIntraLineHighlights();
+            if (highlights.isEmpty()) {
+                return;
+            }
+            List<Node> nodeList = paragraphNodes.getChildren();
+            for (CodeArea.IntraLineHighlight h : highlights) {
+                int start = h.getStart();
+                int end = h.getEnd();
+                if (start < 0 || end <= start) {
+                    continue;
+                }
+                Path path = new Path();
+                path.setFill(h.getColor());
+                path.setStroke(null);
+                path.setManaged(false);
+                int globalOffset = 0;
+                for (Node node : nodeList) {
+                    TextFlow textFlow = (TextFlow) node;
+                    for (Node subNode : textFlow.getChildren()) {
+                        Text text = (Text) subNode;
+                        int textLength = text.getText().length();
+                        int nodeStart = globalOffset;
+                        int nodeEnd = globalOffset + textLength;
+                        int hlStart = Math.max(start, nodeStart);
+                        int hlEnd = Math.min(end, nodeEnd);
+                        if (hlStart < hlEnd) {
+                            int localStart = hlStart - nodeStart;
+                            int localEnd = hlEnd - nodeStart;
+                            PathElement[] pathElements = text.rangeShape(localStart, localEnd);
+                            for (PathElement pathElement : pathElements) {
+                                switch (pathElement) {
+                                    case MoveTo moveTo -> {
+                                        moveTo.setX(moveTo.getX() + text.getLayoutX() + textFlow.getLayoutX());
+                                        moveTo.setY(moveTo.getY() + text.getLayoutY() + textFlow.getLayoutY());
+                                    }
+                                    case LineTo lineTo -> {
+                                        lineTo.setX(lineTo.getX() + text.getLayoutX() + textFlow.getLayoutX());
+                                        lineTo.setY(lineTo.getY() + text.getLayoutY() + textFlow.getLayoutY());
+                                    }
+                                    default -> { }
+                                }
+                            }
+                            path.getElements().addAll(pathElements);
+                        }
+                        globalOffset += textLength;
+                    }
+                    globalOffset++; // newline
+                }
+                if (!path.getElements().isEmpty()) {
+                    intraHighlightGroup.getChildren().add(path);
+                }
+            }
         }
 
         private void updateSelectionHighlight(Text caretTextNode, List<Text> textNodes, String selectedText) {
