@@ -45,6 +45,6 @@ public class LineBackgroundTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testNullColor() {
-        new CodeArea.LineBackground(0, null);
+        new CodeArea.LineBackground(0, (Color)null);
     }
 }

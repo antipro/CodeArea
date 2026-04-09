@@ -32,7 +32,7 @@ public class EmptyLineTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testEmptyLineNullColor() {
-        new CodeArea.EmptyLine(0, null);
+        new CodeArea.EmptyLine(0, (Color) null);
     }
 
     @Test
