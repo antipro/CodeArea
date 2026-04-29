@@ -1,6 +1,7 @@
 module com.bitifyware.codearea {
     requires javafx.controls;
     requires javafx.graphics;
+    requires javafx.fxml;
     requires java.desktop;
 
     exports com.bitifyware.control.skin;
