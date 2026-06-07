@@ -20,6 +20,8 @@ import javafx.geometry.Rectangle2D;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.Skin;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -33,6 +35,272 @@ import java.util.*;
  * @author antipro
  */
 public class CodeArea extends CodeInputControl {
+
+    public void upperCase() {
+        IndexRange selection = getSelection();
+        if (selection.getLength() == 0) {
+            return;
+        }
+        replaceSelection(getSelectedText().toUpperCase());
+        selectRange(selection.getStart(), selection.getEnd());
+    }
+
+    public void lowerCase() {
+        IndexRange selection = getSelection();
+        if (selection.getLength() == 0) {
+            return;
+        }
+        replaceSelection(getSelectedText().toLowerCase());
+        selectRange(selection.getStart(), selection.getEnd());
+    }
+
+    public void cutSelectionOrCurrentLine() {
+        if (isDisabled() || !isEditable()) {
+            return;
+        }
+        IndexRange selection = getSelection();
+        if (selection.getLength() > 0) {
+            cut();
+            return;
+        }
+        int[] lineRange = getCurrentLineRange();
+        if (lineRange == null) {
+            return;
+        }
+        int lineStart = lineRange[0];
+        int lineTextEnd = lineRange[1];
+        String text = getText();
+        String lineText = text.substring(lineStart, lineTextEnd);
+        ClipboardContent content = new ClipboardContent();
+        content.putString(lineText);
+        Clipboard.getSystemClipboard().setContent(content);
+        replaceText(lineStart, lineTextEnd, "");
+        selectRange(lineStart, lineStart);
+    }
+
+    public void deleteCurrentLine() {
+        if (isDisabled() || !isEditable()) {
+            return;
+        }
+        int[] lineRange = getCurrentLineRange();
+        if (lineRange == null) {
+            return;
+        }
+        int lineStart = lineRange[0];
+        int lineTextEnd = lineRange[1];
+        replaceText(lineStart, lineTextEnd, "");
+        selectRange(lineStart, lineStart);
+    }
+
+    public void cloneSelectionToNextLine() {
+        IndexRange selection = getSelection();
+        if (isDisabled() || !isEditable()) {
+            return;
+        }
+        if (selection.getLength() == 0) {
+            int caretPos = getCaretPosition();
+            String text = getText();
+            if (text.isEmpty()) {
+                return;
+            }
+            int lineStart = findCurrentLineStart(text, caretPos);
+            int lineEnd = text.indexOf("\n", lineStart);
+            if (lineEnd == -1) {
+                lineEnd = getLength();
+            }
+            String lineText = getText(lineStart, lineEnd);
+            String cloneText = "\n" + lineText;
+            insertText(lineEnd, cloneText);
+            int newCaretPos = lineEnd + cloneText.length();
+            selectRange(newCaretPos, newCaretPos);
+            return;
+        }
+        int selectionStart = selection.getStart();
+        int selectionEnd = selection.getEnd();
+        String selectedText = getSelectedText();
+        // Find next line position after current paragraph
+        int lineEndPosition = getText().indexOf("\n", selectionEnd);
+        if (lineEndPosition == -1) {
+            lineEndPosition = getLength();
+        }
+        String cloneText = "\n" + selectedText;
+        // Remove trailing newline in selected text to avoid adding extra empty line when clone
+        cloneText = cloneText.replaceAll("\n+$", "\n");
+        insertText(lineEndPosition, cloneText);
+        int cloneTextLength = cloneText.length();
+        if (lineEndPosition <= selectionStart) {
+            selectionStart += cloneTextLength;
+            selectionEnd += cloneTextLength;
+        } else if (lineEndPosition < selectionEnd) {
+            selectionEnd += cloneTextLength;
+        }
+        selectRange(selectionStart, selectionEnd);
+    }
+
+    public void moveCurrentLineUp() {
+        if (isDisabled() || !isEditable()) {
+            return;
+        }
+        String text = getText();
+        if (text.isEmpty()) {
+            return;
+        }
+        int caretPos = getCaretPosition();
+        int currentLineStart = findCurrentLineStart(text, caretPos);
+        if (currentLineStart == 0) {
+            return;
+        }
+        int previousLineBreak = currentLineStart - 1;
+        int previousLineStart = text.lastIndexOf("\n", Math.max(0, previousLineBreak - 1)) + 1;
+        int currentLineEnd = text.indexOf("\n", currentLineStart);
+        if (currentLineEnd == -1) {
+            currentLineEnd = text.length();
+        }
+        int currentLineEndWithDelimiter = currentLineEnd < text.length() ? currentLineEnd + 1 : currentLineEnd;
+        String previousLine = text.substring(previousLineStart, currentLineStart);
+        String currentLine = text.substring(currentLineStart, currentLineEndWithDelimiter);
+        int caretOffset = caretPos - currentLineStart;
+        replaceText(previousLineStart, currentLineEndWithDelimiter, currentLine + previousLine);
+        int maxOffset = maxCaretOffset(currentLine);
+        int newCaretPos = previousLineStart + Math.min(Math.max(caretOffset, 0), maxOffset);
+        selectRange(newCaretPos, newCaretPos);
+    }
+
+    public void moveCurrentLineDown() {
+        if (isDisabled() || !isEditable()) {
+            return;
+        }
+        String text = getText();
+        if (text.isEmpty()) {
+            return;
+        }
+        int caretPos = getCaretPosition();
+        int currentLineStart = findCurrentLineStart(text, caretPos);
+        int currentLineEnd = text.indexOf("\n", currentLineStart);
+        if (currentLineEnd == -1) {
+            return;
+        }
+        int nextLineStart = currentLineEnd + 1;
+        int nextLineEnd = text.indexOf("\n", nextLineStart);
+        if (nextLineEnd == -1) {
+            nextLineEnd = text.length();
+        }
+        int nextLineEndWithDelimiter = nextLineEnd < text.length() ? nextLineEnd + 1 : nextLineEnd;
+        String currentLine = text.substring(currentLineStart, nextLineStart);
+        String nextLine = text.substring(nextLineStart, nextLineEndWithDelimiter);
+        int caretOffset = caretPos - currentLineStart;
+        boolean nextLineHasDelimiter = nextLineEnd < text.length();
+        if (!nextLineHasDelimiter && currentLine.endsWith("\n")) {
+            currentLine = currentLine.substring(0, currentLine.length() - 1);
+            nextLine = nextLine + "\n";
+        }
+        replaceText(currentLineStart, nextLineEndWithDelimiter, nextLine + currentLine);
+        int maxOffset = maxCaretOffset(currentLine);
+        int newCaretPos = currentLineStart + nextLine.length() + Math.min(Math.max(caretOffset, 0), maxOffset);
+        selectRange(newCaretPos, newCaretPos);
+    }
+
+    protected int findCurrentLineStart(String text, int caretPos) {
+        if (text.isEmpty() || caretPos <= 0) {
+            return 0;
+        }
+        int safePos = Math.min(caretPos - 1, text.length() - 1);
+        return text.lastIndexOf("\n", safePos) + 1;
+    }
+
+    protected int maxCaretOffset(String lineWithDelimiter) {
+        return lineWithDelimiter.endsWith("\n") ? lineWithDelimiter.length() - 1 : lineWithDelimiter.length();
+    }
+
+    protected int[] getCurrentLineRange() {
+        String text = getText();
+        if (text.isEmpty()) {
+            return null;
+        }
+        int caretPos = getCaretPosition();
+        int lineStart = findCurrentLineStart(text, caretPos);
+        if (lineStart == text.length() && text.endsWith("\n")) {
+            lineStart = text.length() - 1;
+        }
+        int lineBreak = text.indexOf("\n", lineStart);
+        int lineTextEnd = lineBreak == -1 ? text.length() : lineBreak + 1;
+        return new int[]{lineStart, lineTextEnd};
+    }
+
+    /**
+     * If getSelection() is not empty, indent the selected text.
+     * If getSelection() is empty, just insert a tab character at the caret position.
+     */
+    public void indent(boolean useSpaces) {
+        int tabSize = tabSizeProperty().get();
+        String tabChar = useSpaces ? " ".repeat(tabSize) : "\t";
+        IndexRange selection = getSelection();
+        if (selection.getLength() > 0) {
+            int start = selection.getStart();
+            int end = selection.getEnd();
+            String text = getText();
+            String[] lines = text.substring(start, end).split("\n");
+            StringBuilder sb = new StringBuilder();
+            for (String line : lines) {
+                sb.append(tabChar).append(line).append("\n");
+            }
+            replaceText(start, end, sb.toString());
+            selectRange(start, start + sb.length());
+        } else {
+            insertText(getCaretPosition(), tabChar);
+        }
+    }
+
+    /**
+     * Un-indent the selected text or the line at the caret position.
+     */
+    public void unIndent() {
+        int tabSize = tabSizeProperty().get();
+        String tabChar = "\t";
+        IndexRange selection = getSelection();
+        if (selection.getLength() > 0) {
+            int start = selection.getStart();
+            int end = selection.getEnd();
+            String text = getText();
+            String[] lines = text.substring(start, end).split("\n");
+            StringBuilder sb = new StringBuilder();
+            for (String line : lines) {
+                if (line.startsWith(tabChar)) {
+                    sb.append(line.substring(tabChar.length())).append("\n");
+                } else if (line.startsWith(" ")) {
+                    // Remove heading spaces not exceeding tab size
+                    int spaceCount = 0;
+                    while (spaceCount < line.length() && line.charAt(spaceCount) == ' ') {
+                        spaceCount++;
+                        if (spaceCount >= tabSize) {
+                            break;
+                        }
+                    }
+                    sb.append(line.substring(spaceCount)).append("\n");
+                } else {
+                    sb.append(line).append("\n");
+                }
+            }
+            replaceText(start, end, sb.toString());
+            selectRange(start, start + sb.length());
+        } else {
+            int caretPos = getCaretPosition();
+            String line = getText(0, caretPos).substring(getText(0, caretPos).lastIndexOf("\n") + 1);
+            if (line.startsWith(tabChar)) {
+                replaceText(caretPos - tabChar.length(), caretPos, "");
+            } else if (line.startsWith(" ")) {
+                // Remove leading spaces not exceeding tab size
+                int spaceCount = 0;
+                while (spaceCount < line.length() && line.charAt(spaceCount) == ' ') {
+                    spaceCount++;
+                    if (spaceCount >= tabSize) {
+                        break;
+                    }
+                }
+                replaceText(caretPos - spaceCount, caretPos, "");
+            }
+        }
+    }
 
     protected static abstract class CodeAreaContent extends ContentBase {
         protected List<StringBuilder> paragraphs;
