@@ -54,6 +54,18 @@ public class CodeArea extends CodeInputControl {
         selectRange(selection.getStart(), selection.getEnd());
     }
 
+    public void camelCase() {
+        // Not implemented yet
+    }
+
+    public void format() {
+        // Not implemented yet
+    }
+
+    public void toggleComment() {
+        // Not implemented yet
+    }
+
     public void cutSelectionOrCurrentLine() {
         if (isDisabled() || !isEditable()) {
             return;
