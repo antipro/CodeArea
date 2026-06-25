@@ -744,6 +744,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
      * @param y the y coordinate relative to the CodeArea
      */
     public void addUnderlineAtPosition(double x, double y) {
+        x -= gutter.getWidth();
         GlobalHitInfo hitInfo = getIndex(x, y);
         if (hitInfo == null) {
             mouseUnderlinePath.setVisible(false);
@@ -1079,6 +1080,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         return null;
     }
 
+    public double getGutterWidth() {
+        return gutter.getWidth();
+    }
+
     /** {@inheritDoc} */
     @Override protected void addHighlight(List<? extends Node> nodes, int start) {
         int pStart = 0;
@@ -1176,8 +1181,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
         return p;
     }
-
     // Public for FXVKSkin
+
     /**
      * Gets the {@code Bounds} of the caret of the skinned {@code CodeArea}.
      * @return the {@code Bounds} of the caret shape, relative to the {@code CodeArea}.
@@ -1298,8 +1303,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         return index;
     }
-
     // Public for behavior
+
     /**
      * Moves the caret to the specified position.
      *
@@ -1589,8 +1594,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     private Point2D translateCaretPosition(Point2D p) {
         return p;
     }
-
     // package for testing only!
+
     Text getTextNode(double x, double y) {
 //        if (USE_MULTIPLE_NODES) {
 ////            throw new IllegalArgumentException("Multiple node traversal is not yet implemented.");
@@ -1626,35 +1631,35 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
         textNode.caretBiasProperty().set(isForwardBias());
     }
-
     // for testing
+
     void setHandlePressed(boolean pressed) {
         handlePressed = pressed;
     }
-
     // for testing
+
     ScrollPane getScrollPane() {
         return scrollPane;
     }
-
     // for testing
+
     Text getPromptNode() {
         return promptNode;
     }
 
     /**
      * Gets the Y position of a specific line (paragraph) in the content view.
-     * 
+     *
      * @param lineIndex the zero-based line index
      * @return the Y position of the line, or -1 if the line index is invalid
      */
     public double getLineYPosition(int lineIndex) {
         List<Node> paragraphNodesChildren = paragraphNodes.getChildren();
-        
+
         if (lineIndex < 0 || lineIndex >= paragraphNodesChildren.size()) {
             return -1;
         }
-        
+
         TextFlow targetFlow = (TextFlow) paragraphNodesChildren.get(lineIndex);
         return targetFlow.getLayoutY();
     }

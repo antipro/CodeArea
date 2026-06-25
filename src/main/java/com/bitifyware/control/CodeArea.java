@@ -1033,7 +1033,7 @@ public class CodeArea extends CodeInputControl {
         if (skin == null) {
             return null;
         }
-        
+        x -= skin.getGutterWidth();
         GlobalHitInfo hitInfo = skin.getIndex(x, y);
         if (hitInfo == null) {
             return null;
