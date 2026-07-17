@@ -62,6 +62,48 @@
             <version>${javafx.version}</version>
         </dependency>
         <dependency>
+            <groupId>net.raumzeitfalle.fx</groupId>
+            <artifactId>scenic-view</artifactId>
+            <version>11.0.2</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>javafx-controls</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>javafx-graphics</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>javafx-base</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>javafx-fxml</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>javafx-web</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>javafx-media</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>javafx-swing</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
+            <version>${javafx.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.testfx</groupId>
             <artifactId>testfx-junit</artifactId>
             <version>4.0.18</version>
@@ -88,51 +130,6 @@
     </dependencies>
 
     <profiles>
-        <profile>
-            <id>scenic-view-debug</id>
-            <dependencies>
-                <dependency>
-                    <groupId>net.raumzeitfalle.fx</groupId>
-                    <artifactId>scenic-view</artifactId>
-                    <version>11.0.2</version>
-                    <exclusions>
-                        <exclusion>
-                            <groupId>org.openjfx</groupId>
-                            <artifactId>javafx-controls</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.openjfx</groupId>
-                            <artifactId>javafx-graphics</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.openjfx</groupId>
-                            <artifactId>javafx-base</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.openjfx</groupId>
-                            <artifactId>javafx-fxml</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.openjfx</groupId>
-                            <artifactId>javafx-web</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.openjfx</groupId>
-                            <artifactId>javafx-media</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.openjfx</groupId>
-                            <artifactId>javafx-swing</artifactId>
-                        </exclusion>
-                    </exclusions>
-                </dependency>
-                <dependency>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>javafx-web</artifactId>
-                    <version>${javafx.version}</version>
-                </dependency>
-            </dependencies>
-        </profile>
         <profile>
             <id>release</id>
             <build>
