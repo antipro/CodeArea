@@ -2239,15 +2239,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         textNode.setSelectionEnd(Math.min(end, paragraphLength));
                         PathElement[] selectionShape = textNode.getSelectionShape();
                         if (selectionShape != null && selectionShape.length > 0) {
-                            // Because the Text node can not have the same bound height. Don't ask me why :(
-                            // the Y coordinate has been adjusted When layout above.
-                            // We need to adjust the Y coordinate of the selection shape.
-                            // So that the selection shape will have no space between the line.
-//                            double offset = oneLineHeight - textNode.getBoundsInLocal().getMaxY();
-//                            if (((MoveTo)selectionShape[0]).getY() == 0 && offset > 0) {
-                                ((LineTo)selectionShape[2]).setY(oneLineHeight);
-                                ((LineTo)selectionShape[3]).setY(oneLineHeight);
-//                            }
+                            // Fill the first visual row to the line height while retaining its offset
+                            // when selection starts below row zero in a wrapped Text node.
+                            double selectionTop = ((MoveTo) selectionShape[0]).getY();
+                            ((LineTo) selectionShape[2]).setY(selectionTop + oneLineHeight);
+                            ((LineTo) selectionShape[3]).setY(selectionTop + oneLineHeight);
 
                             if (linePath != null && textNode.getLayoutX() == 0) {
                                 // New Line of Selection Draw previous linePath

@@ -1,12 +1,20 @@
 package com.bitifyware.control;
 
+import com.bitifyware.control.skin.CodeAreaSkin;
+import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
 import javafx.stage.Stage;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.testfx.framework.junit.ApplicationTest;
+import org.testfx.util.WaitForAsyncUtils;
+
+import java.lang.reflect.Field;
 
 import static org.junit.Assert.*;
 
@@ -137,6 +145,30 @@ public class CodeAreaTest extends ApplicationTest {
 
         // Verify paragraph count
         assertEquals(3, codeArea.getParagraphs().size());
+    }
+
+    @Test
+    public void testSelectionBackgroundKeepsWrappedLineOffset() throws Exception {
+        interact(() -> {
+            codeArea.setWrapText(true);
+            codeArea.setText("a".repeat(300));
+            codeArea.selectRange(150, 280);
+            codeArea.getScene().getRoot().applyCss();
+            codeArea.getScene().getRoot().layout();
+        });
+        WaitForAsyncUtils.waitForFxEvents();
+
+        Field field = CodeAreaSkin.class.getDeclaredField("selectionHighlightGroup");
+        field.setAccessible(true);
+        Group selectionHighlightGroup = (Group) field.get(codeArea.getSkin());
+
+        assertFalse(selectionHighlightGroup.getChildren().isEmpty());
+        Path selectionBackground = (Path) selectionHighlightGroup.getChildren().getFirst();
+        double selectionTop = ((MoveTo) selectionBackground.getElements().get(0)).getY();
+        double selectionBottom = ((LineTo) selectionBackground.getElements().get(2)).getY();
+        assertTrue("Wrapped selection background lost its vertical extent: "
+                        + selectionBackground.getElements(),
+                selectionBottom > selectionTop);
     }
 
     @Test
