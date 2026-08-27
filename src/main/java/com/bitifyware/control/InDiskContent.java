@@ -206,8 +206,9 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
                                newLines.get(0) + 
                                currentLine.substring(offsetInLine);
                 replaceLine(lineIndex, newLine);
+                contentLength += textLength;
                 fireParagraphListChangeEvent(lineIndex, lineIndex + 1,
-                    Collections.singletonList(newLine));
+                    Collections.singletonList(currentLine));
             } else {
                 // Multi-line insert - split current line
                 String firstPart = currentLine.substring(0, offsetInLine) + newLines.get(0);
@@ -215,8 +216,6 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
                 
                 // Replace current line with first part
                 replaceLine(lineIndex, firstPart);
-                fireParagraphListChangeEvent(lineIndex, lineIndex + 1,
-                    Collections.singletonList(firstPart));
                 
                 // Insert middle lines
                 for (int i = 1; i < newLines.size() - 1; i++) {
@@ -225,17 +224,13 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
                 
                 // Insert last part
                 insertLine(lineIndex + newLines.size() - 1, lastPart);
-                
-                // Fire event for inserted lines
-                List<CharSequence> insertedLines = new ArrayList<>();
-                for (int i = 1; i < newLines.size(); i++) {
-                    insertedLines.add(newLines.get(i));
-                }
+
+                contentLength += textLength;
+                fireParagraphListChangeEvent(lineIndex, lineIndex + 1,
+                    Collections.singletonList(currentLine));
                 fireParagraphListChangeEvent(lineIndex + 1, lineIndex + newLines.size(),
                     Collections.emptyList());
             }
-            
-            contentLength += textLength;
             
             if (notifyListeners) {
                 fireValueChangedEvent();
@@ -277,6 +272,7 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
                 String line = readLine(startLine);
                 String newLine = line.substring(0, startOffset) + line.substring(endOffset);
                 replaceLine(startLine, newLine);
+                contentLength -= length;
                 fireParagraphListChangeEvent(startLine, startLine + 1,
                     Collections.singletonList(line));
             } else {
@@ -298,13 +294,13 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
                 
                 // Update the remaining line
                 replaceLine(startLine, mergedLine);
-                
-                fireParagraphListChangeEvent(startLine, startLine, removed);
+
+                contentLength -= length;
+                fireParagraphListChangeEvent(startLine + 1, startLine + 1,
+                    removed.subList(1, removed.size()));
                 fireParagraphListChangeEvent(startLine, startLine + 1,
-                    Collections.singletonList(mergedLine));
+                    Collections.singletonList(firstLine));
             }
-            
-            contentLength -= length;
             
             if (notifyListeners) {
                 fireValueChangedEvent();
@@ -548,6 +544,9 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
             Files.write(tempTarget, lines, StandardCharsets.UTF_8);
             Files.move(tempTarget, tempFile, StandardCopyOption.REPLACE_EXISTING, 
                       StandardCopyOption.ATOMIC_MOVE);
+            // The rewrite invalidates every cached line, including lines read
+            // while calculating the edit range.
+            lineCache.clear();
             lineCount = lines.size();
         } catch (IOException e) {
             Files.deleteIfExists(tempTarget);

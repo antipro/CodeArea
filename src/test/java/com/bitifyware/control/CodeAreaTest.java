@@ -3,10 +3,15 @@ package com.bitifyware.control;
 import com.bitifyware.control.skin.CodeAreaSkin;
 import javafx.scene.Group;
 import javafx.scene.Scene;
+import javafx.geometry.Point2D;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -26,6 +31,7 @@ import static org.junit.Assert.*;
 public class CodeAreaTest extends ApplicationTest {
 
     private CodeArea codeArea;
+    private StackPane root;
 
     @BeforeClass
     public static void checkPlatform() {
@@ -61,7 +67,7 @@ public class CodeAreaTest extends ApplicationTest {
         codeArea.setPrefWidth(600);
         codeArea.setPrefHeight(400);
 
-        StackPane root = new StackPane(codeArea);
+        root = new StackPane(codeArea);
         Scene scene = new Scene(root, 600, 400);
 
         stage.setScene(scene);
@@ -96,6 +102,57 @@ public class CodeAreaTest extends ApplicationTest {
 
         // Verify the text was appended correctly
         assertEquals("Hello, World!", codeArea.getText());
+    }
+
+    @Test
+    public void testRepeatedBackspaceWithDiskContent() {
+        CodeArea diskArea = new CodeArea("Try editing this text.", true);
+        interact(() -> {
+            root.getChildren().setAll(diskArea);
+            diskArea.applyCss();
+            diskArea.layout();
+        });
+        WaitForAsyncUtils.waitForFxEvents();
+        interact(() -> diskArea.positionCaret(diskArea.getLength()));
+        interact(() -> {
+            for (int i = 0; i < 3; i++) {
+                diskArea.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.BACK_SPACE,
+                        false, false, false, false));
+            }
+        });
+        WaitForAsyncUtils.waitForFxEvents();
+
+        assertEquals("Caret should move after each backspace", "Try editing this te".length(), diskArea.getCaretPosition());
+        assertEquals("Try editing this te", diskArea.getText());
+        assertEquals("Try editing this te", diskArea.getParagraphs().getFirst().toString());
+        TextFlow paragraph = (TextFlow) diskArea.lookup(".paragraph-nodes").lookup("TextFlow");
+        String renderedText = paragraph.getChildren().stream()
+                .map(Text.class::cast)
+                .map(Text::getText)
+                .collect(java.util.stream.Collectors.joining());
+        assertEquals("Try editing this te", renderedText);
+    }
+
+    @Test
+    public void testSelectAllImeLocationWithLargeDiskContent() {
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < 1_000; i++) {
+            text.append("Line ").append(i).append(": large disk content\n");
+        }
+        CodeArea diskArea = new CodeArea(text.toString(), true);
+        interact(() -> {
+            root.getChildren().setAll(diskArea);
+            diskArea.applyCss();
+            diskArea.layout();
+            diskArea.selectAll();
+        });
+        WaitForAsyncUtils.waitForFxEvents();
+
+        Point2D location = diskArea.getInputMethodRequests().getTextLocation(-1);
+
+        assertNotNull(location);
+        assertEquals(0, diskArea.getSelection().getStart());
+        assertEquals(diskArea.getLength(), diskArea.getSelection().getEnd());
     }
 
     @Test
@@ -192,4 +249,3 @@ public class CodeAreaTest extends ApplicationTest {
         assertEquals("Initial text modified", codeArea.getText());
     }
 }
-

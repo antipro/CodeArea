@@ -397,10 +397,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                                         codeArea.fontProperty(),
                                         highlightTextFillProperty()
                                 );
-//                                if (texts.isEmpty()) {
-//                                    removedNodes.add(paragraphNode);
-//                                    continue;
-//                                }
+                                if (texts.isEmpty()) {
+                                    texts = List.of(new Text());
+                                }
                                 paragraphNode.getChildren().addAll(texts);
 //                                Text paragraphNode = (Text) textFlow.getChildren().get(0);
 //                                paragraphNode.setText(change.getList().get(i).toString());
@@ -1347,36 +1346,79 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     @Override public Rectangle2D getCharacterBounds(int index) {
         CodeArea codeArea = getSkinnable();
 
-        int paragraphIndex = paragraphNodes.getChildren().size();
-        int paragraphOffset = codeArea.getLength() + 1;
+        // JavaFX may query the IME location with an offset of -1 while the
+        // selection is changing (for example after Ctrl+A or Cmd+A). Treat it as the
+        // start of the document instead of allowing it to underflow the node
+        // lookup below.
+        index = Math.max(0, Math.min(index, codeArea.getLength()));
 
+        if (paragraphNodes.getChildren().isEmpty()) {
+            return new Rectangle2D(0, 0, 0, 0);
+        }
+
+        TextFlow textFlow = null;
         Text paragraphNode = null;
-        TextFlow textFlow;
-        do {
-            textFlow = (TextFlow) paragraphNodes.getChildren().get(--paragraphIndex);
-            ObservableList<Node> children = textFlow.getChildren();
-            for (int i = children.size() - 1; i >= 0; i--) {
-                paragraphNode = (Text) children.get(i);
-                paragraphOffset -= paragraphNode.getText().length();
-                if (index >= paragraphOffset) {
-                    break;
-                }
-            }
-            paragraphOffset--;
-//            paragraphNode = (Text)paragraphNodes.getChildren().get(--paragraphIndex);
-//            paragraphOffset -= paragraphNode.getText().length() + 1;
-        } while (index < paragraphOffset);
-
-        int characterIndex = index - paragraphOffset;
+        int characterIndex = 0;
         boolean terminator = false;
+        int paragraphOffset = 0;
+        ObservableList<Node> paragraphs = paragraphNodes.getChildren();
 
-        if (characterIndex == paragraphNode.getText().length()) {
-            characterIndex--;
-            terminator = true;
+        for (int paragraphIndex = 0; paragraphIndex < paragraphs.size(); paragraphIndex++) {
+            TextFlow candidate = (TextFlow) paragraphs.get(paragraphIndex);
+            ObservableList<Node> children = candidate.getChildren();
+            int paragraphLength = children.stream()
+                    .map(Text.class::cast)
+                    .mapToInt(text -> text.getText().length())
+                    .sum();
+
+            if (index <= paragraphOffset + paragraphLength || paragraphIndex == paragraphs.size() - 1) {
+                textFlow = candidate;
+                int paragraphCharacterIndex = Math.max(0,
+                        Math.min(index - paragraphOffset, paragraphLength));
+                int childOffset = 0;
+
+                for (int childIndex = 0; childIndex < children.size(); childIndex++) {
+                    Text candidateText = (Text) children.get(childIndex);
+                    int childEnd = childOffset + candidateText.getText().length();
+                    if (paragraphCharacterIndex < childEnd
+                            || childIndex == children.size() - 1) {
+                        paragraphNode = candidateText;
+                        characterIndex = paragraphCharacterIndex - childOffset;
+                        break;
+                    }
+                    childOffset = childEnd;
+                }
+
+                terminator = paragraphCharacterIndex == paragraphLength;
+                break;
+            }
+
+            paragraphOffset += paragraphLength + 1;
+        }
+
+        if (textFlow == null || paragraphNode == null) {
+            return new Rectangle2D(0, 0, 0, 0);
+        }
+
+        boolean emptyParagraph = paragraphNode.getText().isEmpty();
+        if (emptyParagraph) {
+            characterIndex = 0;
+        }
+
+        if (!emptyParagraph && terminator) {
+            characterIndex = Math.min(characterIndex, paragraphNode.getText().length()) - 1;
+        } else if (!emptyParagraph) {
+            characterIndex = Math.min(characterIndex, paragraphNode.getText().length() - 1);
+        }
+
+        if (characterIndex < 0) {
+            characterIndex = 0;
         }
 
         characterBoundingPath.getElements().clear();
-        PathElement[] pathElements = paragraphNode.rangeShape(characterIndex, characterIndex + 1);
+        PathElement[] pathElements = emptyParagraph
+                ? paragraphNode.getCaretShape()
+                : paragraphNode.rangeShape(characterIndex, characterIndex + 1);
         if (pathElements.length == 0) {
             pathElements = paragraphNode.getCaretShape();
         }
@@ -1471,7 +1513,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         );
         paragraphNode.getChildren().addAll(texts);
         if (paragraphNode.getChildren().isEmpty()) {
-            return;
+            // Keep one node per paragraph so empty lines remain addressable.
+            paragraphNode.getChildren().add(new Text());
         }
         paragraphNodes.getChildren().add(i, paragraphNode);
     }
