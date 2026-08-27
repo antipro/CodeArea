@@ -7,668 +7,512 @@ import javafx.beans.InvalidationListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.*;
+import java.nio.file.StandardOpenOption;
+import java.util.AbstractList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Disk-backed implementation of CodeArea content for handling very large files.
- * 
- * <p>This implementation stores paragraphs (lines) in a temporary file on disk instead of memory,
- * enabling CodeArea to work with files that would be too large to fit in memory.
- * 
- * <h3>Threading Considerations</h3>
- * <p>Heavy I/O operations should be performed off the JavaFX Application Thread to avoid
- * blocking the UI. Consider loading/saving content in background threads.
- * 
- * <h3>File Format</h3>
- * <p>The disk file uses UTF-8 encoding with '\n' as the line terminator. When reading lines,
- * any trailing '\r' characters are stripped. Full CRLF preservation is a TODO.
- * 
- * <h3>Performance Characteristics</h3>
- * <p>Current implementation uses naive scanning for line positions. For very large files,
- * consider these limitations:
- * <ul>
- *   <li>Line access requires scanning from the beginning (or cached position)</li>
- *   <li>TODO: Implement sparse index of line positions for O(1) random access</li>
- *   <li>TODO: Implement incremental edits without full file rewrite for same-byte-length changes</li>
- *   <li>Small LRU cache helps with sequential access during scrolling</li>
- * </ul>
- * 
- * <h3>Usage Example</h3>
- * <pre>{@code
- * DiskContent content = new DiskContent();
- * content.insert(0, largeText, true);
- * 
- * // Use with ContentSwapper to replace CodeArea content
- * ContentSwapper.swapContent(codeArea, content);
- * 
- * // Clean up when done
- * content.close();
- * }</pre>
- * 
- * @see InMemoryContent
- * @see ContentSwapper
+ * Disk-backed {@link CodeArea} content intended for files that should not be
+ * retained as one large in-memory string.
+ *
+ * <p>The backing file stores Java UTF-16 code units in big-endian order. The
+ * fixed-width representation makes a character position a direct file offset,
+ * including positions around supplementary characters. Inserts and deletes
+ * move file data in bounded chunks rather than loading every paragraph into
+ * memory. Paragraph start positions and a small LRU line cache are retained in
+ * memory to support rendering.</p>
+ *
+ * <p>This class has the same single-threaded usage expectation as JavaFX
+ * controls. Call {@link #close()} when the owning control is no longer used.</p>
  */
 public final class InDiskContent extends CodeAreaContent implements AutoCloseable {
-    
-    private static final int DEFAULT_PARAGRAPH_CAPACITY = 32;
-    private static final int CACHE_SIZE = 50; // LRU cache for recently accessed lines
-    
+
+    private static final int CACHE_SIZE = 50;
+    private static final int COPY_BUFFER_BYTES = 64 * 1024;
+
     private final Path tempFile;
+    private final FileChannel channel;
     private final DiskParagraphList paragraphList = new DiskParagraphList();
-    private int contentLength = 0;
-    private int lineCount = 1; // Always at least one line
-    
-    // LRU cache for recently accessed lines (index -> line content)
-    private final LinkedHashMap<Integer, String> lineCache = new LinkedHashMap<>(CACHE_SIZE, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<Integer, String> eldest) {
-            return size() > CACHE_SIZE;
-        }
-    };
-    
-    /**
-     * Creates a new DiskContent with an empty temporary file.
-     * 
-     * @throws UncheckedIOException if the temporary file cannot be created
-     */
+    private final LinkedHashMap<Integer, String> lineCache =
+            new LinkedHashMap<>(CACHE_SIZE, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<Integer, String> eldest) {
+                    return size() > CACHE_SIZE;
+                }
+            };
+
+    private int[] lineStarts = new int[16];
+    private int lineCount = 1;
+    private int contentLength;
+    private boolean closed;
+
     public InDiskContent() {
-        try {
-            tempFile = Files.createTempFile("codearea-", ".txt");
-            // Initialize with single empty line
-            List<String> initialLines = new ArrayList<>();
-            initialLines.add("");
-            Files.write(tempFile, initialLines, StandardCharsets.UTF_8);
-            lineCount = 1;
-            paragraphs = new DiskBackedParagraphList();
-            paragraphList.setContent(this);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to create temporary file for DiskContent", e);
-        }
+        this(null);
     }
-    
-    /**
-     * Creates a new DiskContent with initial text content.
-     * 
-     * @param initialText the initial text content
-     * @throws UncheckedIOException if the temporary file cannot be created
-     */
+
     public InDiskContent(String initialText) {
         try {
-            tempFile = Files.createTempFile("codearea-", ".txt");
-            // Initialize with single empty line
-            List<String> initialLines = new ArrayList<>();
-            initialLines.add("");
-            Files.write(tempFile, initialLines, StandardCharsets.UTF_8);
-            lineCount = 1;
+            tempFile = Files.createTempFile("codearea-", ".content");
+            tempFile.toFile().deleteOnExit();
+            channel = FileChannel.open(tempFile, StandardOpenOption.READ, StandardOpenOption.WRITE);
             paragraphs = new DiskBackedParagraphList();
-            paragraphList.setContent(this);
-            
+            lineStarts[0] = 0;
+
             if (initialText != null && !initialText.isEmpty()) {
                 insert(0, initialText, false);
             }
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to create temporary file for DiskContent", e);
+            throw new UncheckedIOException("Failed to create disk-backed content", e);
         }
     }
-    
+
     @Override
     public String get(int start, int end) {
-        if (start < 0 || end > contentLength || start > end) {
-            throw new IndexOutOfBoundsException("start=" + start + ", end=" + end + ", length=" + contentLength);
-        }
-        
-        int length = end - start;
-        if (length == 0) {
-            return "";
-        }
-        
+        checkRange(start, end);
+        ensureOpen();
         try {
-            StringBuilder result = new StringBuilder(length);
-            
-            // Find the starting line and offset within that line
-            int[] startPos = findLineAndOffset(start);
-            int lineIndex = startPos[0];
-            int offsetInLine = startPos[1];
-            
-            int charsRead = 0;
-            
-            while (charsRead < length && lineIndex < lineCount) {
-                String line = readLine(lineIndex);
-                int lineLen = line.length();
-                
-                // Calculate how many chars to read from this line
-                int available = lineLen - offsetInLine;
-                int toRead = Math.min(available, length - charsRead);
-                
-                if (toRead > 0) {
-                    result.append(line, offsetInLine, offsetInLine + toRead);
-                    charsRead += toRead;
-                }
-                
-                // If we've read to the end of the line and need more, add newline
-                if (charsRead < length && offsetInLine + toRead >= lineLen) {
-                    // Check if there's a newline character at this position
-                    if (lineIndex < lineCount - 1) {
-                        result.append('\n');
-                        charsRead++;
-                    }
-                }
-                
-                lineIndex++;
-                offsetInLine = 0;
-            }
-            
-            return result.toString();
+            return readText(start, end);
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read text", e);
+            throw new UncheckedIOException("Failed to read disk-backed content", e);
         }
     }
-    
+
     @Override
     public void insert(int index, String text, boolean notifyListeners) {
+        ensureOpen();
         if (index < 0 || index > contentLength) {
             throw new IndexOutOfBoundsException("index=" + index + ", length=" + contentLength);
         }
-        
         if (text == null) {
             throw new IllegalArgumentException("text cannot be null");
         }
-        
-        text = CodeInputControl.filterInput(text, false, false);
-        int textLength = text.length();
-        
-        if (textLength == 0) {
+
+        text = filterInput(text);
+        if (text.isEmpty()) {
             return;
         }
-        
+
+        int paragraphIndex = getParagraphIndex(index);
         try {
-            // Clear cache FIRST so all reads get fresh data
+            shiftRight(index, text.length());
+            writeText(index, text);
+            updateLineStartsAfterInsert(index, text);
+            contentLength += text.length();
             lineCache.clear();
-            
-            // Split text into lines
-            List<String> newLines = splitIntoLines(text);
-            
-            // Find position to insert
-            int[] pos = findLineAndOffset(index);
-            int lineIndex = pos[0];
-            int offsetInLine = pos[1];
-            
-            String currentLine = readLine(lineIndex);
-            
-            if (newLines.size() == 1) {
-                // Single line insert - just modify the current line
-                String newLine = currentLine.substring(0, offsetInLine) + 
-                               newLines.get(0) + 
-                               currentLine.substring(offsetInLine);
-                replaceLine(lineIndex, newLine);
-                fireParagraphListChangeEvent(lineIndex, lineIndex + 1,
-                    Collections.singletonList(newLine));
-            } else {
-                // Multi-line insert - split current line
-                String firstPart = currentLine.substring(0, offsetInLine) + newLines.get(0);
-                String lastPart = newLines.get(newLines.size() - 1) + currentLine.substring(offsetInLine);
-                
-                // Replace current line with first part
-                replaceLine(lineIndex, firstPart);
-                fireParagraphListChangeEvent(lineIndex, lineIndex + 1,
-                    Collections.singletonList(firstPart));
-                
-                // Insert middle lines
-                for (int i = 1; i < newLines.size() - 1; i++) {
-                    insertLine(lineIndex + i, newLines.get(i));
-                }
-                
-                // Insert last part
-                insertLine(lineIndex + newLines.size() - 1, lastPart);
-                
-                // Fire event for inserted lines
-                List<CharSequence> insertedLines = new ArrayList<>();
-                for (int i = 1; i < newLines.size(); i++) {
-                    insertedLines.add(newLines.get(i));
-                }
-                fireParagraphListChangeEvent(lineIndex + 1, lineIndex + newLines.size(),
-                    Collections.emptyList());
+
+            int addedParagraphs = countNewlines(text);
+            fireParagraphListChangeEvent(paragraphIndex, paragraphIndex + 1,
+                    Collections.singletonList(""));
+            if (addedParagraphs > 0) {
+                fireParagraphListChangeEvent(paragraphIndex + 1,
+                        paragraphIndex + addedParagraphs + 1, Collections.emptyList());
             }
-            
-            contentLength += textLength;
-            
             if (notifyListeners) {
                 fireValueChangedEvent();
             }
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to insert text", e);
+            throw new UncheckedIOException("Failed to insert disk-backed content", e);
         }
     }
-    
+
     @Override
     public void delete(int start, int end, boolean notifyListeners) {
+        ensureOpen();
         if (start > end) {
             throw new IllegalArgumentException("start > end");
         }
-        
-        if (start < 0 || end > contentLength) {
-            throw new IndexOutOfBoundsException("start=" + start + ", end=" + end + ", length=" + contentLength);
-        }
-        
-        int length = end - start;
-        if (length == 0) {
+        checkRange(start, end);
+        if (start == end) {
             return;
         }
-        
+
+        int firstParagraph = getParagraphIndex(start);
+        int lastParagraph = getParagraphIndex(end);
+
         try {
-            // Clear cache FIRST so all reads get fresh data
+            shiftLeft(start, end);
+            updateLineStartsAfterDelete(start, end);
+            contentLength -= end - start;
             lineCache.clear();
-            
-            int[] startPos = findLineAndOffset(start);
-            int[] endPos = findLineAndOffset(end);
-            
-            int startLine = startPos[0];
-            int startOffset = startPos[1];
-            int endLine = endPos[0];
-            int endOffset = endPos[1];
-            
-            if (startLine == endLine) {
-                // Delete within single line
-                String line = readLine(startLine);
-                String newLine = line.substring(0, startOffset) + line.substring(endOffset);
-                replaceLine(startLine, newLine);
-                fireParagraphListChangeEvent(startLine, startLine + 1,
-                    Collections.singletonList(line));
-            } else {
-                // Delete spans multiple lines
-                String firstLine = readLine(startLine);
-                String lastLine = readLine(endLine);
-                String mergedLine = firstLine.substring(0, startOffset) + lastLine.substring(endOffset);
-                
-                // Build list of removed lines
-                List<CharSequence> removed = new ArrayList<>();
-                for (int i = startLine; i <= endLine; i++) {
-                    removed.add(readLine(i));
-                }
-                
-                // Delete lines from startLine+1 to endLine (inclusive)
-                for (int i = endLine; i > startLine; i--) {
-                    deleteLine(i);
-                }
-                
-                // Update the remaining line
-                replaceLine(startLine, mergedLine);
-                
-                fireParagraphListChangeEvent(startLine, startLine, removed);
-                fireParagraphListChangeEvent(startLine, startLine + 1,
-                    Collections.singletonList(mergedLine));
+
+            if (lastParagraph > firstParagraph) {
+                fireParagraphListChangeEvent(firstParagraph + 1, firstParagraph + 1,
+                        Collections.nCopies(lastParagraph - firstParagraph, ""));
             }
-            
-            contentLength -= length;
-            
+            fireParagraphListChangeEvent(firstParagraph, firstParagraph + 1,
+                    Collections.singletonList(""));
             if (notifyListeners) {
                 fireValueChangedEvent();
             }
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to delete text", e);
+            throw new UncheckedIOException("Failed to delete disk-backed content", e);
         }
     }
-    
+
     @Override
     public int length() {
         return contentLength;
     }
-    
+
     @Override
     public String get() {
         return get(0, contentLength);
     }
-    
+
     @Override
     public String getValue() {
         return get();
     }
-    
-    /**
-     * Returns the observable list of paragraphs (lines) backed by disk.
-     * 
-     * @return the paragraph list
-     */
+
+    @Override
     public ObservableList<CharSequence> getParagraphList() {
         return paragraphList;
     }
-    
-    /**
-     * Closes and deletes the temporary file used by this DiskContent.
-     * After calling this method, this DiskContent should not be used.
-     */
+
     @Override
     public void close() {
+        if (closed) {
+            return;
+        }
+        closed = true;
+        lineCache.clear();
         try {
+            channel.close();
             Files.deleteIfExists(tempFile);
-            lineCache.clear();
         } catch (IOException e) {
-            // Log but don't throw - cleanup is best effort
-            System.err.println("Warning: Failed to delete temp file: " + tempFile);
+            throw new UncheckedIOException("Failed to close disk-backed content", e);
         }
     }
-    
-    // ========== Line-level operations ==========
-    
-    /**
-     * Reads a line from the file. Uses caching for performance.
-     * 
-     * @param lineIndex the zero-based line index
-     * @return the line content (without line terminator)
-     * @throws IOException if reading fails
-     */
-    String readLine(int lineIndex) throws IOException {
-        // Check cache first
-        String cached = lineCache.get(lineIndex);
+
+    private String readLineUnchecked(int index) {
+        try {
+            return readLine(index);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read paragraph " + index, e);
+        }
+    }
+
+    private String readLine(int index) throws IOException {
+        ensureOpen();
+        if (index < 0 || index >= lineCount) {
+            throw new IndexOutOfBoundsException("paragraph=" + index + ", count=" + lineCount);
+        }
+        String cached = lineCache.get(index);
         if (cached != null) {
             return cached;
         }
-        
-        // TODO: Use sparse index for O(1) access instead of scanning
-        try (BufferedReader reader = Files.newBufferedReader(tempFile, StandardCharsets.UTF_8)) {
-            String line = "";
-            for (int i = 0; i <= lineIndex; i++) {
-                line = reader.readLine();
-                if (line == null) {
-                    line = "";
-                    break;
-                }
+        int start = lineStarts[index];
+        int end = index + 1 < lineCount ? lineStarts[index + 1] - 1 : contentLength;
+        String line = readText(start, end);
+        lineCache.put(index, line);
+        return line;
+    }
+
+    private String readText(int start, int end) throws IOException {
+        char[] result = new char[end - start];
+        ByteBuffer buffer = ByteBuffer.allocate((int) Math.min(COPY_BUFFER_BYTES,
+                Math.max(2L, (long) result.length * 2)));
+        long filePosition = (long) start * 2;
+        int resultPosition = 0;
+        while (resultPosition < result.length) {
+            int chars = Math.min(buffer.capacity() / 2, result.length - resultPosition);
+            buffer.clear().limit(chars * 2);
+            readFully(buffer, filePosition);
+            buffer.flip();
+            for (int i = 0; i < chars; i++) {
+                result[resultPosition++] = buffer.getChar();
             }
-            // Strip trailing \r if present (TODO: full CRLF preservation)
-            if (line.endsWith("\r")) {
-                line = line.substring(0, line.length() - 1);
+            filePosition += (long) chars * 2;
+        }
+        return new String(result);
+    }
+
+    private void writeText(int index, String text) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate((int) Math.min(COPY_BUFFER_BYTES,
+                Math.max(2L, (long) text.length() * 2)));
+        long filePosition = (long) index * 2;
+        int textPosition = 0;
+        while (textPosition < text.length()) {
+            buffer.clear();
+            while (textPosition < text.length() && buffer.remaining() >= 2) {
+                buffer.putChar(text.charAt(textPosition++));
             }
-            lineCache.put(lineIndex, line);
-            return line;
+            buffer.flip();
+            writeFully(buffer, filePosition);
+            filePosition += buffer.limit();
         }
     }
-    
-    /**
-     * Counts the total number of lines in the file.
-     * 
-     * @return the line count
-     * @throws IOException if reading fails
-     */
-    int countLines() throws IOException {
-        // TODO: Maintain line count incrementally instead of counting each time
-        return lineCount;
-    }
-    
-    /**
-     * Replaces a line at the given index with new content.
-     * Uses in-place write if byte length is the same, otherwise rewrites file.
-     * 
-     * @param lineIndex the line index
-     * @param newContent the new line content (without line terminator)
-     * @throws IOException if writing fails
-     */
-    void replaceLine(int lineIndex, String newContent) throws IOException {
-        List<String> lines = readAllLines();
-        if (lineIndex < 0 || lineIndex >= lines.size()) {
-            throw new IndexOutOfBoundsException("lineIndex=" + lineIndex + ", lineCount=" + lines.size());
+
+    private void shiftRight(int index, int characterCount) throws IOException {
+        long sourceEnd = (long) contentLength * 2;
+        long sourceStart = (long) index * 2;
+        long displacement = (long) characterCount * 2;
+        channel.truncate(sourceEnd + displacement);
+        ByteBuffer buffer = ByteBuffer.allocate(COPY_BUFFER_BYTES);
+        while (sourceEnd > sourceStart) {
+            int bytes = (int) Math.min(buffer.capacity(), sourceEnd - sourceStart);
+            long chunkStart = sourceEnd - bytes;
+            buffer.clear().limit(bytes);
+            readFully(buffer, chunkStart);
+            buffer.flip();
+            writeFully(buffer, chunkStart + displacement);
+            sourceEnd = chunkStart;
         }
-        lines.set(lineIndex, newContent);
-        writeAllLines(lines);
     }
-    
-    /**
-     * Inserts a new line at the given index.
-     * 
-     * @param lineIndex the line index where the new line should be inserted
-     * @param content the line content (without line terminator)
-     * @throws IOException if writing fails
-     */
-    void insertLine(int lineIndex, String content) throws IOException {
-        List<String> lines = readAllLines();
-        lines.add(lineIndex, content);
-        writeAllLines(lines);
-    }
-    
-    /**
-     * Deletes the line at the given index.
-     * 
-     * @param lineIndex the line index to delete
-     * @throws IOException if writing fails
-     */
-    void deleteLine(int lineIndex) throws IOException {
-        List<String> lines = readAllLines();
-        if (lineIndex < 0 || lineIndex >= lines.size()) {
-            throw new IndexOutOfBoundsException("lineIndex=" + lineIndex + ", lineCount=" + lines.size());
+
+    private void shiftLeft(int start, int end) throws IOException {
+        long source = (long) end * 2;
+        long target = (long) start * 2;
+        long fileEnd = (long) contentLength * 2;
+        ByteBuffer buffer = ByteBuffer.allocate(COPY_BUFFER_BYTES);
+        while (source < fileEnd) {
+            int bytes = (int) Math.min(buffer.capacity(), fileEnd - source);
+            buffer.clear().limit(bytes);
+            readFully(buffer, source);
+            buffer.flip();
+            writeFully(buffer, target);
+            source += bytes;
+            target += bytes;
         }
-        lines.remove(lineIndex);
-        writeAllLines(lines);
+        channel.truncate(fileEnd - (long) (end - start) * 2);
     }
-    
-    // ========== Helper methods ==========
-    
-    /**
-     * Finds the line index and offset within that line for a given character position.
-     * 
-     * @param charPos the character position in the overall content
-     * @return array of [lineIndex, offsetInLine]
-     */
-    private int[] findLineAndOffset(int charPos) {
-        try {
-            int currentPos = 0;
-            int lineIndex = 0;
-            
-            while (lineIndex < lineCount) {
-                String line = readLine(lineIndex);
-                int lineLen = line.length();
-                
-                // Check if position is within this line's content
-                if (charPos >= currentPos && charPos <= currentPos + lineLen) {
-                    int offset = charPos - currentPos;
-                    return new int[] { lineIndex, offset };
-                }
-                
-                // Move to next line (account for newline character)
-                currentPos += lineLen + 1;
-                lineIndex++;
+
+    private void readFully(ByteBuffer buffer, long position) throws IOException {
+        while (buffer.hasRemaining()) {
+            int read = channel.read(buffer, position);
+            if (read < 0) {
+                throw new IOException("Unexpected end of backing file");
             }
-            
-            // Position is at the very end - find the last line's length
-            if (lineCount > 0) {
-                String lastLine = readLine(lineCount - 1);
-                return new int[] { lineCount - 1, lastLine.length() };
+            if (read == 0) {
+                continue;
             }
-            return new int[] { 0, 0 };
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to find line position", e);
+            position += read;
         }
     }
-    
-    /**
-     * Splits text into lines (preserving empty lines).
-     * 
-     * @param text the text to split
-     * @return list of lines (without line terminators)
-     */
-    private List<String> splitIntoLines(String text) {
-        List<String> lines = new ArrayList<>();
-        StringBuilder line = new StringBuilder();
-        
+
+    private void writeFully(ByteBuffer buffer, long position) throws IOException {
+        while (buffer.hasRemaining()) {
+            int written = channel.write(buffer, position);
+            if (written == 0) {
+                continue;
+            }
+            position += written;
+        }
+    }
+
+    private void updateLineStartsAfterInsert(int index, String text) {
+        int additions = countNewlines(text);
+        ensureLineCapacity(lineCount + additions);
+        int split = upperBound(lineStarts, lineCount, index);
+        System.arraycopy(lineStarts, split, lineStarts, split + additions, lineCount - split);
+        for (int i = split + additions; i < lineCount + additions; i++) {
+            lineStarts[i] += text.length();
+        }
+        int destination = split;
         for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c == '\n') {
-                lines.add(line.toString());
-                line = new StringBuilder();
-            } else if (c != '\r') {
-                line.append(c);
+            if (text.charAt(i) == '\n') {
+                lineStarts[destination++] = index + i + 1;
             }
         }
-        lines.add(line.toString());
-        
-        return lines;
+        lineCount += additions;
     }
-    
-    /**
-     * Reads all lines from the file.
-     * 
-     * @return list of all lines
-     * @throws IOException if reading fails
-     */
-    private List<String> readAllLines() throws IOException {
-        List<String> lines = Files.readAllLines(tempFile, StandardCharsets.UTF_8);
-        // Ensure we always have at least one line
-        if (lines.isEmpty()) {
-            lines.add("");
+
+    private void updateLineStartsAfterDelete(int start, int end) {
+        int keptBefore = upperBound(lineStarts, lineCount, start);
+        int firstAfter = upperBound(lineStarts, lineCount, end);
+        int shift = end - start;
+        int remaining = lineCount - firstAfter;
+        for (int i = 0; i < remaining; i++) {
+            lineStarts[keptBefore + i] = lineStarts[firstAfter + i] - shift;
         }
-        // Strip trailing \r from each line (TODO: full CRLF preservation)
-        for (int i = 0; i < lines.size(); i++) {
-            String line = lines.get(i);
-            if (line.endsWith("\r")) {
-                lines.set(i, line.substring(0, line.length() - 1));
+        lineCount = keptBefore + remaining;
+        if (lineCount == 0) {
+            lineStarts[0] = 0;
+            lineCount = 1;
+        }
+    }
+
+    @Override
+    protected int getParagraphIndex(int characterPosition) {
+        int low = 0;
+        int high = lineCount;
+        while (low < high) {
+            int middle = (low + high) >>> 1;
+            if (lineStarts[middle] <= characterPosition) {
+                low = middle + 1;
+            } else {
+                high = middle;
             }
         }
-        return lines;
+        return Math.max(0, low - 1);
     }
-    
-    /**
-     * Writes all lines to the file atomically.
-     * 
-     * @param lines the lines to write
-     * @throws IOException if writing fails
-     */
-    private void writeAllLines(List<String> lines) throws IOException {
-        // Ensure we always have at least one line (even if empty)
-        if (lines.isEmpty()) {
-            lines = new ArrayList<>();
-            lines.add("");
+
+    @Override
+    protected int getParagraphStart(int paragraphIndex) {
+        if (paragraphIndex < 0 || paragraphIndex >= lineCount) {
+            throw new IndexOutOfBoundsException("paragraph=" + paragraphIndex + ", count=" + lineCount);
         }
-        
-        // Write to temporary file then atomic move
-        Path tempTarget = Files.createTempFile("codearea-tmp-", ".txt");
-        try {
-            Files.write(tempTarget, lines, StandardCharsets.UTF_8);
-            Files.move(tempTarget, tempFile, StandardCopyOption.REPLACE_EXISTING, 
-                      StandardCopyOption.ATOMIC_MOVE);
-            lineCount = lines.size();
-        } catch (IOException e) {
-            Files.deleteIfExists(tempTarget);
-            throw e;
+        return lineStarts[paragraphIndex];
+    }
+
+    private static int upperBound(int[] values, int size, int value) {
+        int low = 0;
+        int high = size;
+        while (low < high) {
+            int middle = (low + high) >>> 1;
+            if (values[middle] <= value) {
+                low = middle + 1;
+            } else {
+                high = middle;
+            }
+        }
+        return low;
+    }
+
+    private void ensureLineCapacity(int required) {
+        if (required > lineStarts.length) {
+            lineStarts = Arrays.copyOf(lineStarts, Math.max(required, lineStarts.length * 2));
         }
     }
-    
-    /**
-     * Fires a paragraph list change event.
-     */
+
+    private static int countNewlines(String text) {
+        int count = 0;
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static String filterInput(String text) {
+        StringBuilder filtered = null;
+        for (int i = 0; i < text.length(); i++) {
+            char character = text.charAt(i);
+            boolean invalid = character == 0x7f
+                    || (character < 0x20 && character != '\n' && character != '\t');
+            if (invalid) {
+                if (filtered == null) {
+                    filtered = new StringBuilder(text.length()).append(text, 0, i);
+                }
+            } else if (filtered != null) {
+                filtered.append(character);
+            }
+        }
+        return filtered == null ? text : filtered.toString();
+    }
+
+    private void checkRange(int start, int end) {
+        if (start < 0 || end > contentLength || start > end) {
+            throw new IndexOutOfBoundsException(
+                    "start=" + start + ", end=" + end + ", length=" + contentLength);
+        }
+    }
+
+    private void ensureOpen() {
+        if (closed) {
+            throw new IllegalStateException("Disk-backed content is closed");
+        }
+    }
+
     private void fireParagraphListChangeEvent(int from, int to, List<CharSequence> removed) {
         ParagraphListChange change = new ParagraphListChange(paragraphList, from, to, removed);
         ListListenerHelper.fireValueChangedEvent(paragraphList.getListenerHelper(), change);
     }
-    
-    // ========== Inner Classes ==========
-    
-    /**
-     * List implementation that provides the paragraphs field required by CodeAreaContent.
-     * This list is backed by the DiskContent and delegates to its line operations.
-     */
-    private class DiskBackedParagraphList extends AbstractList<StringBuilder> {
+
+    private final class DiskBackedParagraphList extends AbstractList<StringBuilder> {
         @Override
         public StringBuilder get(int index) {
-            try {
-                return new StringBuilder(readLine(index));
-            } catch (IOException e) {
-                throw new UncheckedIOException("Failed to read line " + index, e);
-            }
+            return new StringBuilder(readLineUnchecked(index));
         }
-        
+
         @Override
         public int size() {
             return lineCount;
         }
     }
-    
-    /**
-     * Observable list wrapper for paragraphs backed by disk storage.
-     * Provides integration with CodeArea's paragraph-based rendering.
-     */
-    private class DiskParagraphList extends AbstractList<CharSequence>
+
+    private final class DiskParagraphList extends AbstractList<CharSequence>
             implements ObservableList<CharSequence> {
-        
-        private CodeAreaContent content;
         private ListListenerHelper<CharSequence> listenerHelper;
-        
+
         @Override
         public CharSequence get(int index) {
-            try {
-                return readLine(index);
-            } catch (IOException e) {
-                throw new UncheckedIOException("Failed to read line " + index, e);
-            }
+            return readLineUnchecked(index);
         }
-        
+
         @Override
         public int size() {
             return lineCount;
         }
-        
+
         @Override
         public void addListener(ListChangeListener<? super CharSequence> listener) {
             listenerHelper = ListListenerHelper.addListener(listenerHelper, listener);
         }
-        
+
         @Override
         public void removeListener(ListChangeListener<? super CharSequence> listener) {
             listenerHelper = ListListenerHelper.removeListener(listenerHelper, listener);
         }
-        
-        @Override
-        public boolean addAll(Collection<? extends CharSequence> c) {
-            throw new UnsupportedOperationException();
-        }
-        
-        @Override
-        public boolean addAll(CharSequence... elements) {
-            throw new UnsupportedOperationException();
-        }
-        
-        @Override
-        public boolean setAll(Collection<? extends CharSequence> c) {
-            throw new UnsupportedOperationException();
-        }
-        
-        @Override
-        public boolean setAll(CharSequence... elements) {
-            throw new UnsupportedOperationException();
-        }
-        
-        @Override
-        public boolean removeAll(CharSequence... elements) {
-            throw new UnsupportedOperationException();
-        }
-        
-        @Override
-        public boolean retainAll(CharSequence... elements) {
-            throw new UnsupportedOperationException();
-        }
-        
-        @Override
-        public void remove(int from, int to) {
-            throw new UnsupportedOperationException();
-        }
-        
+
         @Override
         public void addListener(InvalidationListener listener) {
             listenerHelper = ListListenerHelper.addListener(listenerHelper, listener);
         }
-        
+
         @Override
         public void removeListener(InvalidationListener listener) {
             listenerHelper = ListListenerHelper.removeListener(listenerHelper, listener);
         }
-        
-        public void setContent(CodeAreaContent content) {
-            this.content = content;
+
+        @Override
+        public boolean addAll(Collection<? extends CharSequence> values) {
+            throw new UnsupportedOperationException();
         }
-        
-        public ListListenerHelper<CharSequence> getListenerHelper() {
+
+        @Override
+        public boolean addAll(CharSequence... values) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean setAll(Collection<? extends CharSequence> values) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean setAll(CharSequence... values) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean removeAll(CharSequence... values) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean retainAll(CharSequence... values) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void remove(int from, int to) {
+            throw new UnsupportedOperationException();
+        }
+
+        private ListListenerHelper<CharSequence> getListenerHelper() {
             return listenerHelper;
         }
     }

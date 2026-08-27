@@ -136,14 +136,13 @@ public abstract class CodeInputControl extends Control {
         length.bind(new IntegerBinding() {
             { bind(text); }
             @Override protected int computeValue() {
-                String txt = text.get();
-                return txt == null ? 0 : txt.length();
+                return content.length();
             }
         });
 
         // Bind the selected text to be based on the selection and text properties
         selection.addListener((ob, o, n) -> updateSelectedText());
-        text.addListener((ob, o, n) -> updateSelectedText());
+        text.addListener((InvalidationListener) observable -> updateSelectedText());
 
         focusedProperty().addListener((ob, o, n) -> {
             if (n) {
@@ -161,22 +160,7 @@ public abstract class CodeInputControl extends Control {
 
     private void updateSelectedText() {
         if (!blockSelectedTextUpdate) {
-            String txt = text.get();
-            IndexRange sel = selection.get();
-            if (txt == null || sel == null) {
-                selectedText.set("");
-            } else {
-                int start = sel.getStart();
-                int end = sel.getEnd();
-                int length = txt.length();
-                if (end > start + length) {
-                    end = length;
-                }
-                if (start > length - 1) {
-                    start = end = 0;
-                }
-                selectedText.set(txt.substring(start, end));
-            }
+            selectedText.invalidate();
         }
     }
 
@@ -383,9 +367,44 @@ public abstract class CodeInputControl extends Control {
     /**
      * Defines the characters in the TextInputControl which are selected
      */
-    private ReadOnlyStringWrapper selectedText = new ReadOnlyStringWrapper(this, "selectedText");
+    private final SelectedTextProperty selectedText = new SelectedTextProperty();
     public final String getSelectedText() { return selectedText.get(); }
-    public final ReadOnlyStringProperty selectedTextProperty() { return selectedText.getReadOnlyProperty(); }
+    public final ReadOnlyStringProperty selectedTextProperty() { return selectedText; }
+
+    private final class SelectedTextProperty extends ReadOnlyStringPropertyBase {
+        private String value = "";
+        private boolean valid;
+
+        private void invalidate() {
+            if (valid) {
+                valid = false;
+                fireValueChangedEvent();
+            }
+        }
+
+        @Override
+        public String get() {
+            if (!valid) {
+                IndexRange range = selection.get();
+                int contentLength = content.length();
+                int start = range == null ? 0 : Math.min(range.getStart(), contentLength);
+                int end = range == null ? 0 : Math.min(range.getEnd(), contentLength);
+                value = start < end ? content.get(start, end) : "";
+                valid = true;
+            }
+            return value;
+        }
+
+        @Override
+        public Object getBean() {
+            return CodeInputControl.this;
+        }
+
+        @Override
+        public String getName() {
+            return "selectedText";
+        }
+    }
 
     /**
      * The <code>anchor</code> of the text selection.

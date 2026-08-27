@@ -256,4 +256,30 @@ final class InMemoryContent extends CodeAreaContent {
     public ObservableList<CharSequence> getParagraphList() {
         return paragraphList;
     }
+
+    @Override
+    protected int getParagraphIndex(int characterOffset) {
+        int offset = characterOffset;
+        for (int i = 0; i < paragraphs.size(); i++) {
+            int paragraphSpan = paragraphs.get(i).length() + 1;
+            if (offset < paragraphSpan || i == paragraphs.size() - 1) {
+                return i;
+            }
+            offset -= paragraphSpan;
+        }
+        return paragraphs.size() - 1;
+    }
+
+    @Override
+    protected int getParagraphStart(int paragraphIndex) {
+        if (paragraphIndex < 0 || paragraphIndex >= paragraphs.size()) {
+            throw new IndexOutOfBoundsException(
+                    "paragraph=" + paragraphIndex + ", count=" + paragraphs.size());
+        }
+        int start = 0;
+        for (int i = 0; i < paragraphIndex; i++) {
+            start += paragraphs.get(i).length() + 1;
+        }
+        return start;
+    }
 }

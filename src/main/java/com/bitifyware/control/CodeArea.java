@@ -318,6 +318,10 @@ public class CodeArea extends CodeInputControl {
         protected List<StringBuilder> paragraphs;
 
         public abstract ObservableList<CharSequence> getParagraphList();
+
+        protected abstract int getParagraphIndex(int characterOffset);
+
+        protected abstract int getParagraphStart(int paragraphIndex);
     }
 
     // Observable list of paragraphs
@@ -624,6 +628,25 @@ public class CodeArea extends CodeInputControl {
         return ((CodeAreaContent)getContent()).getParagraphList();
     }
 
+    public int getParagraphIndex(int characterOffset) {
+        if (characterOffset < 0 || characterOffset > getLength()) {
+            throw new IndexOutOfBoundsException("offset=" + characterOffset + ", length=" + getLength());
+        }
+        return ((CodeAreaContent) getContent()).getParagraphIndex(characterOffset);
+    }
+
+    public int getParagraphStart(int paragraphIndex) {
+        if (paragraphIndex < 0 || paragraphIndex >= getParagraphs().size()) {
+            throw new IndexOutOfBoundsException(
+                    "paragraph=" + paragraphIndex + ", count=" + getParagraphs().size());
+        }
+        return ((CodeAreaContent) getContent()).getParagraphStart(paragraphIndex);
+    }
+
+    public boolean isDiskBacked() {
+        return getContent() instanceof InDiskContent;
+    }
+
 
     /* *************************************************************************
      *                                                                         *
@@ -835,7 +858,7 @@ public class CodeArea extends CodeInputControl {
     }
 
     {
-        textProperty().addListener((observable, oldValue, newValue) -> {
+        textProperty().addListener((InvalidationListener) observable -> {
             errorPosList.clear();
             highlightedRange.set(null);
             lineBackgrounds.clear();

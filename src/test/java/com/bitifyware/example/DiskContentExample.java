@@ -2,6 +2,7 @@ package com.bitifyware.example;
 
 import com.bitifyware.control.CodeArea;
 import com.bitifyware.control.InDiskContent;
+import com.bitifyware.control.syntax.DemoSyntax;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -13,17 +14,14 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 //import org.scenicview.ScenicView;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Example JavaFX application demonstrating the use of DiskContent with CodeArea.
  * 
  * <p>This example shows how to:
  * <ol>
- *   <li>Create a CodeArea with standard in-memory content</li>
- *   <li>Create a DiskContent instance with large text content</li>
- *   <li>Use ContentSwapper to replace the CodeArea's content at runtime</li>
+ *   <li>Create a CodeArea with disk-backed content</li>
+ *   <li>Load large text into the disk-backed content</li>
  *   <li>Display and interact with the disk-backed content</li>
  * </ol>
  * 
@@ -51,11 +49,12 @@ public class DiskContentExample extends Application {
         // Create the main UI components
         BorderPane root = new BorderPane();
         
-        // Create CodeArea with initial content
-        codeArea = new CodeArea("Initial in-memory content.\nThis will be replaced.", true);
+        // Passing true selects InDiskContent for this CodeArea.
+        codeArea = new CodeArea("Initial disk-backed content.\nThis will be replaced.", true);
         codeArea.setFont(Font.font("Monospace", FontWeight.NORMAL, 18));
+        codeArea.setSyntaxHighlighter(new DemoSyntax());
         // Status label
-        statusLabel = new Label("Status: Using in-memory content");
+        statusLabel = new Label("Status: Using disk-backed content");
         
         // Buttons for testing
         HBox buttonBar = new HBox(10);
@@ -77,15 +76,17 @@ public class DiskContentExample extends Application {
 
         // Create and show the scene
         Scene scene = new Scene(root, 800, 600);
-        // If ScenicView is available in the classpath (added by a specific profile), show it via reflection
-        try {
-            Class<?> scenic = Class.forName("org.scenicview.ScenicView");
-            java.lang.reflect.Method show = scenic.getMethod("show", javafx.scene.Scene.class);
-            show.invoke(null, scene);
-        } catch (ClassNotFoundException ignored) {
-            // ScenicView not present - fine
-        } catch (Exception ex) {
-            log.error("Failed to show ScenicView", ex);
+        // Inspecting thousands of paragraph nodes is expensive, so ScenicView is opt-in.
+        if (Boolean.getBoolean("codearea.scenicView")) {
+            try {
+                Class<?> scenic = Class.forName("org.scenicview.ScenicView");
+                java.lang.reflect.Method show = scenic.getMethod("show", javafx.scene.Scene.class);
+                show.invoke(null, scene);
+            } catch (ClassNotFoundException ignored) {
+                log.info("ScenicView is not available");
+            } catch (Exception ex) {
+                log.error("Failed to show ScenicView", ex);
+            }
         }
         primaryStage.setTitle("DiskContent Example - CodeArea with Disk-Backed Storage");
         primaryStage.setScene(scene);
@@ -97,7 +98,7 @@ public class DiskContentExample extends Application {
      * Loads a large text file into disk content and swaps it into the CodeArea.
      * This demonstrates handling files too large for memory.
      */
-    private void loadLargeDiskContent() {
+    void loadLargeDiskContent() {
         try {
             statusLabel.setText("Status: Generating large content...");
             
