@@ -36,6 +36,185 @@ import java.util.*;
  */
 public class CodeArea extends CodeInputControl {
 
+    private final ObservableList<IndexRange> columnSelectionRanges = FXCollections.observableArrayList();
+    private final ObservableList<IndexRange> readOnlyColumnSelectionRanges =
+            FXCollections.unmodifiableObservableList(columnSelectionRanges);
+    private boolean columnSelectionActive;
+    private boolean updatingColumnSelection;
+    private int columnAnchorLine;
+    private int columnAnchorColumn;
+    private int columnCaretLine;
+    private int columnCaretColumn;
+
+    /** Returns the rectangular selection ranges, one range per line. */
+    public ObservableList<IndexRange> getColumnSelectionRanges() {
+        return readOnlyColumnSelectionRanges;
+    }
+
+    public boolean isColumnSelectionActive() {
+        return columnSelectionActive;
+    }
+
+    public void beginColumnSelection(int position) {
+        int[] location = lineAndColumn(position);
+        columnSelectionActive = true;
+        columnAnchorLine = location[0];
+        columnAnchorColumn = location[1];
+        columnCaretLine = location[0];
+        columnCaretColumn = location[1];
+        updateColumnSelectionState();
+    }
+
+    public void updateColumnSelection(int position) {
+        if (!columnSelectionActive) {
+            beginColumnSelection(getCaretPosition());
+        }
+        int[] location = lineAndColumn(position);
+        columnCaretLine = location[0];
+        columnCaretColumn = location[1];
+        updateColumnSelectionState();
+    }
+
+    public void updateColumnSelection(int position, List<IndexRange> ranges) {
+        if (!columnSelectionActive) {
+            beginColumnSelection(getCaretPosition());
+        }
+        int[] location = lineAndColumn(position);
+        columnCaretLine = location[0];
+        columnCaretColumn = location[1];
+        int caret = positionAt(columnCaretLine, columnCaretColumn);
+        int anchor = positionAt(columnAnchorLine, columnAnchorColumn);
+        updatingColumnSelection = true;
+        try {
+            super.selectRange(anchor, caret);
+        } finally {
+            updatingColumnSelection = false;
+        }
+        columnSelectionRanges.setAll(ranges);
+    }
+
+    public void moveColumnSelection(int lineDelta, int columnDelta) {
+        if (!columnSelectionActive) {
+            beginColumnSelection(getCaretPosition());
+        }
+        columnCaretLine = Math.max(0, Math.min(columnCaretLine + lineDelta, getParagraphs().size() - 1));
+        columnCaretColumn = Math.max(0, columnCaretColumn + columnDelta);
+        updateColumnSelectionState();
+    }
+
+    public void clearColumnSelection() {
+        columnSelectionActive = false;
+        columnSelectionRanges.clear();
+    }
+
+    public String getColumnSelectedText() {
+        return columnSelectionRanges.stream()
+                .map(range -> getText(range.getStart(), range.getEnd()))
+                .collect(java.util.stream.Collectors.joining("\n"));
+    }
+
+    public void replaceColumnSelection(String replacement) {
+        if (!columnSelectionActive) {
+            replaceSelection(replacement);
+            return;
+        }
+        List<IndexRange> ranges = new ArrayList<>(columnSelectionRanges);
+        clearColumnSelection();
+        for (int i = ranges.size() - 1; i >= 0; i--) {
+            IndexRange range = ranges.get(i);
+            replaceText(range.getStart(), range.getEnd(), replacement);
+        }
+        if (!ranges.isEmpty()) {
+            int caret = ranges.getFirst().getStart() + replacement.length();
+            super.selectRange(caret, caret);
+        }
+    }
+
+    @Override
+    public void selectRange(int anchor, int caretPosition) {
+        if (!updatingColumnSelection) {
+            clearColumnSelection();
+        }
+        super.selectRange(anchor, caretPosition);
+    }
+
+    @Override
+    public void copy() {
+        if (!columnSelectionActive) {
+            super.copy();
+            return;
+        }
+        ClipboardContent content = new ClipboardContent();
+        content.putString(getColumnSelectedText());
+        Clipboard.getSystemClipboard().setContent(content);
+    }
+
+    @Override
+    public void cut() {
+        if (!columnSelectionActive) {
+            super.cut();
+            return;
+        }
+        copy();
+        replaceColumnSelection("");
+    }
+
+    @Override
+    public void replaceSelection(String replacement) {
+        if (columnSelectionActive) {
+            replaceColumnSelection(replacement);
+        } else {
+            super.replaceSelection(replacement);
+        }
+    }
+
+    private void updateColumnSelectionState() {
+        int firstLine = Math.min(columnAnchorLine, columnCaretLine);
+        int lastLine = Math.max(columnAnchorLine, columnCaretLine);
+        int firstColumn = Math.min(columnAnchorColumn, columnCaretColumn);
+        int lastColumn = Math.max(columnAnchorColumn, columnCaretColumn);
+        List<IndexRange> ranges = new ArrayList<>(lastLine - firstLine + 1);
+        int offset = 0;
+        for (int line = 0; line < getParagraphs().size(); line++) {
+            int length = getParagraphs().get(line).length();
+            if (line >= firstLine && line <= lastLine) {
+                ranges.add(new IndexRange(offset + Math.min(firstColumn, length),
+                        offset + Math.min(lastColumn, length)));
+            }
+            offset += length + 1;
+        }
+        int caret = positionAt(columnCaretLine, columnCaretColumn);
+        int anchor = positionAt(columnAnchorLine, columnAnchorColumn);
+        updatingColumnSelection = true;
+        try {
+            super.selectRange(anchor, caret);
+        } finally {
+            updatingColumnSelection = false;
+        }
+        columnSelectionRanges.setAll(ranges);
+    }
+
+    private int[] lineAndColumn(int position) {
+        int clamped = Math.max(0, Math.min(position, getLength()));
+        int offset = 0;
+        for (int line = 0; line < getParagraphs().size(); line++) {
+            int length = getParagraphs().get(line).length();
+            if (clamped <= offset + length || line == getParagraphs().size() - 1) {
+                return new int[]{line, Math.max(0, Math.min(clamped - offset, length))};
+            }
+            offset += length + 1;
+        }
+        return new int[]{0, 0};
+    }
+
+    private int positionAt(int line, int column) {
+        int offset = 0;
+        for (int i = 0; i < line; i++) {
+            offset += getParagraphs().get(i).length() + 1;
+        }
+        return offset + Math.min(column, getParagraphs().get(line).length());
+    }
+
     public void upperCase() {
         IndexRange selection = getSelection();
         if (selection.getLength() == 0) {

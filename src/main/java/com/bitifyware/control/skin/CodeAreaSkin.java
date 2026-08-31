@@ -279,6 +279,10 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             control.requestLayout();
             contentView.requestLayout();
         });
+        control.getColumnSelectionRanges().addListener((ListChangeListener<IndexRange>) change -> {
+            control.requestLayout();
+            contentView.requestLayout();
+        });
 
         registerChangeListener(control.syntaxHighlighterProperty(), e -> {
             contentView.requestLayout();
@@ -733,6 +737,40 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         }
         return null;
+    }
+
+    /** Returns one visually aligned range per paragraph inside the mouse rectangle. */
+    public List<IndexRange> getColumnSelectionRanges(double anchorX, double caretX,
+                                                      int anchorPosition, int caretPosition) {
+        int firstPosition = Math.min(anchorPosition, caretPosition);
+        int lastPosition = Math.max(anchorPosition, caretPosition);
+        double firstX = Math.min(anchorX, caretX);
+        double lastX = Math.max(anchorX, caretX);
+        List<IndexRange> ranges = new ArrayList<>();
+        int paragraphOffset = 0;
+
+        for (Node node : paragraphNodes.getChildren()) {
+            TextFlow textFlow = (TextFlow) node;
+            int paragraphLength = textFlow.getChildren().stream()
+                    .map(Text.class::cast)
+                    .mapToInt(text -> text.getText().length())
+                    .sum();
+            int paragraphEnd = paragraphOffset + paragraphLength;
+            if (lastPosition >= paragraphOffset && firstPosition <= paragraphEnd) {
+                double y = textFlow.getLayoutY() + textFlow.getBoundsInLocal().getHeight() / 2;
+                GlobalHitInfo firstHit = getIndex(firstX, y);
+                GlobalHitInfo lastHit = getIndex(lastX, y);
+                if (firstHit != null && lastHit != null) {
+                    int start = Math.max(paragraphOffset,
+                            Math.min(firstHit.getInsertionIndex(), paragraphEnd));
+                    int end = Math.max(paragraphOffset,
+                            Math.min(lastHit.getInsertionIndex(), paragraphEnd));
+                    ranges.add(IndexRange.normalize(start, end));
+                }
+            }
+            paragraphOffset = paragraphEnd + 1;
+        }
+        return ranges;
     }
 
     /**
@@ -2190,9 +2228,9 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     // highlight text node with identifier
                     updateClassHighlight(caretTextNode, codeArea.getHighlightClass(), caretPosInText, textNodes);
                 }
-                if (!selectedText.isBlank()) {
+                if (!codeArea.isColumnSelectionActive() && !selectedText.isBlank()) {
                     updateSelectionHighlight(caretTextNode, textNodes, selectedText);
-                } else {
+                } else if (!codeArea.isColumnSelectionActive()) {
                     String rightChar = caretPos + 1 <= text.length() ? text.substring(caretPos, caretPos + 1) : "";
                     String leftChar = caretPos > 0 ? text.substring(caretPos - 1, caretPos) : "";
                     // Check for closing brackets on the right
@@ -2267,10 +2305,27 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             }
 
             // Update selection fg and bg
-            int start = selection.getStart();
-            int end = selection.getEnd();
+            int paragraphOffset = 0;
             for (int i = 0, max = paragraphNodesChildren.size(); i < max; i++) {
                 TextFlow textFlow = (TextFlow)paragraphNodesChildren.get(i);
+                int totalParagraphLength = textFlow.getChildren().stream()
+                        .map(Text.class::cast)
+                        .mapToInt(textNode -> textNode.getText().length())
+                        .sum();
+                int currentParagraphOffset = paragraphOffset;
+                IndexRange renderedSelection = selection;
+                if (codeArea.isColumnSelectionActive()) {
+                    renderedSelection = codeArea.getColumnSelectionRanges().stream()
+                            .filter(range -> range.getStart() >= currentParagraphOffset
+                                    && range.getStart() <= currentParagraphOffset + totalParagraphLength)
+                            .findFirst()
+                            .orElse(new IndexRange(currentParagraphOffset, currentParagraphOffset));
+                }
+                int start = Math.max(0, renderedSelection.getStart() - currentParagraphOffset);
+                int end = Math.max(0, renderedSelection.getEnd() - currentParagraphOffset);
+                if (codeArea.isColumnSelectionActive()) {
+                    end = Math.min(totalParagraphLength, end);
+                }
                 Path linePath = null;
                 List<PathElement[]> pathElements = new ArrayList<>();
                 double highlightWidth = 0.0;
@@ -2385,8 +2440,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                     selectionHighlightGroup.getChildren().add(linePath);
                     pathElements.clear();
                 }
-                start = Math.max(0, start - 1);
-                end   = Math.max(0, end   - 1);
+                paragraphOffset += totalParagraphLength + 1;
             }
             if (!selectionHighlightGroup.getChildren().isEmpty()) {
                 updateHighlightFill();

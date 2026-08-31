@@ -70,6 +70,11 @@ public class CodeAreaBehavior extends CodeInputControlBehavior<CodeArea> {
                 keyMapping(new KeyBinding(PAGE_UP).shift(),   e -> skin.moveCaret(CodeInputControlSkin.TextUnit.PAGE, CodeInputControlSkin.Direction.UP,   true)),
                 keyMapping(new KeyBinding(PAGE_DOWN).shift(), e -> skin.moveCaret(CodeInputControlSkin.TextUnit.PAGE, CodeInputControlSkin.Direction.DOWN, true)),
 
+                keyMapping(new KeyBinding(LEFT).alt(),  e -> c.moveColumnSelection(0, -1)),
+                keyMapping(new KeyBinding(RIGHT).alt(), e -> c.moveColumnSelection(0, 1)),
+                keyMapping(new KeyBinding(UP).alt(),    e -> c.moveColumnSelection(-1, 0)),
+                keyMapping(new KeyBinding(DOWN).alt(),  e -> c.moveColumnSelection(1, 0)),
+
                 // editing-only mappings
                 keyMapping(new KeyBinding(ENTER), e -> insertNewLine(), validWhenEditable),
                 keyMapping(new KeyBinding(TAB), e -> insertTab(), validWhenEditable)
@@ -200,7 +205,11 @@ public class CodeAreaBehavior extends CodeInputControlBehavior<CodeArea> {
     }
 
     @Override protected void replaceText(int start, int end, String txt) {
-        getNode().replaceText(start, end, txt);
+        if (getNode().isColumnSelectionActive()) {
+            getNode().replaceColumnSelection(txt);
+        } else {
+            getNode().replaceText(start, end, txt);
+        }
     }
 
     /**
@@ -210,6 +219,7 @@ public class CodeAreaBehavior extends CodeInputControlBehavior<CodeArea> {
     private boolean focusGainedByMouseClick = false; // TODO!!
     private boolean shiftDown = false;
     private boolean deferClick = false;
+    private double columnAnchorX;
 
     @Override public void mousePressed(MouseEvent e) {
         CodeArea codeArea = getNode();
@@ -234,6 +244,12 @@ public class CodeAreaBehavior extends CodeInputControlBehavior<CodeArea> {
                 GlobalHitInfo hit = skin.getIndex(e.getX(), e.getY());
                 if (hit != null) {
                     int i = hit.getInsertionIndex();
+                    if (e.isAltDown() && !(e.isControlDown() || e.isMetaDown() || e.isShortcutDown())
+                            && e.getClickCount() == 1) {
+                        columnAnchorX = e.getX();
+                        codeArea.beginColumnSelection(i);
+                        return;
+                    }
                     final int anchor = codeArea.getAnchor();
                     final int caretPosition = codeArea.getCaretPosition();
                     if (e.getClickCount() < 2 &&
@@ -288,6 +304,17 @@ public class CodeAreaBehavior extends CodeInputControlBehavior<CodeArea> {
         // we never respond to events if disabled, but we do notify any onXXX
         // event listeners on the control
         if (!textArea.isDisabled() && !e.isSynthesized()) {
+            if (e.isPrimaryButtonDown() && e.isAltDown()
+                    && !(e.isControlDown() || e.isMetaDown() || e.isShortcutDown())) {
+                GlobalHitInfo hit = skin.getIndex(e.getX(), e.getY());
+                if (hit != null) {
+                    textArea.updateColumnSelection(hit.getInsertionIndex(),
+                            skin.getColumnSelectionRanges(columnAnchorX, e.getX(),
+                                    textArea.getAnchor(), hit.getInsertionIndex()));
+                }
+                deferClick = false;
+                return;
+            }
             if (e.getButton() == MouseButton.PRIMARY &&
                     !(e.isMiddleButtonDown() || e.isSecondaryButtonDown() ||
                             e.isControlDown() || e.isAltDown() || e.isShiftDown() || e.isMetaDown())) {

@@ -4,6 +4,7 @@ import com.bitifyware.control.skin.CodeAreaSkin;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.geometry.Point2D;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
@@ -20,6 +21,7 @@ import org.testfx.framework.junit.ApplicationTest;
 import org.testfx.util.WaitForAsyncUtils;
 
 import java.lang.reflect.Field;
+import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -226,6 +228,119 @@ public class CodeAreaTest extends ApplicationTest {
         assertTrue("Wrapped selection background lost its vertical extent: "
                         + selectionBackground.getElements(),
                 selectionBottom > selectionTop);
+    }
+
+    @Test
+    public void testColumnSelectionCreatesOneClampedRangePerLine() {
+        interact(() -> {
+            codeArea.setText("abcd\nxy\nwxyz");
+            codeArea.beginColumnSelection(1);
+            codeArea.updateColumnSelection(11);
+        });
+
+        assertTrue(codeArea.isColumnSelectionActive());
+        assertEquals(List.of(
+                new javafx.scene.control.IndexRange(1, 3),
+                new javafx.scene.control.IndexRange(6, 7),
+                new javafx.scene.control.IndexRange(9, 11)),
+                codeArea.getColumnSelectionRanges());
+        assertEquals("bc\ny\nxy", codeArea.getColumnSelectedText());
+    }
+
+    @Test
+    public void testColumnSelectionRendersEachSelectedLine() throws Exception {
+        interact(() -> {
+            codeArea.setText("abcd\nabcd\nabcd");
+            codeArea.beginColumnSelection(1);
+            codeArea.updateColumnSelection(13);
+            codeArea.getScene().getRoot().applyCss();
+            codeArea.getScene().getRoot().layout();
+        });
+        WaitForAsyncUtils.waitForFxEvents();
+
+        Field field = CodeAreaSkin.class.getDeclaredField("selectionHighlightGroup");
+        field.setAccessible(true);
+        Group selectionHighlightGroup = (Group) field.get(codeArea.getSkin());
+
+        assertEquals(3, selectionHighlightGroup.getChildren().size());
+    }
+
+    @Test
+    public void testMouseColumnSelectionUsesVisualXCoordinates() {
+        interact(() -> {
+            codeArea.setText("iiiiiiii\nWWWWWWWW");
+            codeArea.setEditable(false);
+            codeArea.getScene().getRoot().applyCss();
+            codeArea.getScene().getRoot().layout();
+        });
+
+        Rectangle2D start = codeArea.getCharacterBounds(1);
+        Rectangle2D end = codeArea.getCharacterBounds(6);
+        CodeAreaSkin skin = (CodeAreaSkin) codeArea.getSkin();
+        List<javafx.scene.control.IndexRange> ranges = skin.getColumnSelectionRanges(
+                start.getMinX(), end.getMinX(), 1, 10);
+        interact(() -> {
+            codeArea.beginColumnSelection(1);
+            codeArea.updateColumnSelection(10, ranges);
+        });
+
+        assertEquals(2, ranges.size());
+        assertTrue(codeArea.isColumnSelectionActive());
+        assertTrue("Wide glyphs should require fewer characters for the same visual width",
+                ranges.get(1).getLength() < ranges.get(0).getLength());
+    }
+
+    @Test
+    public void testColumnSelectionReplacementAppliesToEveryLine() {
+        interact(() -> {
+            codeArea.setText("abcd\nxy\nwxyz");
+            codeArea.beginColumnSelection(1);
+            codeArea.updateColumnSelection(11);
+            codeArea.replaceColumnSelection("Q");
+        });
+
+        assertEquals("aQd\nxQ\nwQz", codeArea.getText());
+        assertFalse(codeArea.isColumnSelectionActive());
+    }
+
+    @Test
+    public void testAltArrowExtendsColumnSelection() {
+        interact(() -> {
+            codeArea.setText("abcd\nabcd");
+            codeArea.positionCaret(1);
+            codeArea.requestFocus();
+            codeArea.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.RIGHT,
+                    false, false, true, false));
+            codeArea.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.DOWN,
+                    false, false, true, false));
+        });
+
+        assertTrue(codeArea.isColumnSelectionActive());
+        assertEquals(List.of(
+                new javafx.scene.control.IndexRange(1, 2),
+                new javafx.scene.control.IndexRange(6, 7)),
+                codeArea.getColumnSelectionRanges());
+    }
+
+    @Test
+    public void testAltArrowColumnSelectionWorksWhenReadonly() {
+        interact(() -> {
+            codeArea.setText("abcd\nabcd");
+            codeArea.setEditable(false);
+            codeArea.positionCaret(1);
+            codeArea.requestFocus();
+            codeArea.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.RIGHT,
+                    false, false, true, false));
+            codeArea.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.DOWN,
+                    false, false, true, false));
+        });
+
+        assertTrue(codeArea.isColumnSelectionActive());
+        assertEquals(List.of(
+                new javafx.scene.control.IndexRange(1, 2),
+                new javafx.scene.control.IndexRange(6, 7)),
+                codeArea.getColumnSelectionRanges());
+        assertEquals("abcd\nabcd", codeArea.getText());
     }
 
     @Test
