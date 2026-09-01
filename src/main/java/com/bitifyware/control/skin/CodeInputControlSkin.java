@@ -188,13 +188,14 @@ public abstract class CodeInputControlSkin<T extends CodeInputControl> extends S
          */
         caretVisible = new BooleanBinding() {
             { bind(control.focusedProperty(), control.anchorProperty(), control.caretPositionProperty(),
-                    control.disabledProperty(), control.editableProperty(), displayCaret, blinkProperty());}
+                    control.disabledProperty(), control.editableProperty(), control.showCaretWhenNotEditableProperty(),
+                    displayCaret, blinkProperty());}
             @Override protected boolean computeValue() {
                 // RT-10682: On Windows, we show the caret during selection, but on others we hide it
                 return !blinkProperty().get() && displayCaret.get() && control.isFocused() &&
                         (isWindows() || (control.getCaretPosition() == control.getAnchor())) &&
                         !control.isDisabled() &&
-                        control.isEditable();
+                        (control.isEditable() || control.isShowCaretWhenNotEditable());
             }
         };
 
@@ -214,15 +215,17 @@ public abstract class CodeInputControlSkin<T extends CodeInputControl> extends S
                     {
                         bind(control.focusedProperty(), control.anchorProperty(),
                                 control.caretPositionProperty(), control.disabledProperty(),
-                                control.editableProperty(), control.lengthProperty(), displayCaret);
+                                control.editableProperty(), control.showCaretWhenNotEditableProperty(),
+                                control.lengthProperty(), displayCaret);
                     }
 
                     @Override
                     protected boolean computeValue() {
                         return (displayCaret.get() && control.isFocused() &&
-                                control.getCaretPosition() == control.getAnchor() &&
-                                !control.isDisabled() && control.isEditable() &&
-                                control.getLength() > 0);
+                                 control.getCaretPosition() == control.getAnchor() &&
+                                 !control.isDisabled() &&
+                                 (control.isEditable() || control.isShowCaretWhenNotEditable()) &&
+                                 control.getLength() > 0);
                     }
                 });
             }

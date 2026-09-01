@@ -374,6 +374,15 @@ public abstract class CodeInputControl extends Control {
     public final BooleanProperty editableProperty() { return editable; }
 
     /**
+     * Indicates whether the caret may be shown while this control is not editable.
+     */
+    private final BooleanProperty showCaretWhenNotEditable =
+            new SimpleBooleanProperty(this, "showCaretWhenNotEditable", false);
+    public final boolean isShowCaretWhenNotEditable() { return showCaretWhenNotEditable.get(); }
+    public final void setShowCaretWhenNotEditable(boolean value) { showCaretWhenNotEditable.set(value); }
+    public final BooleanProperty showCaretWhenNotEditableProperty() { return showCaretWhenNotEditable; }
+
+    /**
      * The current selection.
      */
     private ReadOnlyObjectWrapper<IndexRange> selection = new ReadOnlyObjectWrapper<>(this, "selection", new IndexRange(0, 0));

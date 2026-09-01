@@ -194,6 +194,19 @@ public class CodeAreaTest extends ApplicationTest {
     }
 
     @Test
+    public void testCaretCanBeShownWhenCodeAreaIsNotEditable() {
+        assertFalse(codeArea.isShowCaretWhenNotEditable());
+
+        interact(() -> {
+            codeArea.setEditable(false);
+            codeArea.setShowCaretWhenNotEditable(true);
+        });
+
+        assertFalse(codeArea.isEditable());
+        assertTrue(codeArea.isShowCaretWhenNotEditable());
+    }
+
+    @Test
     public void testCodeAreaMultiLine() {
         // Test multi-line text functionality
         String multiLineText = "Line 1\nLine 2\nLine 3";
