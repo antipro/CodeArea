@@ -12,6 +12,10 @@ import java.util.List;
 
 public abstract class SyntaxHighlighter {
 
+    /** Reset document-level parser state before a complete highlighting pass. */
+    public void reset() {
+    }
+
     /**
      * Split the raw string into a list of Text nodes that represent the decomposed string
      * this method will be called when a line of text is changed
