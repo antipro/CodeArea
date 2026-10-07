@@ -4,6 +4,7 @@ import java.text.BreakIterator;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.Set;
+import java.util.Objects;
 
 public class CodeBreakIterator extends BreakIterator {
 
@@ -11,7 +12,8 @@ public class CodeBreakIterator extends BreakIterator {
             '(', ')', '[', ']', '{', '}', '<', '>',
             '/', '\\', '|', '\'', '"', '`', '~', '\n', '\t',
             '@', '#', '%', '^', '&', '*', '-', '+', '=', '—');
-    private String text;
+    private CharSequence text;
+    private CharacterIterator source;
     private int current;
 
     @Override
@@ -120,23 +122,38 @@ public class CodeBreakIterator extends BreakIterator {
 
     @Override
     public CharacterIterator getText() {
-        return new StringCharacterIterator(text);
+        return (CharacterIterator) source.clone();
     }
 
     @Override
     public void setText(CharacterIterator newText) {
-        StringBuilder sb = new StringBuilder();
-        for (char c = newText.first(); c != CharacterIterator.DONE; c = newText.next()) {
-            sb.append(c);
-        }
-        text = sb.toString();
+        source = (CharacterIterator) Objects.requireNonNull(newText).clone();
+        text = new IteratorSequence((CharacterIterator) source.clone(),
+                source.getBeginIndex(), source.getEndIndex());
         current = 0;
     }
 
     @Override
     public void setText(String newText) {
-        text = newText;
+        text = Objects.requireNonNull(newText);
+        source = new StringCharacterIterator(newText);
         current = 0;
+    }
+
+    private record IteratorSequence(CharacterIterator iterator, int start, int end) implements CharSequence {
+        @Override public int length() { return end - start; }
+        @Override public char charAt(int index) {
+            return iterator.setIndex(start + Objects.checkIndex(index, length()));
+        }
+        @Override public CharSequence subSequence(int from, int to) {
+            Objects.checkFromToIndex(from, to, length());
+            return new IteratorSequence((CharacterIterator) iterator.clone(), start + from, start + to);
+        }
+        @Override public String toString() {
+            StringBuilder result = new StringBuilder(length());
+            for (int i = 0; i < length(); i++) result.append(charAt(i));
+            return result.toString();
+        }
     }
 
     public static void main(String[] args) {

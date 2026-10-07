@@ -174,13 +174,11 @@ public class CodeArea extends CodeInputControl {
         int firstColumn = Math.min(columnAnchorColumn, columnCaretColumn);
         int lastColumn = Math.max(columnAnchorColumn, columnCaretColumn);
         List<IndexRange> ranges = new ArrayList<>(lastLine - firstLine + 1);
-        int offset = 0;
-        for (int line = 0; line < getParagraphs().size(); line++) {
-            int length = getParagraphs().get(line).length();
-            if (line >= firstLine && line <= lastLine) {
-                ranges.add(new IndexRange(offset + Math.min(firstColumn, length),
-                        offset + Math.min(lastColumn, length)));
-            }
+        int offset = getParagraphStart(firstLine);
+        for (int line = firstLine; line <= lastLine; line++) {
+            int length = getParagraphLength(line);
+            ranges.add(new IndexRange(offset + Math.min(firstColumn, length),
+                    offset + Math.min(lastColumn, length)));
             offset += length + 1;
         }
         int caret = positionAt(columnCaretLine, columnCaretColumn);
@@ -196,23 +194,12 @@ public class CodeArea extends CodeInputControl {
 
     private int[] lineAndColumn(int position) {
         int clamped = Math.max(0, Math.min(position, getLength()));
-        int offset = 0;
-        for (int line = 0; line < getParagraphs().size(); line++) {
-            int length = getParagraphs().get(line).length();
-            if (clamped <= offset + length || line == getParagraphs().size() - 1) {
-                return new int[]{line, Math.max(0, Math.min(clamped - offset, length))};
-            }
-            offset += length + 1;
-        }
-        return new int[]{0, 0};
+        int line = getParagraphIndex(clamped);
+        return new int[]{line, clamped - getParagraphStart(line)};
     }
 
     private int positionAt(int line, int column) {
-        int offset = 0;
-        for (int i = 0; i < line; i++) {
-            offset += getParagraphs().get(i).length() + 1;
-        }
-        return offset + Math.min(column, getParagraphs().get(line).length());
+        return getParagraphStart(line) + Math.min(column, getParagraphLength(line));
     }
 
     public void upperCase() {
@@ -497,6 +484,27 @@ public class CodeArea extends CodeInputControl {
         protected List<StringBuilder> paragraphs;
 
         public abstract ObservableList<CharSequence> getParagraphList();
+
+        public int getParagraphLength(int index) {
+            return getParagraphList().get(index).length();
+        }
+
+        public int getParagraphStart(int index) {
+            int offset = 0;
+            for (int i = 0; i < index; i++) offset += getParagraphLength(i) + 1;
+            return offset;
+        }
+
+        public int getParagraphIndex(int position) {
+            if (position < 0 || position > length()) throw new IndexOutOfBoundsException();
+            int offset = 0;
+            for (int i = 0; i < getParagraphList().size(); i++) {
+                int end = offset + getParagraphLength(i);
+                if (position <= end) return i;
+                offset = end + 1;
+            }
+            throw new IndexOutOfBoundsException();
+        }
     }
 
     // Observable list of paragraphs
@@ -782,7 +790,7 @@ public class CodeArea extends CodeInputControl {
     }
 
     public CodeArea(String text, boolean large) {
-        super(large ? new InDiskContent() : new InMemoryContent());
+        super(large ? new InCacheContent() : new InMemoryContent());
         getStyleClass().addAll("text-area", "code-area");
         setAccessibleRole(AccessibleRole.TEXT_AREA);
         setText(text);
@@ -801,6 +809,35 @@ public class CodeArea extends CodeInputControl {
      */
     public ObservableList<CharSequence> getParagraphs() {
         return ((CodeAreaContent)getContent()).getParagraphList();
+    }
+
+    /** Takes ownership of preloaded, streamed cache content. */
+    private CodeArea(CodeAreaContent content) {
+        super(java.util.Objects.requireNonNull(content));
+        getStyleClass().addAll("text-area", "code-area");
+        setAccessibleRole(AccessibleRole.TEXT_AREA);
+    }
+
+    public static CodeArea fromCache(InCacheContent content) {
+        return new CodeArea((CodeAreaContent) content);
+    }
+
+    public int getParagraphLength(int index) {
+        return ((CodeAreaContent) getContent()).getParagraphLength(index);
+    }
+
+    public int getParagraphStart(int index) {
+        return ((CodeAreaContent) getContent()).getParagraphStart(index);
+    }
+
+    public int getParagraphIndex(int position) {
+        return ((CodeAreaContent) getContent()).getParagraphIndex(position);
+    }
+
+    /** Release disk content when the editor is permanently closed, not on skin disposal. */
+    public void closeContent() {
+        if (getContent() instanceof InCacheContent cache) cache.close();
+        else if (getContent() instanceof InDiskContent disk) disk.close();
     }
 
 
@@ -1014,7 +1051,7 @@ public class CodeArea extends CodeInputControl {
     }
 
     {
-        textProperty().addListener((observable, oldValue, newValue) -> {
+        textProperty().addListener((javafx.beans.InvalidationListener) observable -> {
             errorPosList.clear();
             highlightedRange.set(null);
             lineBackgrounds.clear();

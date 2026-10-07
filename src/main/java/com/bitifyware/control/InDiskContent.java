@@ -117,7 +117,7 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
     }
     
     @Override
-    public String get(int start, int end) {
+    public synchronized String get(int start, int end) {
         if (start < 0 || end > contentLength || start > end) {
             throw new IndexOutOfBoundsException("start=" + start + ", end=" + end + ", length=" + contentLength);
         }
@@ -170,7 +170,7 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
     }
     
     @Override
-    public void insert(int index, String text, boolean notifyListeners) {
+    public synchronized void insert(int index, String text, boolean notifyListeners) {
         if (index < 0 || index > contentLength) {
             throw new IndexOutOfBoundsException("index=" + index + ", length=" + contentLength);
         }
@@ -188,6 +188,7 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
         
         try {
             // Clear cache FIRST so all reads get fresh data
+            markContentModified();
             lineCache.clear();
             
             // Split text into lines
@@ -232,6 +233,7 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
                     Collections.emptyList());
             }
             
+            publishContentChange(index, 0, textLength);
             if (notifyListeners) {
                 fireValueChangedEvent();
             }
@@ -241,7 +243,7 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
     }
     
     @Override
-    public void delete(int start, int end, boolean notifyListeners) {
+    public synchronized void delete(int start, int end, boolean notifyListeners) {
         if (start > end) {
             throw new IllegalArgumentException("start > end");
         }
@@ -257,6 +259,7 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
         
         try {
             // Clear cache FIRST so all reads get fresh data
+            markContentModified();
             lineCache.clear();
             
             int[] startPos = findLineAndOffset(start);
@@ -302,6 +305,7 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
                     Collections.singletonList(firstLine));
             }
             
+            publishContentChange(start, length, 0);
             if (notifyListeners) {
                 fireValueChangedEvent();
             }
@@ -311,12 +315,12 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
     }
     
     @Override
-    public int length() {
+    public synchronized int length() {
         return contentLength;
     }
     
     @Override
-    public String get() {
+    public synchronized String get() {
         return get(0, contentLength);
     }
     
@@ -339,7 +343,10 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
      * After calling this method, this DiskContent should not be used.
      */
     @Override
-    public void close() {
+    public synchronized void close() {
+        if (closed) return;
+        closed = true;
+        markContentModified();
         try {
             Files.deleteIfExists(tempFile);
             lineCache.clear();
@@ -350,6 +357,11 @@ public final class InDiskContent extends CodeAreaContent implements AutoCloseabl
     }
     
     // ========== Line-level operations ==========
+    private boolean closed;
+
+    @Override protected void checkContentOpen() {
+        if (closed) throw new IllegalStateException("Disk content is closed");
+    }
     
     /**
      * Reads a line from the file. Uses caching for performance.

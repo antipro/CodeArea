@@ -7,6 +7,7 @@ import com.sun.javafx.collections.ListListenerHelper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import javafx.collections.ObservableList;
 
 // Text area content model
@@ -17,6 +18,39 @@ final class InMemoryContent extends CodeAreaContent {
     private final ParagraphList paragraphList = new ParagraphList();
 
     private int contentLength = 0;
+    private int[] starts;
+
+    private void indexParagraphs() {
+        if (starts != null) return;
+        starts = new int[paragraphs.size()];
+        int offset = 0;
+        for (int i = 0; i < starts.length; i++) {
+            starts[i] = offset;
+            offset += paragraphs.get(i).length();
+            if (i + 1 < starts.length) offset++;
+        }
+    }
+
+    @Override public synchronized int getParagraphStart(int index) {
+        indexParagraphs();
+        return starts[Objects.checkIndex(index, starts.length)];
+    }
+
+    @Override public synchronized int getParagraphLength(int index) {
+        return paragraphs.get(index).length();
+    }
+
+    @Override public synchronized int getParagraphIndex(int position) {
+        if (position < 0 || position > contentLength) throw new IndexOutOfBoundsException();
+        indexParagraphs();
+        int low = 0, high = starts.length - 1;
+        while (low < high) {
+            int middle = (low + high + 1) >>> 1;
+            if (starts[middle] <= position) low = middle;
+            else high = middle - 1;
+        }
+        return low;
+    }
 
     InMemoryContent() {
         paragraphs = new ArrayList<>();
@@ -25,26 +59,13 @@ final class InMemoryContent extends CodeAreaContent {
     }
 
     @Override
-    public String get(int start, int end) {
+    public synchronized String get(int start, int end) {
+        Objects.checkFromToIndex(start, end, contentLength);
         int length = end - start;
         StringBuilder textBuilder = new StringBuilder(length);
 
-        int paragraphCount = paragraphs.size();
-
-        int paragraphIndex = 0;
-        int offset = start;
-
-        while (paragraphIndex < paragraphCount) {
-            StringBuilder paragraph = paragraphs.get(paragraphIndex);
-            int count = paragraph.length() + 1;
-
-            if (offset < count) {
-                break;
-            }
-
-            offset -= count;
-            paragraphIndex++;
-        }
+        int paragraphIndex = getParagraphIndex(start);
+        int offset = start - starts[paragraphIndex];
 
         // Read characters until end is reached, appending to text builder
         // and moving to next paragraph as needed
@@ -69,7 +90,7 @@ final class InMemoryContent extends CodeAreaContent {
 
     @Override
     @SuppressWarnings("unchecked")
-    public void insert(int index, String text, boolean notifyListeners) {
+    public synchronized void insert(int index, String text, boolean notifyListeners) {
         if (index < 0
             || index > contentLength) {
             throw new IndexOutOfBoundsException();
@@ -114,6 +135,8 @@ final class InMemoryContent extends CodeAreaContent {
             int start = index - offset;
 
             int n = lines.size();
+            markContentModified();
+            starts = null;
             if (n == 1) {
                 // The text contains only a single line; insert it into the
                 // intersecting paragraph
@@ -143,6 +166,8 @@ final class InMemoryContent extends CodeAreaContent {
 
             // Update content length
             contentLength += length;
+            starts = null;
+            publishContentChange(index, 0, length);
             if (notifyListeners) {
                 fireValueChangedEvent();
             }
@@ -150,7 +175,7 @@ final class InMemoryContent extends CodeAreaContent {
     }
 
     @Override
-    public void delete(int start, int end, boolean notifyListeners) {
+    public synchronized void delete(int start, int end, boolean notifyListeners) {
         if (start > end) {
             throw new IllegalArgumentException();
         }
@@ -192,6 +217,8 @@ final class InMemoryContent extends CodeAreaContent {
             StringBuilder leadingParagraph = paragraph;
 
             // Remove the text
+            markContentModified();
+            starts = null;
             if (leadingParagraphIndex == trailingParagraphIndex) {
                 // The removal affects only a single paragraph
                 leadingParagraph.delete(start - leadingOffset,
@@ -227,6 +254,8 @@ final class InMemoryContent extends CodeAreaContent {
 
             // Update content length
             contentLength -= length;
+            starts = null;
+            publishContentChange(start, length, 0);
             if (notifyListeners) {
                 fireValueChangedEvent();
             }
@@ -234,12 +263,12 @@ final class InMemoryContent extends CodeAreaContent {
     }
 
     @Override
-    public int length() {
+    public synchronized int length() {
         return contentLength;
     }
 
     @Override
-    public String get() {
+    public synchronized String get() {
         return get(0, length());
     }
 

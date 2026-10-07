@@ -7,6 +7,7 @@ import com.sun.javafx.util.Utils;
 import javafx.beans.DefaultProperty;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
+import javafx.beans.WeakListener;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.property.*;
 import javafx.beans.value.ChangeListener;
@@ -24,9 +25,16 @@ import javafx.scene.text.Font;
 import javafx.util.StringConverter;
 
 import java.text.BreakIterator;
+import java.text.CharacterIterator;
+import java.text.StringCharacterIterator;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 /**
  * @author antipro
@@ -78,8 +86,71 @@ public abstract class CodeInputControl extends Control {
     /**
      * Package private base implementation of Content.
      */
-    abstract static class ContentBase implements Content {
+    abstract static class ContentBase implements Content, TextSource {
         private ExpressionHelper<String> helper;
+        private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<>();
+        private long version;
+        private long notifiedVersion;
+        private final List<Consumer<ContentChange>> contentListeners = new CopyOnWriteArrayList<>();
+
+        @Override public final synchronized long version() { checkOpen(); return version; }
+        @Override public final synchronized String read(int start, int end) { return get(start, end); }
+        @Override public final synchronized void checkOpen() { checkContentOpen(); }
+        protected void checkContentOpen() { }
+
+        /** Call before changing storage, including edits with notifyListeners=false. */
+        protected final synchronized void markContentModified() { version++; }
+
+        /** Publish only after the completed edit has consistent length and indices. */
+        protected final void publishContentChange(int start, int removed, int inserted) {
+            ContentChange change = new ContentChange(version, start, removed, inserted);
+            for (Consumer<ContentChange> listener : contentListeners) {
+                try {
+                    listener.accept(change);
+                } catch (Exception e) {
+                    Thread thread = Thread.currentThread();
+                    thread.getUncaughtExceptionHandler().uncaughtException(thread, e);
+                }
+            }
+        }
+
+        public final void addContentChangeListener(Consumer<ContentChange> listener) {
+            contentListeners.add(Objects.requireNonNull(listener));
+        }
+
+        public final void removeContentChangeListener(Consumer<ContentChange> listener) {
+            contentListeners.remove(listener);
+        }
+
+        public final TextCursor openCursor() { return openCursor(0); }
+        public final TextCursor openCursor(int position) { return new TextCursor(this, position); }
+
+        public final synchronized SearchCursor search(SearchQuery query, int from, int to, int position) {
+            TextCursor cursor = openCursor(position);
+            try {
+                return new SearchCursor(cursor, query, from, to, position);
+            } catch (RuntimeException | Error e) {
+                cursor.close();
+                throw e;
+            }
+        }
+
+        public final synchronized SearchCursor search(SearchQuery query) {
+            return search(query, 0, length(), 0);
+        }
+
+        /** May leave partial output if the source changes or the writer fails; never closes the writer. */
+        public final void writeTo(Writer writer) throws IOException {
+            Objects.requireNonNull(writer);
+            try (TextCursor cursor = openCursor()) {
+                char[] buffer = new char[8192];
+                int count;
+                while ((count = cursor.read(buffer, 0, buffer.length)) != -1) {
+                    writer.write(buffer, 0, count);
+                }
+                cursor.checkValid();
+            }
+        }
 
         @Override
         public void addListener(ChangeListener<? super String> changeListener) {
@@ -93,20 +164,64 @@ public abstract class CodeInputControl extends Control {
 
         @Override
         public void addListener(InvalidationListener listener) {
-            helper = ExpressionHelper.addListener(helper, this, listener);
+            invalidationListeners.add(Objects.requireNonNull(listener));
         }
 
         @Override
         public void removeListener(InvalidationListener listener) {
-            helper = ExpressionHelper.removeListener(helper, listener);
+            invalidationListeners.remove(listener);
         }
 
-        protected final void fireValueChangedEvent() {
+        protected final synchronized void fireValueChangedEvent() {
+            // Compatibility for third-party ContentBase implementations that
+            // still use only the original notification method.
+            if (version == notifiedVersion) {
+                markContentModified();
+                publishContentChange(0, 0, 0);
+            }
+            notifiedVersion = version;
+            fireInvalidations(invalidationListeners, this);
             ExpressionHelper.fireValueChangedEvent(helper);
         }
     }
 
     private boolean blockSelectedTextUpdate;
+
+    private static void fireInvalidations(List<InvalidationListener> listeners, Observable observable) {
+        for (InvalidationListener listener : listeners) {
+            if (listener instanceof WeakListener weak && weak.wasGarbageCollected()) {
+                listeners.remove(listener);
+                continue;
+            }
+            try {
+                listener.invalidated(observable);
+            } catch (Exception e) {
+                Thread thread = Thread.currentThread();
+                thread.getUncaughtExceptionHandler().uncaughtException(thread, e);
+            }
+        }
+    }
+
+    private ContentBase cursorContent() {
+        if (content instanceof ContentBase base) return base;
+        throw new UnsupportedOperationException("Cursor APIs require synchronized ContentBase storage");
+    }
+
+    /** These model-level APIs may be used by workers; editing/control properties remain FX-thread-only. */
+    public long getContentVersion() { return cursorContent().version(); }
+    public TextCursor openCursor() { return cursorContent().openCursor(); }
+    public TextCursor openCursor(int position) { return cursorContent().openCursor(position); }
+    public SearchCursor search(SearchQuery query) { return cursorContent().search(query); }
+    public SearchCursor search(SearchQuery query, int from, int to, int position) {
+        return cursorContent().search(query, from, to, position);
+    }
+    public void writeTo(Writer writer) throws IOException { cursorContent().writeTo(writer); }
+    public void addContentChangeListener(Consumer<ContentChange> listener) {
+        cursorContent().addContentChangeListener(listener);
+    }
+    public void removeContentChangeListener(Consumer<ContentChange> listener) {
+        cursorContent().removeContentChangeListener(listener);
+    }
 
     /* *************************************************************************
      *                                                                         *
@@ -136,14 +251,13 @@ public abstract class CodeInputControl extends Control {
         length.bind(new IntegerBinding() {
             { bind(text); }
             @Override protected int computeValue() {
-                String txt = text.get();
-                return txt == null ? 0 : txt.length();
+                return content.length();
             }
         });
 
         // Bind the selected text to be based on the selection and text properties
         selection.addListener((ob, o, n) -> updateSelectedText());
-        text.addListener((ob, o, n) -> updateSelectedText());
+        text.addListener((InvalidationListener) ob -> updateSelectedText());
 
         focusedProperty().addListener((ob, o, n) -> {
             if (n) {
@@ -161,21 +275,20 @@ public abstract class CodeInputControl extends Control {
 
     private void updateSelectedText() {
         if (!blockSelectedTextUpdate) {
-            String txt = text.get();
             IndexRange sel = selection.get();
-            if (txt == null || sel == null) {
+            if (text.textIsNull || sel == null) {
                 selectedText.set("");
             } else {
                 int start = sel.getStart();
                 int end = sel.getEnd();
-                int length = txt.length();
-                if (end > start + length) {
+                int length = content.length();
+                if (end > length) {
                     end = length;
                 }
                 if (start > length - 1) {
                     start = end = 0;
                 }
-                selectedText.set(txt.substring(start, end));
+                selectedText.set(content.get(start, end));
             }
         }
     }
@@ -684,7 +797,7 @@ public abstract class CodeInputControl extends Control {
             if (charIterator == null) {
                 charIterator = BreakIterator.getCharacterInstance();
             }
-            charIterator.setText(getText());
+            charIterator.setText(navigationIterator());
             selectRange(getAnchor(), charIterator.preceding(getCaretPosition()));
         }
     }
@@ -700,7 +813,7 @@ public abstract class CodeInputControl extends Control {
             if (charIterator == null) {
                 charIterator = BreakIterator.getCharacterInstance();
             }
-            charIterator.setText(getText());
+            charIterator.setText(navigationIterator());
             selectRange(getAnchor(), charIterator.following(getCaretPosition()));
         }
     }
@@ -710,6 +823,15 @@ public abstract class CodeInputControl extends Control {
      */
     private BreakIterator charIterator;
     private BreakIterator wordIterator;
+
+    private CharacterIterator navigationIterator() {
+        return content instanceof ContentBase base ? base.openCursor().asCharacterIterator()
+                : new StringCharacterIterator(getText());
+    }
+
+    private CharSequence navigationSequence() {
+        return content instanceof ContentBase base ? base.openCursor().asCharSequence() : getText();
+    }
 
     /**
      * Moves the caret to the beginning of previous word. This function
@@ -763,7 +885,7 @@ public abstract class CodeInputControl extends Control {
 
     private void previousWord(boolean select) {
         final int textLength = getLength();
-        final String text = getText();
+        final CharSequence text = navigationSequence();
         if (textLength <= 0) {
             return;
         }
@@ -771,7 +893,7 @@ public abstract class CodeInputControl extends Control {
         if (wordIterator == null) {
             wordIterator = new CodeBreakIterator();
         }
-        wordIterator.setText(text);
+        wordIterator.setText(navigationIterator());
 
         int pos = wordIterator.preceding(Utils.clamp(0, getCaretPosition(), textLength));
 
@@ -787,7 +909,7 @@ public abstract class CodeInputControl extends Control {
 
     private void nextWord(boolean select) {
         final int textLength = getLength();
-        final String text = getText();
+        final CharSequence text = navigationSequence();
         if (textLength <= 0) {
             return;
         }
@@ -795,7 +917,7 @@ public abstract class CodeInputControl extends Control {
         if (wordIterator == null) {
             wordIterator = new CodeBreakIterator();
         }
-        wordIterator.setText(text);
+        wordIterator.setText(navigationIterator());
 
         int last = wordIterator.following(Utils.clamp(0, getCaretPosition(), textLength-1));
         int current = wordIterator.next();
@@ -830,7 +952,7 @@ public abstract class CodeInputControl extends Control {
 
     private void endOfNextWord(boolean select) {
         final int textLength = getLength();
-        final String text = getText();
+        final CharSequence text = navigationSequence();
         if (textLength <= 0) {
             return;
         }
@@ -838,7 +960,7 @@ public abstract class CodeInputControl extends Control {
         if (wordIterator == null) {
             wordIterator = new CodeBreakIterator();
         }
-        wordIterator.setText(text);
+        wordIterator.setText(navigationIterator());
 
         int last = wordIterator.following(Utils.clamp(0, getCaretPosition(), textLength));
         int current = wordIterator.next();
@@ -923,7 +1045,6 @@ public abstract class CodeInputControl extends Control {
     public boolean deletePreviousChar() {
         boolean failed = true;
         if (isEditable() && !isDisabled()) {
-            final String text = getText();
             final int dot = getCaretPosition();
             final int mark = getAnchor();
             if (dot != mark) {
@@ -937,7 +1058,9 @@ public abstract class CodeInputControl extends Control {
                 // characters
                 // Note: Do not use charIterator here, because we do want to
                 // break up clusters when deleting backwards.
-                int p = Character.offsetByCodePoints(text, dot, -1);
+                int start = Math.max(0, dot - 2);
+                String preceding = getText(start, dot);
+                int p = start + Character.offsetByCodePoints(preceding, preceding.length(), -1);
                 deleteText(p, dot);
                 failed = false;
             }
@@ -955,7 +1078,6 @@ public abstract class CodeInputControl extends Control {
         boolean failed = true;
         if (isEditable() && !isDisabled()) {
             final int textLength = getLength();
-            final String text = getText();
             final int dot = getCaretPosition();
             final int mark = getAnchor();
             if (dot != mark) {
@@ -970,7 +1092,7 @@ public abstract class CodeInputControl extends Control {
                 if (charIterator == null) {
                     charIterator = BreakIterator.getCharacterInstance();
                 }
-                charIterator.setText(text);
+                charIterator.setText(navigationIterator());
                 int p = charIterator.following(dot);
                 deleteText(dot, p);
                 failed = false;
@@ -997,7 +1119,7 @@ public abstract class CodeInputControl extends Control {
             if (charIterator == null) {
                 charIterator = BreakIterator.getCharacterInstance();
             }
-            charIterator.setText(getText());
+            charIterator.setText(navigationIterator());
             int pos = charIterator.following(dot);
             selectRange(pos, pos);
         }
@@ -1026,7 +1148,7 @@ public abstract class CodeInputControl extends Control {
             if (charIterator == null) {
                 charIterator = BreakIterator.getCharacterInstance();
             }
-            charIterator.setText(getText());
+            charIterator.setText(navigationIterator());
             int pos = charIterator.preceding(dot);
             selectRange(pos, pos);
         }
@@ -1371,6 +1493,7 @@ public abstract class CodeInputControl extends Control {
     // If somebody changes the content directly, it will be notified and
     // send an invalidation event.
     private class TextProperty extends StringProperty {
+        private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<>();
         // This is used only when the property is bound
         private ObservableValue<? extends String> observable = null;
         // Added to the observable when bound
@@ -1435,11 +1558,11 @@ public abstract class CodeInputControl extends Control {
         }
 
         @Override public void addListener(InvalidationListener listener) {
-            helper = ExpressionHelper.addListener(helper, this, listener);
+            invalidationListeners.add(Objects.requireNonNull(listener));
         }
 
         @Override public void removeListener(InvalidationListener listener) {
-            helper = ExpressionHelper.removeListener(helper, listener);
+            invalidationListeners.remove(listener);
         }
 
         @Override public void addListener(ChangeListener<? super String> listener) {
@@ -1459,6 +1582,7 @@ public abstract class CodeInputControl extends Control {
         }
 
         private void fireValueChangedEvent() {
+            fireInvalidations(invalidationListeners, this);
             ExpressionHelper.fireValueChangedEvent(helper);
         }
 
