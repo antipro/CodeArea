@@ -94,7 +94,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     private int firstParagraph;
     private boolean paragraphsDirty = true;
     private boolean geometryDirty = true;
-    private String geometryReason = "init";
+    /** True when the paragraph set itself changed, so measured heights are stale. */
+    private boolean paragraphsReplaced;
     private double measuredWidth;
     private int lastCaretPosition = -1;
     private boolean syncingVerticalScroll;
@@ -104,28 +105,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     private boolean scrollBottomRequested;
     private boolean updatingFromScrollPane;
     private ScrollBar verticalScrollBar;
-
-    /**
-     * Set -Dcodearea.scroll.trace=true, or the environment variable
-     * CODEAREA_SCROLL_TRACE=1, to trace vertical scrolling to stderr. Each line
-     * shows the editor offset, the ScrollPane/scrollbar values, the derived
-     * maximum offset, the first rendered paragraph and the document height.
-     */
-    private static final boolean TRACE_SCROLL = Boolean.getBoolean("codearea.scroll.trace")
-            || "1".equals(System.getenv("CODEAREA_SCROLL_TRACE"));
-    private long traceSeq;
-
-    private void trace(String event) {
-        if (!TRACE_SCROLL) return;
-        double barValue = verticalScrollBar == null ? Double.NaN : verticalScrollBar.getValue();
-        double visible = verticalScrollBar == null ? Double.NaN : verticalScrollBar.getVisibleAmount();
-        double max = getScrollTopMax();
-        double vvalue = scrollPane.getVvalue();
-        System.err.printf("scroll#%d %-18s top=%.2f v=%+.6f bar=%+.6f visible=%.6f max=%.2f first=%d height=%.2f queued=%s explicit=%s pressed=%s bottom=%s%n",
-                traceSeq++, event, codeArea.getScrollTop(), vvalue, barValue, visible, max,
-                firstParagraph, paragraphViewport.height(), verticalSyncQueued,
-                explicitVerticalScrollEvent, verticalScrollbarPressed, scrollBottomRequested);
-    }
 
     private void markVerticalScrollInput() {
         explicitVerticalScrollEvent = true;
@@ -146,7 +125,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     private void queueVerticalSync() {
         if (verticalSyncQueued) return;
         verticalSyncQueued = true;
-        trace("queue-sync");
         Scene scene = codeArea.getScene();
         Runnable finish = () -> {
             verticalSyncQueued = false;
@@ -173,7 +151,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             double max = getScrollTopMax();
             double top = scrollBottomRequested ? max : Math.max(0, Math.min(codeArea.getScrollTop(), max));
             boolean moved = Math.abs(top - codeArea.getScrollTop()) > 0.001;
-            trace(moved ? "sync-clamp" : "sync");
             codeArea.setScrollTop(top);
             scrollPane.setVvalue(max == 0 ? 0 : top / max);
             if (moved) contentView.requestLayout();
@@ -193,8 +170,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     private void updateViewport() {
         if (geometryDirty) {
-            trace("viewport-reset:" + geometryReason);
-            paragraphViewport.reset(codeArea, Math.max(1, lineHeight), !"paragraphs".equals(geometryReason));
+            paragraphViewport.reset(codeArea, Math.max(1, lineHeight), !paragraphsReplaced);
+            paragraphsReplaced = false;
             geometryDirty = false;
         }
         double top = Math.max(0, codeArea.getScrollTop() - contentView.snappedTopInset());
@@ -394,23 +371,18 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         || (!verticalSyncQueued && Math.abs(hBox.prefHeight(hBox.getWidth()) - hBox.getHeight()) < 0.5)) {
                     scrollBottomRequested = false;
                 }
-                // Never discard a ScrollPane value change: while wrapped heights
-                // are being measured a sync stays pending almost continuously,
-                // and ignoring the change then silently undid the user's scroll.
-                // ScrollPaneSkin also rewrites its value when the extent changes
-                // (to keep the ratio), which must not override the anchored
-                // offset. Only size-driven changes are skipped; actual wheel and
-                // scrollbar gestures set the explicit flags just above.
+                // ScrollPaneSkin also rewrites its own value when the scrolling
+                // extent changes (to keep the ratio), which must not override the
+                // paragraph-anchored offset while a sync is pending. Real wheel
+                // and scrollbar gestures set the explicit flags just above, so
+                // only such size-driven changes are skipped.
                 if (!verticalSyncQueued || explicitVerticalScrollEvent || verticalScrollbarPressed) {
-                    trace("vvalue-apply");
                     updatingFromScrollPane = true;
                     try {
                         getSkinnable().setScrollTop(newValue.doubleValue() * getScrollTopMax());
                     } finally {
                         updatingFromScrollPane = false;
                     }
-                } else {
-                    trace("vvalue-ignored");
                 }
             }
         });
@@ -463,7 +435,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         });
 
         registerChangeListener(control.wrapTextProperty(), e -> {
-            geometryReason = "wrap";
             geometryDirty = true;
             invalidateMetrics();
             scrollPane.setFitToWidth(control.isWrapText());
@@ -509,7 +480,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         registerChangeListener(control.scrollTopProperty(), e -> {
             if (syncingVerticalScroll) return;
-            trace("scrollTop-set");
             if (!updatingFromScrollPane && !verticalSyncQueued) scrollBottomRequested = false;
             double newValue = control.getScrollTop();
             double max = getScrollTopMax();
@@ -535,7 +505,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         });
 
         control.getEmptyLines().addListener((ListChangeListener<CodeArea.EmptyLine>) change -> {
-            geometryReason = "empties";
             geometryDirty = true;
             contentView.requestLayout();
         });
@@ -558,7 +527,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 invalidateMetrics();
                 /* --- Copy from below --- */
                 paragraphsDirty = true;
-                geometryReason = "paragraphs";
+                paragraphsReplaced = true;
                 geometryDirty = true;
                 /* --- Copy from below --- */
                 contentView.requestLayout();
@@ -1869,7 +1838,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         lineHeight = Utils.computeTextHeight(getSkinnable().getFont(), "1A人", 0,
                 TextBoundsType.LOGICAL_VERTICAL_CENTER);
         characterWidth = fontMetrics.get().getCharWidth('W');
-        geometryReason = "font";
         geometryDirty = true;
         contentView.requestLayout();
     }
@@ -2079,7 +2047,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
          */
         @Override protected double computePrefHeight(double width) {
             if (geometryDirty) {
-                paragraphViewport.reset(codeArea, Math.max(1, lineHeight), !"paragraphs".equals(geometryReason));
+                paragraphViewport.reset(codeArea, Math.max(1, lineHeight), !paragraphsReplaced);
+                paragraphsReplaced = false;
                 geometryDirty = false;
             }
             if (computedPrefHeight < 0) {
@@ -2112,9 +2081,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         @Override public void layoutChildren() {
             if (codeArea.isWrapText() && getWidth() != widthForComputedPrefHeight) {
                 widthForComputedPrefHeight = getWidth();
-                geometryReason = "width";
                 geometryDirty = true;
-                trace("width-changed");
             }
             updateViewport();
             double previousHeight = paragraphViewport.height();
@@ -2276,7 +2243,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         null, null, textFlow.getLayoutY());
             }
             if (Math.abs(previousHeight - paragraphViewport.height()) > 0.01) {
-                trace("height-changed");
                 queueVerticalSync();
                 // Measuring preceding overscan changes document Y, not the
                 // user's position within the paragraph currently in view.
@@ -2288,11 +2254,6 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                         ? Math.max(0, paragraphViewport.height() + snappedTopInset() + snappedBottomInset()
                                 - scrollPane.getViewportBounds().getHeight())
                         : anchorTop + paragraphViewport.y(anchorParagraph) - anchorY;
-                if (TRACE_SCROLL) {
-                    System.err.printf("scroll#%d %-18s top=%.2f target=%.2f anchorPara=%d anchorY=%.2f y=%.2f prevH=%.2f newH=%.2f bottom=%s%n",
-                            traceSeq++, "anchor-correct", anchorTop, targetTop, anchorParagraph, anchorY,
-                            paragraphViewport.y(anchorParagraph), previousHeight, paragraphViewport.height(), anchoredAtBottom);
-                }
                 codeArea.setScrollTop(targetTop);
                 scrollPane.requestLayout();
                 if (getParent() != null) getParent().requestLayout();
