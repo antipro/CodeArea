@@ -83,6 +83,38 @@ public class InCacheContentTest {
         }
     }
 
+    @Test public void installedCacheTransfersStorageAndPreservesSubscriptionsAndSnapshots() throws Exception {
+        try (InCacheContent cache = new InCacheContent("old\ncontent");
+             InCacheContent prepared = new InCacheContent(new StringReader("new\n人😀\n"))) {
+            var paragraphs = cache.getParagraphList();
+            List<ContentChange> edits = new ArrayList<>();
+            List<List<? extends CharSequence>> removed = new ArrayList<>();
+            int[] invalidations = {0};
+            cache.addContentChangeListener(edits::add);
+            cache.addListener((javafx.beans.InvalidationListener) observable -> invalidations[0]++);
+            paragraphs.addListener((javafx.collections.ListChangeListener<CharSequence>) change -> {
+                while (change.next()) removed.add(change.getRemoved());
+            });
+            try (var oldCursor = cache.openCursor(); var preparedCursor = prepared.openCursor()) {
+                cache.install(prepared);
+                assertSame(paragraphs, cache.getParagraphList());
+                assertEquals("new\n人😀\n", cache.get());
+                assertEquals(1, edits.size());
+                assertEquals(1, removed.size());
+                assertEquals(1, invalidations[0]);
+                assertThrows(java.util.ConcurrentModificationException.class, oldCursor::checkValid);
+                assertThrows(IllegalStateException.class, preparedCursor::checkValid);
+                assertThrows(IllegalStateException.class, prepared::get);
+            }
+            prepared.close();
+            cache.insert(0, "prefix", true);
+            assertEquals("prefixnew\n人😀\n", cache.get());
+            assertEquals("old", removed.getFirst().get(0).toString());
+            assertEquals("content", removed.getFirst().get(1).toString());
+            assertEquals(2, edits.size());
+        }
+    }
+
     @Test public void mappingCrossesChunksAndClosesDeterministically() {
         MappedCache cache = new MappedCache();
         Path path = cache.path();
@@ -94,6 +126,21 @@ public class InCacheContentTest {
         cache.close();
         assertFalse(Files.exists(path));
         assertThrows(IllegalStateException.class, () -> cache.read(0, 0));
+    }
+
+    @Test public void mappingLeaseRetainsSnapshotsButReleasesStorageWithItsLastOwner() {
+        MappedCache cache = new MappedCache();
+        Path path = cache.path();
+        cache.append("snapshot");
+        Object snapshot = new Object();
+        var lease = cache.retainFor(snapshot);
+        cache.close();
+        assertTrue(Files.exists(path));
+        assertEquals("snapshot", cache.read(0, 8));
+        lease.clean();
+        assertFalse(Files.exists(path));
+        assertThrows(IllegalStateException.class, () -> cache.read(0, 1));
+        java.lang.ref.Reference.reachabilityFence(snapshot);
     }
 
     @Test public void rangeValidationAndClosedContent() {

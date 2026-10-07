@@ -9,7 +9,6 @@ import javafx.collections.ObservableList;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -20,21 +19,22 @@ import java.util.Objects;
  * materialize the entire document. Edits remain single-owner (FX thread when
  * attached); independent cursors synchronize short reads with edits and close.
  * Close the content when its owning editor is no longer used. A Cleaner is a
- * fallback, not a substitute for close. Obsolete edit records remain until close.
+ * fallback, not a substitute for close. Retained lazy change snapshots hold a
+ * mapping lease until reclaimed, including across a cache installation.
  */
 public final class InCacheContent extends CodeAreaContent implements AutoCloseable {
     private record Entry(long offset, int length) { }
-    private final MappedCache cache = new MappedCache();
-    private final List<Entry> entries = new ArrayList<>();
+    private MappedCache cache = new MappedCache();
+    private ParagraphIndex entries = new ParagraphIndex(true, false);
     private final ParagraphList paragraphList = new ParagraphList();
-    private int[] starts = {0};
     private int contentLength;
 
     public InCacheContent() {
-        entries.add(new Entry(0, 0));
+        entries.append(0, 1, 0);
         paragraphs = new AbstractList<>() {
             @Override public StringBuilder get(int index) {
-                return new StringBuilder(read(entries.get(index)));
+                checkContentOpen();
+                return new StringBuilder(read(entry(index)));
             }
             @Override public int size() { return entries.size(); }
         };
@@ -56,7 +56,7 @@ public final class InCacheContent extends CodeAreaContent implements AutoCloseab
         this();
         try {
             Objects.requireNonNull(reader);
-            entries.clear();
+            entries = new ParagraphIndex(true, false);
             char[] buffer = new char[8192];
             StringBuilder line = new StringBuilder();
             int count;
@@ -65,15 +65,15 @@ public final class InCacheContent extends CodeAreaContent implements AutoCloseab
                 for (int i = 0; i < filtered.length(); i++) {
                     char c = filtered.charAt(i);
                     if (c == '\n') {
-                        entries.add(store(line));
+                        append(entries, store(line));
                         line.setLength(0);
                     } else {
                         line.append(c);
                     }
                 }
             }
-            entries.add(store(line));
-            reindex();
+            append(entries, store(line));
+            contentLength = Math.toIntExact(entries.characters() - 1);
         } catch (IOException | RuntimeException | Error e) {
             close();
             throw e;
@@ -88,49 +88,38 @@ public final class InCacheContent extends CodeAreaContent implements AutoCloseab
         return cache.read(entry.offset, entry.length);
     }
 
-    private void reindex() {
-        int[] updated = new int[entries.size()];
-        long length = 0;
-        for (int i = 0; i < entries.size(); i++) {
-            updated[i] = Math.toIntExact(length);
-            length += entries.get(i).length;
-            if (i + 1 < entries.size()) length++;
-        }
-        contentLength = Math.toIntExact(length);
-        starts = updated;
+    private Entry entry(int index) { return new Entry(entries.offset(index), entries.span(index) - 1); }
+
+    private static void append(ParagraphIndex index, Entry entry) {
+        index.append(entry.offset, Math.addExact(entry.length, 1), 0);
     }
 
     @Override public synchronized int getParagraphStart(int index) {
-        cache.checkOpen();
-        return starts[Objects.checkIndex(index, entries.size())];
+        checkContentOpen();
+        Objects.checkIndex(index, entries.size());
+        return Math.toIntExact(entries.start(index));
     }
 
     @Override public synchronized int getParagraphLength(int index) {
-        cache.checkOpen();
-        return entries.get(index).length;
+        checkContentOpen();
+        return entries.span(index) - 1;
     }
 
     @Override public synchronized int getParagraphIndex(int position) {
-        cache.checkOpen();
+        checkContentOpen();
         if (position < 0 || position > contentLength) throw new IndexOutOfBoundsException();
-        int low = 0, high = starts.length - 1;
-        while (low < high) {
-            int middle = (low + high + 1) >>> 1;
-            if (starts[middle] <= position) low = middle;
-            else high = middle - 1;
-        }
-        return low;
+        return entries.atPosition(position);
     }
 
     @Override public synchronized String get(int start, int end) {
-        cache.checkOpen();
+        checkContentOpen();
         Objects.checkFromToIndex(start, end, contentLength);
         StringBuilder result = new StringBuilder(end - start);
         int line = getParagraphIndex(start);
         int position = start;
         while (position < end) {
-            Entry entry = entries.get(line);
-            int offset = position - starts[line];
+            Entry entry = entry(line);
+            int offset = position - Math.toIntExact(entries.start(line));
             int count = Math.min(entry.length - offset, end - position);
             result.append(cache.read(entry.offset + offset, count));
             position += count;
@@ -144,72 +133,114 @@ public final class InCacheContent extends CodeAreaContent implements AutoCloseab
     }
 
     @Override public synchronized void insert(int index, String text, boolean notifyListeners) {
-        cache.checkOpen();
+        checkContentOpen();
         if (index < 0 || index > contentLength) throw new IndexOutOfBoundsException();
         if (text == null) throw new IllegalArgumentException("text cannot be null");
         text = CodeInputControl.filterInput(text, false, false);
         if (text.isEmpty()) return;
         Math.addExact(contentLength, text.length());
         int line = getParagraphIndex(index);
-        Entry old = entries.get(line);
+        Entry old = entry(line);
         String original = read(old);
-        int offset = index - starts[line];
+        int offset = index - getParagraphStart(line);
         String replacement = original.substring(0, offset) + text + original.substring(offset);
-        List<Entry> added = new ArrayList<>();
+        ParagraphIndex added = new ParagraphIndex(true, false);
         int from = 0;
         for (int i = 0; i < replacement.length(); i++) {
             if (replacement.charAt(i) == '\n') {
-                added.add(store(replacement.subSequence(from, i)));
+                append(added, store(replacement.subSequence(from, i)));
                 from = i + 1;
             }
         }
-        added.add(store(replacement.subSequence(from, replacement.length())));
+        append(added, store(replacement.subSequence(from, replacement.length())));
+        int addedCount = added.size();
         markContentModified();
-        entries.set(line, added.getFirst());
-        entries.addAll(line + 1, added.subList(1, added.size()));
-        reindex();
+        ParagraphIndex removed = entries.splice(line, 1, added);
+        contentLength += text.length();
         publishContentChange(index, 0, text.length());
-        fireChange(line, line + added.size(), List.of(old));
+        fireChange(line, line + addedCount, removed, cache);
         if (notifyListeners) fireValueChangedEvent();
     }
 
     @Override public synchronized void delete(int start, int end, boolean notifyListeners) {
-        cache.checkOpen();
+        checkContentOpen();
         if (start > end) throw new IllegalArgumentException();
         Objects.checkFromToIndex(start, end, contentLength);
         if (start == end) return;
         int first = getParagraphIndex(start), last = getParagraphIndex(end);
-        List<Entry> removed = new ArrayList<>(entries.subList(first, last + 1));
-        String leading = read(removed.getFirst()), trailing = read(removed.getLast());
-        Entry merged = store(leading.substring(0, start - starts[first])
-                + trailing.substring(end - starts[last]));
+        String leading = read(entry(first)), trailing = read(entry(last));
+        Entry merged = store(leading.substring(0, start - getParagraphStart(first))
+                + trailing.substring(end - getParagraphStart(last)));
+        ParagraphIndex added = new ParagraphIndex(true, false);
+        append(added, merged);
         markContentModified();
-        entries.subList(first, last + 1).clear();
-        entries.add(first, merged);
-        reindex();
+        ParagraphIndex removed = entries.splice(first, last - first + 1, added);
+        contentLength -= end - start;
         publishContentChange(start, end - start, 0);
-        fireChange(first, first + 1, removed);
+        fireChange(first, first + 1, removed, cache);
         if (notifyListeners) fireValueChangedEvent();
     }
 
-    private void fireChange(int from, int to, List<Entry> removed) {
+    /**
+     * Transfers a prepared cache without copying text or replacing subscriptions.
+     * The source becomes closed; closing it again does not close the transferred
+     * storage. Existing cursors on both models become stale.
+     */
+    public synchronized void install(InCacheContent prepared) {
+        Objects.requireNonNull(prepared);
+        if (prepared == this) throw new IllegalArgumentException("Cannot install content into itself");
+        checkContentOpen();
+        synchronized (prepared) {
+            prepared.checkContentOpen();
+            MappedCache previous = cache;
+            ParagraphIndex removed = entries;
+            int oldLength = contentLength;
+            markContentModified();
+            cache = prepared.cache;
+            entries = prepared.entries;
+            contentLength = prepared.contentLength;
+            prepared.closed = true;
+            prepared.markContentModified();
+            prepared.cache = null;
+            prepared.entries = new ParagraphIndex(true, false);
+            try {
+                publishContentChange(0, oldLength, contentLength);
+                fireChange(0, entries.size(), removed, previous);
+                fireValueChangedEvent();
+            } finally {
+                previous.close();
+            }
+        }
+    }
+
+    private void fireChange(int from, int to, ParagraphIndex removed, MappedCache source) {
+        var helper = paragraphList.getListenerHelper();
+        if (helper == null) return;
         // Lazy immutable snapshots: deleting many lines doesn't decode them all.
         List<CharSequence> old = new AbstractList<>() {
-            @Override public CharSequence get(int index) { return read(removed.get(index)); }
+            @Override public CharSequence get(int index) {
+                return source.read(removed.offset(index), removed.span(index) - 1);
+            }
             @Override public int size() { return removed.size(); }
         };
-        ListListenerHelper.fireValueChangedEvent(paragraphList.getListenerHelper(),
+        // A listener may retain a lazy removed snapshot beyond a reload. Its
+        // lease keeps only the old mapping alive, until that snapshot is GC'd.
+        source.retainFor(old);
+        ListListenerHelper.fireValueChangedEvent(helper,
                 new ParagraphListChange(paragraphList, from, to, old));
     }
 
-    @Override public synchronized int length() { cache.checkOpen(); return contentLength; }
+    @Override public synchronized int length() { checkContentOpen(); return contentLength; }
     @Override public synchronized String get() { return get(0, length()); }
     @Override public String getValue() { return get(); }
     @Override public synchronized ObservableList<CharSequence> getParagraphList() {
-        cache.checkOpen();
+        checkContentOpen();
         return paragraphList;
     }
-    @Override protected void checkContentOpen() { cache.checkOpen(); }
+    @Override protected void checkContentOpen() {
+        if (closed) throw new IllegalStateException("Content cache is closed");
+        cache.checkOpen();
+    }
     @Override public synchronized void close() {
         if (!closed) {
             closed = true;

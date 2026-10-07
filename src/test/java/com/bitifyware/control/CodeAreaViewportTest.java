@@ -60,6 +60,78 @@ public class CodeAreaViewportTest extends ApplicationTest {
         WaitForAsyncUtils.waitForFxEvents();
     }
 
+    @Test public void preparedCacheInstallsOnceWithoutReplacingEditorOrSkin() throws Exception {
+        settle();
+        Object skin = area.getSkin();
+        var paragraphs = area.getParagraphs();
+        var content = area.getContent();
+        interact(() -> {
+            area.insertText(0, "edited");
+            assertTrue(area.isUndoable());
+            area.selectRange(0, 1000);
+        });
+        int[] events = {0, 0, 0};
+        interact(() -> {
+            area.addContentChangeListener(change -> events[0]++);
+            area.textProperty().addListener((javafx.beans.InvalidationListener) observable -> events[1]++);
+            paragraphs.addListener((javafx.collections.ListChangeListener<CharSequence>) change -> {
+                while (change.next()) events[2]++;
+            });
+        });
+        try (var prepared = new InCacheContent(new StringReader("loaded\n".repeat(100000)))) {
+            Field storage = InCacheContent.class.getDeclaredField("cache");
+            storage.setAccessible(true);
+            Object mapping = storage.get(prepared);
+            try (var cursor = area.openCursor()) {
+                interact(() -> area.loadCache(prepared));
+                assertThrows(java.util.ConcurrentModificationException.class, cursor::checkValid);
+            }
+            assertSame(mapping, storage.get(content));
+            assertThrows(IllegalStateException.class, prepared::length);
+        }
+        settle();
+        assertSame(skin, area.getSkin());
+        assertSame(content, area.getContent());
+        assertSame(paragraphs, area.getParagraphs());
+        assertArrayEquals(new int[]{1, 1, 1}, events);
+        interact(() -> {
+            assertEquals("loaded\nloaded", area.getText(0, 13));
+            assertEquals(0, area.getCaretPosition());
+            assertEquals(0, area.getSelection().getLength());
+            assertFalse(area.isUndoable());
+            assertFalse(area.isRedoable());
+            area.insertText(0, "x");
+            area.undo();
+            assertEquals("loaded", area.getText(0, 6));
+            area.redo();
+            assertEquals("xloaded", area.getText(0, 7));
+        });
+        settle();
+        assertTrue(nodes().getChildren().size() < 100);
+    }
+
+    @Test public void shorterCacheReloadAtDocumentEndResetsScrollAndImmediateHitGeometry() throws Exception {
+        settle();
+        interact(() -> area.positionCaret(area.getLength()));
+        settle();
+        assertTrue(area.getScrollTop() > 0);
+        try (var prepared = new InCacheContent("new\nend")) {
+            interact(() -> {
+                area.loadCache(prepared);
+                // IME/accessibility may query before the next layout pulse;
+                // the old window's first paragraph is outside the new document.
+                assertNotNull(((CodeAreaSkin) area.getSkin()).getCharacterBounds(0));
+            });
+        }
+        settle();
+        interact(() -> {
+            assertEquals("new\nend", area.getText());
+            assertEquals(0, area.getCaretPosition());
+            assertEquals(0, area.getScrollTop(), 0.01);
+            assertEquals(2, area.getParagraphs().size());
+        });
+    }
+
     @Test public void onlyViewportNodesAndAbsoluteHitOffsets() throws Exception {
         settle();
         assertTrue(nodes().getChildren().size() < 100);

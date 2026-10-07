@@ -66,6 +66,15 @@ final class MappedCache implements AutoCloseable {
         }
     }
 
+    /** Retain the mapping for a lazy removed-paragraph snapshot across reloads. */
+    Cleaner.Cleanable retainFor(Object snapshot) {
+        synchronized (state) {
+            checkOpen();
+            state.owners++;
+            return CLEANER.register(snapshot, state);
+        }
+    }
+
     @Override public void close() {
         cleanable.clean();
     }
@@ -114,6 +123,7 @@ final class MappedCache implements AutoCloseable {
         final List<Object> arenas = new ArrayList<>();
         final List<ByteBuffer> buffers = new ArrayList<>();
         boolean closed;
+        int owners = 1;
 
         State() throws IOException {
             path = Files.createTempFile("codearea-cache-", ".bin");
@@ -142,7 +152,8 @@ final class MappedCache implements AutoCloseable {
             }
         }
 
-        @Override public void run() {
+        @Override public synchronized void run() {
+            if (--owners > 0) return;
             if (closed) return;
             closed = true;
             try {

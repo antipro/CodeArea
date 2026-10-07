@@ -1,13 +1,15 @@
 package com.bitifyware.control.skin;
 
 import com.bitifyware.control.CodeArea;
+import com.bitifyware.control.ParagraphIndex;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /** Geometry metadata only; no text or JavaFX nodes for offscreen paragraphs. */
 final class ParagraphViewport {
-    private int[] starts = new int[0];
-    private double[] heights = new double[0];
-    private double[] tree = new double[1];
-    private double[] before = new double[0];
+    private ParagraphIndex rows = new ParagraphIndex(false, true);
+    private final Map<Integer, Double> before = new HashMap<>();
     private double tail;
 
     /**
@@ -18,67 +20,75 @@ final class ParagraphViewport {
      */
     void reset(CodeArea area, double lineHeight, boolean keepMeasured) {
         int count = area.getParagraphs().size();
-        double[] previousHeights = keepMeasured && heights.length == count ? heights : null;
-        starts = new int[count];
-        heights = new double[count];
-        before = new double[count];
-        tree = new double[count + 1];
-        tail = 0;
-        int offset = 0;
-        for (int i = 0; i < count; i++) {
-            starts[i] = offset;
-            offset += area.getParagraphLength(i);
-            if (i + 1 < count) offset++;
-            heights[i] = previousHeights != null ? previousHeights[i] : lineHeight;
+        if (keepMeasured && rows.size() == count) {
+            // Width/font invalidation keeps previous estimates until the visible
+            // paragraphs are measured. Their text indices are already current.
+            updateEmptyLines(area, lineHeight);
+            return;
         }
+        rows = new ParagraphIndex(false, true);
+        before.clear();
+        for (int i = 0; i < count; i++) {
+            rows.append(0, Math.addExact(area.getParagraphLength(i), 1), lineHeight);
+        }
+        updateEmptyLines(area, lineHeight);
+    }
+
+    /** Updates only the changed rows; all unaffected measured heights survive. */
+    boolean change(CodeArea area, int from, int added, int removed, double lineHeight) {
+        if (size() != area.getParagraphs().size() - added + removed) return false;
+        boolean replacingDocument = from == 0 && removed == size();
+        ParagraphIndex replacement = new ParagraphIndex(false, true);
+        for (int i = 0; i < added; i++) {
+            double height = !replacingDocument && i < removed
+                    ? rows.paragraphHeight(from + i) - before(from + i) : lineHeight;
+            replacement.append(0, Math.addExact(area.getParagraphLength(from + i), 1), height);
+        }
+        // Phantom rows refer to absolute paragraph indices, not shifted text.
+        // Strip their old weights, then reapply the sparse list at its indices.
+        stripEmptyLines();
+        rows.splice(from, removed, replacement);
+        updateEmptyLines(area, lineHeight);
+        return true;
+    }
+
+    private void stripEmptyLines() {
+        for (Map.Entry<Integer, Double> empty : before.entrySet()) {
+            int index = empty.getKey();
+            rows.setHeight(index, rows.paragraphHeight(index) - empty.getValue());
+        }
+        before.clear();
+    }
+
+    private void updateEmptyLines(CodeArea area, double lineHeight) {
+        stripEmptyLines();
+        tail = 0;
         for (CodeArea.EmptyLine empty : area.getEmptyLines()) {
             int index = empty.getParagraphIndex();
-            if (index < count) before[index] += lineHeight;
-            else if (index == count) tail += lineHeight;
+            if (index >= 0 && index < size()) before.merge(index, lineHeight, Double::sum);
+            else if (index == size()) tail += lineHeight;
         }
-        // Linear Fenwick construction.
-        for (int i = 1; i <= count; i++) {
-            tree[i] += heights[i - 1] + before[i - 1];
-            int parent = i + (i & -i);
-            if (parent <= count) tree[parent] += tree[i];
+        for (Map.Entry<Integer, Double> empty : before.entrySet()) {
+            int index = empty.getKey();
+            rows.setHeight(index, rows.paragraphHeight(index) + empty.getValue());
         }
     }
 
-    int size() { return starts.length; }
-    int start(int paragraph) { return starts[paragraph]; }
-    double before(int paragraph) { return before[paragraph]; }
-    double y(int paragraph) {
-        double sum = 0;
-        for (int i = paragraph; i > 0; i -= i & -i) sum += tree[i];
-        return sum;
-    }
+    int size() { return rows.size(); }
+    int start(int paragraph) { return Math.toIntExact(rows.start(paragraph)); }
+    double before(int paragraph) { return before.getOrDefault(paragraph, 0.0); }
+    double y(int paragraph) { return rows.y(paragraph); }
     double height() { return y(size()) + tail; }
 
     void measure(int paragraph, double height) {
-        double delta = height - heights[paragraph];
-        heights[paragraph] = height;
-        for (int i = paragraph + 1; i < tree.length; i += i & -i) tree[i] += delta;
+        rows.setHeight(paragraph, height + before(paragraph));
     }
 
     int atY(double y) {
-        int index = 0;
-        for (int bit = Integer.highestOneBit(size()); bit != 0; bit >>= 1) {
-            int next = index + bit;
-            if (next < tree.length && tree[next] <= y) {
-                y -= tree[next];
-                index = next;
-            }
-        }
-        return Math.min(index, size() - 1);
+        return rows.atY(y);
     }
 
     int atPosition(int position) {
-        int low = 0, high = size() - 1;
-        while (low < high) {
-            int mid = (low + high + 1) >>> 1;
-            if (starts[mid] <= position) low = mid;
-            else high = mid - 1;
-        }
-        return low;
+        return rows.atPosition(position);
     }
 }

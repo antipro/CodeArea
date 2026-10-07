@@ -807,6 +807,22 @@ public class CodeArea extends CodeInputControl {
         return new CodeArea((CodeAreaContent) content);
     }
 
+    /**
+     * FX-thread ownership transfer into an existing cache-backed editor. The
+     * prepared content becomes closed on success; no text is copied and the
+     * editor's paragraph list and subscriptions remain the same objects.
+     */
+    public final void loadCache(InCacheContent prepared) {
+        java.util.Objects.requireNonNull(prepared);
+        if (!(getContent() instanceof InCacheContent cache)) {
+            throw new IllegalStateException("Cache installation requires a cache-backed editor");
+        }
+        prepared.checkOpen();
+        if (prepared == cache) throw new IllegalArgumentException("Cannot install the editor's own content");
+        installText(() -> cache.install(prepared));
+        clearColumnSelection();
+    }
+
     public int getParagraphLength(int index) {
         return ((CodeAreaContent) getContent()).getParagraphLength(index);
     }

@@ -94,8 +94,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
     private int firstParagraph;
     private boolean paragraphsDirty = true;
     private boolean geometryDirty = true;
-    /** True when the paragraph set itself changed, so measured heights are stale. */
-    private boolean paragraphsReplaced;
+    private boolean discardMeasuredGeometry;
     private double measuredWidth;
     private int lastCaretPosition = -1;
     private boolean syncingVerticalScroll;
@@ -170,8 +169,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
     private void updateViewport() {
         if (geometryDirty) {
-            paragraphViewport.reset(codeArea, Math.max(1, lineHeight), !paragraphsReplaced);
-            paragraphsReplaced = false;
+            paragraphViewport.reset(codeArea, Math.max(1, lineHeight), !discardMeasuredGeometry);
+            discardMeasuredGeometry = false;
             geometryDirty = false;
         }
         double top = Math.max(0, codeArea.getScrollTop() - contentView.snappedTopInset());
@@ -527,8 +526,14 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
                 invalidateMetrics();
                 /* --- Copy from below --- */
                 paragraphsDirty = true;
-                paragraphsReplaced = true;
-                geometryDirty = true;
+                while (change.next()) {
+                    if (change.wasPermutated() || change.wasUpdated()
+                            || !paragraphViewport.change(codeArea, change.getFrom(), change.getAddedSize(),
+                            change.getRemovedSize(), Math.max(1, lineHeight))) {
+                        geometryDirty = true;
+                        discardMeasuredGeometry = true;
+                    }
+                }
                 /* --- Copy from below --- */
                 contentView.requestLayout();
                 /* --- Copy from below --- */
@@ -688,6 +693,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
      * @return a {@code HitInfo} object describing the index and forward bias.
      */
     public GlobalHitInfo getIndex(double x, double y) {
+        if (geometryDirty || paragraphsDirty) updateViewport();
         // adjust the event to be in the same coordinate space as the
         // text content of the textInputControl
 //        Text textNode = getTextNode(x, y);
@@ -1521,7 +1527,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         // lookup below.
         index = Math.max(0, Math.min(index, codeArea.getLength()));
 
-        if (geometryDirty) updateViewport();
+        if (geometryDirty || paragraphsDirty) updateViewport();
         if (index < firstParagraphOffset() || index >= visibleEndOffset()) {
             int paragraph = paragraphViewport.atPosition(index);
             return new Rectangle2D(contentView.snappedLeftInset() - codeArea.getScrollLeft(),
@@ -2047,8 +2053,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
          */
         @Override protected double computePrefHeight(double width) {
             if (geometryDirty) {
-                paragraphViewport.reset(codeArea, Math.max(1, lineHeight), !paragraphsReplaced);
-                paragraphsReplaced = false;
+                paragraphViewport.reset(codeArea, Math.max(1, lineHeight), !discardMeasuredGeometry);
+                discardMeasuredGeometry = false;
                 geometryDirty = false;
             }
             if (computedPrefHeight < 0) {

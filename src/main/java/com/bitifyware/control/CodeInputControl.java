@@ -240,6 +240,23 @@ public abstract class CodeInputControl extends Control {
             resetUndoRedoState();
         }
     }
+
+    /** A subclass may bulk-install storage while preserving the control and listeners. */
+    protected final void installText(Runnable install) {
+        if (textProperty().isBound() || getTextFormatter() != null) {
+            throw new IllegalStateException("Cache installation requires unbound text without a formatter");
+        }
+        blockSelectedTextUpdate = true;
+        try {
+            install.run();
+            doSelectRange(0, 0);
+            textUpdated();
+            resetUndoRedoState();
+        } finally {
+            blockSelectedTextUpdate = false;
+            updateSelectedText();
+        }
+    }
     public void addContentChangeListener(Consumer<ContentChange> listener) {
         cursorContent().addContentChangeListener(listener);
     }
