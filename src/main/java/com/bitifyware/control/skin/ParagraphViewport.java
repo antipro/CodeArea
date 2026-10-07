@@ -10,8 +10,15 @@ final class ParagraphViewport {
     private double[] before = new double[0];
     private double tail;
 
-    void reset(CodeArea area, double lineHeight) {
+    /**
+     * @param keepMeasured when the paragraphs themselves are unchanged, retain
+     *     the measured wrapped heights as the estimate for the new metrics.
+     *     Discarding them collapses the document to one line per paragraph,
+     *     which then re-grows while scrolling and repeatedly shifts the anchor.
+     */
+    void reset(CodeArea area, double lineHeight, boolean keepMeasured) {
         int count = area.getParagraphs().size();
+        double[] previousHeights = keepMeasured && heights.length == count ? heights : null;
         starts = new int[count];
         heights = new double[count];
         before = new double[count];
@@ -22,7 +29,7 @@ final class ParagraphViewport {
             starts[i] = offset;
             offset += area.getParagraphLength(i);
             if (i + 1 < count) offset++;
-            heights[i] = lineHeight;
+            heights[i] = previousHeights != null ? previousHeights[i] : lineHeight;
         }
         for (CodeArea.EmptyLine empty : area.getEmptyLines()) {
             int index = empty.getParagraphIndex();

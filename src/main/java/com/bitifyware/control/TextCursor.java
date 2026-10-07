@@ -1,6 +1,7 @@
 package com.bitifyware.control;
 
 import java.text.CharacterIterator;
+import java.io.Reader;
 import java.util.ConcurrentModificationException;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
@@ -115,6 +116,17 @@ public final class TextCursor implements AutoCloseable {
     }
 
     public TextCursor fork() { return new TextCursor(this); }
+
+    /** Reader owns this cursor (closing it closes the cursor, not the content). */
+    public Reader asReader() {
+        checkValid();
+        return new Reader() {
+            @Override public int read(char[] target, int offset, int count) {
+                return TextCursor.this.read(target, offset, count);
+            }
+            @Override public void close() { TextCursor.this.close(); }
+        };
+    }
 
     /** Lazy random-access view for Matcher; does not concatenate the document. */
     public CharSequence asCharSequence() {

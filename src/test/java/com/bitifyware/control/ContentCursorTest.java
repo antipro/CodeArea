@@ -384,4 +384,18 @@ public class ContentCursorTest {
             }
         }
     }
+
+    @Test public void bulkLoadAndReaderAdapterAvoidFullStringsAndUndoHistory() throws Exception {
+        String value = "x".repeat(8191) + "😀\n" + "人".repeat(10000);
+        StringlessContent source = new StringlessContent(value);
+        StringlessContent target = new StringlessContent("old");
+        StringlessControl control = new StringlessControl(target);
+        try (var reader = source.openCursor().asReader()) {
+            control.loadText(reader);
+        }
+        assertEquals(value, target.value.toString());
+        assertFalse(control.isUndoable());
+        assertEquals(0, control.getCaretPosition());
+        assertTrue(source.maxRead <= 4096);
+    }
 }

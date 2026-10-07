@@ -49,7 +49,7 @@ syntax-decomposed. Geometry is indexed independently of the scene graph.
 * The append-only cache grows with edits; obsolete records are reclaimed on
   close. Compaction, crash recovery and persistence are not implemented.
 * `getText()`, text-property **change** listeners/bindings, selecting/copying very
-  large ranges, undo history, formatters and some line-editing utilities can still
+  large ranges, undo history and formatters can still
   materialize large Strings. The internal length/prompt/decoration invalidation
   and ordinary viewport rendering no longer request the whole document.
 * Wrapped offscreen heights are estimates, refined as paragraphs are measured.
@@ -69,6 +69,24 @@ syntax-decomposed. Geometry is indexed independently of the scene graph.
   replacement skin still needs the model.
 
 ## Cursor APIs (callers may migrate incrementally)
+Wrapped-height measurements preserve the visible paragraph and its pixel offset,
+including when preceding overscan paragraphs replace estimated heights. The
+scrollbar ratio is synchronized after its content-size cache has updated, rather
+than feeding size-driven ratio changes back as user scrolls.
+Measured wrapped heights are retained across geometry invalidation (font, wrap,
+width, empty-line changes) as long as the paragraph set is unchanged; only an
+actual document structure change resets them to the single-line estimate.
+Discarding them collapsed the extent and re-grew it while scrolling, which
+repeatedly adjusted the anchor and cancelled small scroll steps.
+Scrolling uses the same snapped/cached extent as ScrollPaneSkin, exposed through
+its vertical scrollbar's visible amount, rather than the text child's preferred
+height. Changes in both the scrolling HBox bounds and the scrollbar extent schedule
+post-layout synchronization. There is no numerical ratio-conversion heuristic;
+layout-only updates cannot override the anchor while synchronization is queued,
+but actual wheel events and vertical scrollbar gestures remain accepted. The
+gutter extent updates together with measured text height. Bottom-of-document
+scrolling retains the bottom when new wrapped heights are measured.
+
 
 All existing String/paragraph APIs remain available. The following additive APIs
 are exposed by CodeInputControl/CodeArea and by the supplied content models:
@@ -143,9 +161,21 @@ editor.writeTo(writer);                 // never closes/flushes the caller's wri
   after successful completion. This API does not make saving atomic by itself.
 * Core character/word navigation and deletion now pass cursor-backed
   CharacterIterators to BreakIterator instead of concatenating the document.
-  String formatters/accessibility and remaining String-based utilities are kept
-  compatible. Finder, file saving, SqlArea parsing and other external callers have
-  **not** been migrated in this stage.
+  String formatters/accessibility remain compatible. Line operations now use
+  paragraph offsets and read only affected ranges. `loadText(Reader)` performs
+  FX-thread bulk loading without per-chunk undo history, while leaving the reader
+  open; input failure can leave partial text, so callers should validate input
+  first. It requires unbound text without a TextFormatter. `TextCursor.asReader()`
+  adapts a cursor and closes only that cursor when the Reader is closed.
+
+Desktop callers now use cursors for Finder, current SQL statement lookup and
+indentation conversion, streaming file/recovery output and checksums, and indexed
+caret locations. Finder displays '?' until its asynchronous total is complete.
+Replace-all spools original ranges to temporary disk storage and applies edits
+backwards, avoiding heap-sized match lists and re-matching inserted replacement
+text. Formatting, full-script execution, cell value updates and dialect outline
+parsing still use Strings required by their existing APIs; outline parsing reads
+on a worker after debounce and rejects results from old content versions.
 
 ## TODO
 - [x] Syntax Highlighting Interface

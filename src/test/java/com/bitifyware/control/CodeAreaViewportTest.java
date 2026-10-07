@@ -5,11 +5,14 @@ import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ScrollBar;
+import javafx.scene.Node;
 import javafx.scene.layout.Pane;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.TextFlow;
 import javafx.scene.paint.Color;
+import javafx.scene.input.ScrollEvent;
 import javafx.stage.Stage;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -101,6 +104,242 @@ public class CodeAreaViewportTest extends ApplicationTest {
         settle();
         assertTrue(nodes().getChildren().size() < 100);
         assertEquals(area.getLength(), area.getSelection().getLength());
+    }
+
+    @Test public void wrappedHeightMeasurementsKeepScrollAnchorStable() throws Exception {
+        interact(() -> {
+            area.setText(("long wrapped content ".repeat(35) + "\n").repeat(3000));
+            area.setWrapText(true);
+        });
+        settle();
+        interact(() -> area.setScrollTop(((CodeAreaSkin) area.getSkin()).getLineYPosition(1500)));
+        settle();
+        double[] offset = new double[1];
+        interact(() -> offset[0] = ((CodeAreaSkin) area.getSkin()).getLineYPosition(1500) - area.getScrollTop());
+        assertEquals("Measuring overscan must not move the paragraph at the top of the viewport", 0, offset[0], 1);
+        double[] position = new double[1];
+        interact(() -> position[0] = area.getScrollTop());
+        for (int i = 0; i < 12; i++) {
+            settle();
+            interact(() -> assertEquals("Idle layout must not change the scroll position", position[0], area.getScrollTop(), 0.5));
+        }
+        for (int paragraph : new int[]{1800, 2100, 1800}) {
+            interact(() -> area.setScrollTop(((CodeAreaSkin) area.getSkin()).getLineYPosition(paragraph) + 7));
+            settle();
+            interact(() -> assertEquals("Scrolling must retain the pixel offset within wrapped paragraph " + paragraph,
+                    -7, ((CodeAreaSkin) area.getSkin()).getLineYPosition(paragraph) - area.getScrollTop(), 1));
+        }
+        for (int i = 0; i < 3; i++) settle();
+        interact(() -> {
+            double before = area.getScrollTop();
+            ScrollPane pane = (ScrollPane) area.lookup(".scroll-pane");
+            pane.setVvalue(pane.getVvalue() + 0.001);
+            assertTrue("User scrolling must still change the editor offset", area.getScrollTop() > before);
+        });
+        settle();
+        assertTrue(nodes().getChildren().size() < 100);
+    }
+
+    @Test public void memoryWrappedHeightMeasurementsKeepScrollAnchorStable() throws Exception {
+        interact(() -> {
+            root.getChildren().clear();
+            area.setSkin(null);
+            area.closeContent();
+            area = new CodeArea();
+            root.getChildren().add(area);
+        });
+        wrappedHeightMeasurementsKeepScrollAnchorStable();
+    }
+
+    @Test public void scrollbarKeepsRenderingNewParagraphsWithPendingHeightDifferences() throws Exception {
+        interact(() -> {
+            area.setText(("select wrapped column ".repeat(12) + "\n").repeat(2000));
+            area.setWrapText(true);
+        });
+        settle();
+        // Fractional/temporarily stale layout dimensions must not permanently
+        // disable user scrolling. The old listener rejected every such event.
+        interact(() -> {
+            ScrollPane pane = (ScrollPane) area.lookup(".scroll-pane");
+            javafx.scene.layout.Region content = (javafx.scene.layout.Region) pane.getContent();
+            content.setPrefHeight(content.getHeight() + 2);
+            double before = area.getScrollTop();
+            pane.setVvalue(0.25);
+            assertTrue("Height differences must not disconnect the scrollbar", area.getScrollTop() > before + 1);
+            content.setPrefHeight(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
+        });
+        settle();
+        for (double value : new double[]{0.4, 0.6, 0.8, 1.0}) {
+            interact(() -> ((ScrollPane) area.lookup(".scroll-pane")).setVvalue(value));
+            settle();
+            settle();
+            interact(() -> {
+                try {
+                    Group rendered = nodes();
+                    TextFlow last = (TextFlow) rendered.getChildren().getLast();
+                    assertTrue("The rendered window must reach the visible bottom: last=" + (last.getLayoutY() + last.getPrefHeight())
+                                    + ", top=" + area.getScrollTop() + ", extent="
+                                    + ((ScrollPane) area.lookup(".scroll-pane")).getContent().getLayoutBounds().getHeight(),
+                            last.getLayoutY() + last.getPrefHeight()
+                                    + ((javafx.scene.layout.Region) ((javafx.scene.layout.HBox)
+                                            ((ScrollPane) area.lookup(".scroll-pane")).getContent()).getChildren().get(1))
+                                            .getPadding().getBottom()
+                                    >= area.getScrollTop()
+                                    + ((ScrollPane) area.lookup(".scroll-pane")).getViewportBounds().getHeight() - 1);
+                } catch (Exception e) { throw new AssertionError(e); }
+            });
+        }
+        interact(() -> {
+            try {
+                Field field = CodeAreaSkin.class.getDeclaredField("firstParagraph");
+                field.setAccessible(true);
+                assertTrue("Scrolling to the end must render the final paragraphs: first=" + field.getInt(area.getSkin())
+                        + ", top=" + area.getScrollTop() + ", value=" + ((ScrollPane) area.lookup(".scroll-pane")).getVvalue(),
+                        field.getInt(area.getSkin()) > 1950);
+            } catch (Exception e) { throw new AssertionError(e); }
+        });
+        interact(() -> {
+            ScrollPane pane = (ScrollPane) area.lookup(".scroll-pane");
+            double before = area.getScrollTop();
+            pane.getContent().fireEvent(new ScrollEvent(ScrollEvent.SCROLL, 10, 10, 10, 10,
+                    false, false, false, false, false, false,
+                    0, 60, 0, 60, ScrollEvent.HorizontalTextScrollUnits.NONE, 0,
+                    ScrollEvent.VerticalTextScrollUnits.NONE, 0, 0, null));
+            assertTrue("Mouse-wheel input must still move away from the bottom", area.getScrollTop() < before);
+        });
+        settle();
+    }
+
+    @Test public void smallUpwardWheelAndScrollbarStepsAreNotRestoredByLayout() throws Exception {
+        interact(() -> {
+            area.setText(("small scroll wrapped paragraph ".repeat(20) + "\n").repeat(2000));
+            area.setWrapText(true);
+        });
+        settle();
+        interact(() -> area.setScrollTop(((CodeAreaSkin) area.getSkin()).getLineYPosition(1000) + 40));
+        settle();
+        double[] previousOffset = new double[1];
+        interact(() -> previousOffset[0] = ((CodeAreaSkin) area.getSkin()).getLineYPosition(1000) - area.getScrollTop());
+        for (int i = 0; i < 8; i++) {
+            interact(() -> {
+                ScrollPane pane = (ScrollPane) area.lookup(".scroll-pane");
+                // Reproduce a sub-pixel preferred/actual discrepancy without
+                // resizing first. A small user step then numerically resembles
+                // the size-only ratio conversion used by the old heuristic.
+                try {
+                    Field view = CodeAreaSkin.class.getDeclaredField("contentView");
+                    view.setAccessible(true);
+                    javafx.scene.layout.Region content = (javafx.scene.layout.Region) view.get(area.getSkin());
+                    Field height = CodeAreaSkin.class.getDeclaredField("computedPrefHeight");
+                    height.setAccessible(true);
+                    double original = height.getDouble(area.getSkin());
+                    height.setDouble(area.getSkin(), content.getHeight() + 0.75);
+                    try {
+                        content.fireEvent(new ScrollEvent(ScrollEvent.SCROLL, 10, 10, 10, 10,
+                                false, false, false, false, false, false,
+                                0, 0.5, 0, 0.5, ScrollEvent.HorizontalTextScrollUnits.NONE, 0,
+                                ScrollEvent.VerticalTextScrollUnits.NONE, 0, 0, null));
+                    } finally { height.setDouble(area.getSkin(), original); }
+                } catch (Exception e) { throw new AssertionError(e); }
+            });
+            settle();
+            interact(() -> {
+                double offset = ((CodeAreaSkin) area.getSkin()).getLineYPosition(1000) - area.getScrollTop();
+                assertTrue("A half-pixel upward wheel step must not return to its old position",
+                        offset > previousOffset[0] + 0.1);
+                previousOffset[0] = offset;
+            });
+        }
+        Node[] button = new Node[1];
+        interact(() -> {
+            ScrollPane pane = (ScrollPane) area.lookup(".scroll-pane");
+            ScrollBar bar = (ScrollBar) pane.lookup(".scroll-bar:vertical");
+            assertNotNull(bar);
+            bar.setUnitIncrement(0.00001);
+            button[0] = bar.lookup(".decrement-button");
+            assertNotNull(button[0]);
+        });
+        for (int i = 0; i < 3; i++) {
+            clickOn(button[0]);
+            settle();
+            interact(() -> {
+                double offset = ((CodeAreaSkin) area.getSkin()).getLineYPosition(1000) - area.getScrollTop();
+                assertTrue("A small scrollbar arrow step must survive layout", offset > previousOffset[0] + 0.01);
+                previousOffset[0] = offset;
+            });
+        }
+    }
+
+    @Test public void highlightedWrappedContentMovesUpVisuallyAsWellAsInTheModel() throws Exception {
+        interact(() -> {
+            area.setStyle("-fx-font-size: 24px;");
+            area.setSyntaxHighlighter(new com.bitifyware.control.syntax.DemoSyntax());
+            StringBuilder sql = new StringBuilder();
+            for (int i = 0; i < 2000; i++) {
+                sql.append("select column_name ".repeat(3 + i % 6)).append("from table_name;\n");
+            }
+            area.setText(sql.toString());
+            area.setWrapText(true);
+        });
+        settle();
+        interact(() -> area.setScrollTop(((CodeAreaSkin) area.getSkin()).getLineYPosition(1000) + 40));
+        settle();
+        settle();
+        double[] marker = new double[1];
+        interact(() -> marker[0] = ((CodeAreaSkin) area.getSkin()).getLineYPosition(1000) - area.getScrollTop());
+        for (int i = 0; i < 12; i++) {
+            interact(() -> {
+                ScrollPane pane = (ScrollPane) area.lookup(".scroll-pane");
+                pane.getContent().fireEvent(new ScrollEvent(ScrollEvent.SCROLL, 10, 10, 10, 10,
+                        false, false, false, false, false, false,
+                        0, 12, 0, 12, ScrollEvent.HorizontalTextScrollUnits.NONE, 0,
+                        ScrollEvent.VerticalTextScrollUnits.NONE, 0, 0, null));
+            });
+            settle();
+            settle();
+            interact(() -> {
+                ScrollPane pane = (ScrollPane) area.lookup(".scroll-pane");
+                Node viewport = pane.lookup(".viewport");
+                double actualTop = viewport.localToScene(0, 0).getY()
+                        - pane.getContent().localToScene(0, 0).getY();
+                ScrollBar debugBar = (ScrollBar) pane.lookup(".scroll-bar:vertical");
+                assertEquals("Editor offsets must match the actual scrolled HBox: v=" + pane.getVvalue()
+                                + ", bar=" + debugBar.getValue() + ", visible=" + debugBar.getVisibleAmount()
+                                + ", viewport=" + pane.getViewportBounds() + ", content=" + pane.getContent().getLayoutBounds(),
+                        area.getScrollTop(), actualTop, 1);
+                double offset = ((CodeAreaSkin) area.getSkin()).getLineYPosition(1000) - actualTop;
+                assertTrue("Each upward wheel step must move the actual content down", offset > marker[0] + 1);
+                marker[0] = offset;
+            });
+        }
+        Node[] decrement = new Node[1];
+        interact(() -> decrement[0] = area.lookup(".scroll-pane .scroll-bar:vertical .decrement-button"));
+        assertNotNull(decrement[0]);
+        for (int i = 0; i < 3; i++) {
+            clickOn(decrement[0]);
+            settle();
+            settle();
+            interact(() -> {
+                ScrollPane pane = (ScrollPane) area.lookup(".scroll-pane");
+                double actualTop = pane.lookup(".viewport").localToScene(0, 0).getY()
+                        - pane.getContent().localToScene(0, 0).getY();
+                assertEquals(area.getScrollTop(), actualTop, 1);
+                double offset = ((CodeAreaSkin) area.getSkin()).getLineYPosition(1000) - actualTop;
+                assertTrue("Scrollbar arrow clicks must move highlighted content upward", offset > marker[0] + 1);
+                marker[0] = offset;
+            });
+        }
+    }
+
+    @Test public void memoryHighlightedWrappedContentMovesUpVisuallyAsWellAsInTheModel() throws Exception {
+        interact(() -> {
+            root.getChildren().clear();
+            area.setSkin(null);
+            area.closeContent();
+            area = new CodeArea();
+            root.getChildren().add(area);
+        });
+        highlightedWrappedContentMovesUpVisuallyAsWellAsInTheModel();
     }
 
     @Test public void phantomRowsAndDecorationsUseDocumentIndices() throws Exception {

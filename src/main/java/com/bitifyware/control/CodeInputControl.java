@@ -29,6 +29,7 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.io.IOException;
 import java.io.Writer;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -216,6 +217,29 @@ public abstract class CodeInputControl extends Control {
         return cursorContent().search(query, from, to, position);
     }
     public void writeTo(Writer writer) throws IOException { cursorContent().writeTo(writer); }
+
+    /** FX-thread bulk loading without a document String or per-chunk undo records.
+     * The supplied reader remains open. On I/O failure content may be partial;
+     * callers should validate/spool input before invoking this method.
+     */
+    public void loadText(Reader reader) throws IOException {
+        Objects.requireNonNull(reader);
+        if (textProperty().isBound() || getTextFormatter() != null) {
+            throw new IllegalStateException("Streaming load requires unbound text without a formatter");
+        }
+        setText("");
+        char[] buffer = new char[8192];
+        try {
+            int n;
+            while ((n = reader.read(buffer)) != -1) {
+                if (n > 0) content.insert(content.length(), new String(buffer, 0, n), true);
+            }
+            textUpdated();
+            positionCaret(0);
+        } finally {
+            resetUndoRedoState();
+        }
+    }
     public void addContentChangeListener(Consumer<ContentChange> listener) {
         cursorContent().addContentChangeListener(listener);
     }

@@ -351,7 +351,7 @@ public abstract class CodeInputControlSkin<T extends CodeInputControl> extends S
                 }
 
                 @Override public int getCommittedTextLength() {
-                    return control.getText().length() - imlength;
+                    return control.getLength() - imlength;
                 }
             };
             control.setInputMethodRequests(inputMethodRequests);

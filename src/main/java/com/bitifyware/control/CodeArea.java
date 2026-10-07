@@ -247,8 +247,7 @@ public class CodeArea extends CodeInputControl {
         }
         int lineStart = lineRange[0];
         int lineTextEnd = lineRange[1];
-        String text = getText();
-        String lineText = text.substring(lineStart, lineTextEnd);
+        String lineText = getText(lineStart, lineTextEnd);
         ClipboardContent content = new ClipboardContent();
         content.putString(lineText);
         Clipboard.getSystemClipboard().setContent(content);
@@ -277,15 +276,12 @@ public class CodeArea extends CodeInputControl {
         }
         if (selection.getLength() == 0) {
             int caretPos = getCaretPosition();
-            String text = getText();
-            if (text.isEmpty()) {
+            if (getLength() == 0) {
                 return;
             }
-            int lineStart = findCurrentLineStart(text, caretPos);
-            int lineEnd = text.indexOf("\n", lineStart);
-            if (lineEnd == -1) {
-                lineEnd = getLength();
-            }
+            int paragraph = getParagraphIndex(caretPos);
+            int lineStart = getParagraphStart(paragraph);
+            int lineEnd = lineStart + getParagraphLength(paragraph);
             String lineText = getText(lineStart, lineEnd);
             String cloneText = "\n" + lineText;
             insertText(lineEnd, cloneText);
@@ -297,10 +293,8 @@ public class CodeArea extends CodeInputControl {
         int selectionEnd = selection.getEnd();
         String selectedText = getSelectedText();
         // Find next line position after current paragraph
-        int lineEndPosition = getText().indexOf("\n", selectionEnd);
-        if (lineEndPosition == -1) {
-            lineEndPosition = getLength();
-        }
+        int paragraph = getParagraphIndex(selectionEnd);
+        int lineEndPosition = getParagraphStart(paragraph) + getParagraphLength(paragraph);
         String cloneText = "\n" + selectedText;
         // Remove trailing newline in selected text to avoid adding extra empty line when clone
         cloneText = cloneText.replaceAll("\n+$", "\n");
@@ -319,24 +313,20 @@ public class CodeArea extends CodeInputControl {
         if (isDisabled() || !isEditable()) {
             return;
         }
-        String text = getText();
-        if (text.isEmpty()) {
+        if (getLength() == 0) {
             return;
         }
         int caretPos = getCaretPosition();
-        int currentLineStart = findCurrentLineStart(text, caretPos);
+        int paragraph = getParagraphIndex(caretPos);
+        int currentLineStart = getParagraphStart(paragraph);
         if (currentLineStart == 0) {
             return;
         }
-        int previousLineBreak = currentLineStart - 1;
-        int previousLineStart = text.lastIndexOf("\n", Math.max(0, previousLineBreak - 1)) + 1;
-        int currentLineEnd = text.indexOf("\n", currentLineStart);
-        if (currentLineEnd == -1) {
-            currentLineEnd = text.length();
-        }
-        int currentLineEndWithDelimiter = currentLineEnd < text.length() ? currentLineEnd + 1 : currentLineEnd;
-        String previousLine = text.substring(previousLineStart, currentLineStart);
-        String currentLine = text.substring(currentLineStart, currentLineEndWithDelimiter);
+        int previousLineStart = getParagraphStart(paragraph - 1);
+        int currentLineEnd = currentLineStart + getParagraphLength(paragraph);
+        int currentLineEndWithDelimiter = currentLineEnd < getLength() ? currentLineEnd + 1 : currentLineEnd;
+        String previousLine = getText(previousLineStart, currentLineStart);
+        String currentLine = getText(currentLineStart, currentLineEndWithDelimiter);
         int caretOffset = caretPos - currentLineStart;
         replaceText(previousLineStart, currentLineEndWithDelimiter, currentLine + previousLine);
         int maxOffset = maxCaretOffset(currentLine);
@@ -348,26 +338,23 @@ public class CodeArea extends CodeInputControl {
         if (isDisabled() || !isEditable()) {
             return;
         }
-        String text = getText();
-        if (text.isEmpty()) {
+        if (getLength() == 0) {
             return;
         }
         int caretPos = getCaretPosition();
-        int currentLineStart = findCurrentLineStart(text, caretPos);
-        int currentLineEnd = text.indexOf("\n", currentLineStart);
-        if (currentLineEnd == -1) {
+        int paragraph = getParagraphIndex(caretPos);
+        int currentLineStart = getParagraphStart(paragraph);
+        int currentLineEnd = currentLineStart + getParagraphLength(paragraph);
+        if (currentLineEnd == getLength()) {
             return;
         }
         int nextLineStart = currentLineEnd + 1;
-        int nextLineEnd = text.indexOf("\n", nextLineStart);
-        if (nextLineEnd == -1) {
-            nextLineEnd = text.length();
-        }
-        int nextLineEndWithDelimiter = nextLineEnd < text.length() ? nextLineEnd + 1 : nextLineEnd;
-        String currentLine = text.substring(currentLineStart, nextLineStart);
-        String nextLine = text.substring(nextLineStart, nextLineEndWithDelimiter);
+        int nextLineEnd = nextLineStart + getParagraphLength(paragraph + 1);
+        int nextLineEndWithDelimiter = nextLineEnd < getLength() ? nextLineEnd + 1 : nextLineEnd;
+        String currentLine = getText(currentLineStart, nextLineStart);
+        String nextLine = getText(nextLineStart, nextLineEndWithDelimiter);
         int caretOffset = caretPos - currentLineStart;
-        boolean nextLineHasDelimiter = nextLineEnd < text.length();
+        boolean nextLineHasDelimiter = nextLineEnd < getLength();
         if (!nextLineHasDelimiter && currentLine.endsWith("\n")) {
             currentLine = currentLine.substring(0, currentLine.length() - 1);
             nextLine = nextLine + "\n";
@@ -391,17 +378,17 @@ public class CodeArea extends CodeInputControl {
     }
 
     protected int[] getCurrentLineRange() {
-        String text = getText();
-        if (text.isEmpty()) {
+        if (getLength() == 0) {
             return null;
         }
         int caretPos = getCaretPosition();
-        int lineStart = findCurrentLineStart(text, caretPos);
-        if (lineStart == text.length() && text.endsWith("\n")) {
-            lineStart = text.length() - 1;
+        int paragraph = getParagraphIndex(caretPos);
+        int lineStart = getParagraphStart(paragraph);
+        if (lineStart == getLength() && paragraph > 0) {
+            lineStart = getLength() - 1;
         }
-        int lineBreak = text.indexOf("\n", lineStart);
-        int lineTextEnd = lineBreak == -1 ? text.length() : lineBreak + 1;
+        int lineEnd = getParagraphStart(paragraph) + getParagraphLength(paragraph);
+        int lineTextEnd = lineEnd < getLength() ? lineEnd + 1 : lineEnd;
         return new int[]{lineStart, lineTextEnd};
     }
 
@@ -416,8 +403,7 @@ public class CodeArea extends CodeInputControl {
         if (selection.getLength() > 0) {
             int start = selection.getStart();
             int end = selection.getEnd();
-            String text = getText();
-            String[] lines = text.substring(start, end).split("\n");
+            String[] lines = getText(start, end).split("\n");
             StringBuilder sb = new StringBuilder();
             for (String line : lines) {
                 sb.append(tabChar).append(line).append("\n");
@@ -439,8 +425,7 @@ public class CodeArea extends CodeInputControl {
         if (selection.getLength() > 0) {
             int start = selection.getStart();
             int end = selection.getEnd();
-            String text = getText();
-            String[] lines = text.substring(start, end).split("\n");
+            String[] lines = getText(start, end).split("\n");
             StringBuilder sb = new StringBuilder();
             for (String line : lines) {
                 if (line.startsWith(tabChar)) {
@@ -463,7 +448,7 @@ public class CodeArea extends CodeInputControl {
             selectRange(start, start + sb.length());
         } else {
             int caretPos = getCaretPosition();
-            String line = getText(0, caretPos).substring(getText(0, caretPos).lastIndexOf("\n") + 1);
+            String line = getText(getParagraphStart(getParagraphIndex(caretPos)), caretPos);
             if (line.startsWith(tabChar)) {
                 replaceText(caretPos - tabChar.length(), caretPos, "");
             } else if (line.startsWith(" ")) {
@@ -1208,9 +1193,8 @@ public class CodeArea extends CodeInputControl {
             return null;
         }
         
-        String content = getText();
-        if (charIndex < content.length()) {
-            return String.valueOf(content.charAt(charIndex));
+        if (charIndex < getLength()) {
+            return getText(charIndex, charIndex + 1);
         }
         
         return null;
