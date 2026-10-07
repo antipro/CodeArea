@@ -16,6 +16,8 @@ public class MappedCacheTest {
         java.nio.file.Path path;
         try (MappedCache cache = new MappedCache()) {
             path = cache.path();
+            assertEquals(java.nio.file.Path.of(System.getProperty("user.home"), ".sqlife", "mapfile"),
+                    path.getParent().getParent());
             assertEquals(0, cache.append("prefix"));
             assertEquals(6, cache.append(text));
             assertEquals(text.length() + 6L, cache.append(new StringBuilder("人😀suffix")));

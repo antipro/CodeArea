@@ -823,6 +823,11 @@ public class CodeArea extends CodeInputControl {
         clearColumnSelection();
     }
 
+    /** Whether this editor uses disk-mapped storage; storage mode is fixed at construction. */
+    public final boolean isCacheBacked() {
+        return getContent() instanceof InCacheContent;
+    }
+
     public int getParagraphLength(int index) {
         return ((CodeAreaContent) getContent()).getParagraphLength(index);
     }
