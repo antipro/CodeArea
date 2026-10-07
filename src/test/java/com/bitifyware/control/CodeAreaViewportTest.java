@@ -60,6 +60,29 @@ public class CodeAreaViewportTest extends ApplicationTest {
         WaitForAsyncUtils.waitForFxEvents();
     }
 
+    @Test public void largeSelectionPaintingDoesNotMaterializeSelectedText() throws Exception {
+        settle();
+        interact(() -> area.selectAll());
+        settle();
+        Field propertyField = CodeInputControl.class.getDeclaredField("selectedText");
+        propertyField.setAccessible(true);
+        Object property = propertyField.get(area);
+        Field cachedValue = property.getClass().getDeclaredField("value");
+        cachedValue.setAccessible(true);
+        assertNull("Selecting and painting must not retain a full-selection String", cachedValue.get(property));
+        interact(() -> {
+            assertEquals(area.getLength(), area.getSelectedText().length());
+            area.positionCaret(0);
+            assertEquals("", area.getSelectedText());
+            area.selectRange(0, 3);
+            assertEquals("row", area.getSelectedText());
+            area.replaceSelection("test");
+            area.undo();
+            area.redo();
+            assertEquals("test", area.getText(0, 4));
+        });
+    }
+
     @Test public void preparedCacheInstallsOnceWithoutReplacingEditorOrSkin() throws Exception {
         settle();
         Object skin = area.getSkin();

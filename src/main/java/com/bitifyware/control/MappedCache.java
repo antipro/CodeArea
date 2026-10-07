@@ -6,6 +6,7 @@ import java.lang.ref.Cleaner;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,13 +35,25 @@ final class MappedCache implements AutoCloseable {
     long append(CharSequence text) {
         checkOpen();
         long start = nextChar;
-        for (int i = 0; i < text.length(); i++) {
+        int length = text.length();
+        char[] chars = new char[Math.min(length, 8192)];
+        for (int offset = 0; offset < length;) {
             int chunk = Math.toIntExact(nextChar / CHUNK_CHARS);
             if (chunk == state.buffers.size()) {
                 state.mapChunk();
             }
-            state.buffers.get(chunk).putChar((int) (nextChar % CHUNK_CHARS) * 2, text.charAt(i));
-            nextChar++;
+            int position = (int) (nextChar % CHUNK_CHARS);
+            int count = Math.min(Math.min(chars.length, length - offset), CHUNK_CHARS - position);
+            if (text instanceof String string) {
+                string.getChars(offset, offset + count, chars, 0);
+            } else if (text instanceof StringBuilder builder) {
+                builder.getChars(offset, offset + count, chars, 0);
+            } else {
+                for (int i = 0; i < count; i++) chars[i] = text.charAt(offset + i);
+            }
+            state.buffers.get(chunk).put(position, chars, 0, count);
+            nextChar += count;
+            offset += count;
         }
         return start;
     }
@@ -48,10 +61,12 @@ final class MappedCache implements AutoCloseable {
     String read(long start, int length) {
         checkOpen();
         char[] chars = new char[length];
-        for (int i = 0; i < length; i++) {
-            long pos = start + i;
-            chars[i] = state.buffers.get(Math.toIntExact(pos / CHUNK_CHARS))
-                    .getChar((int) (pos % CHUNK_CHARS) * 2);
+        for (int offset = 0; offset < length;) {
+            long pos = start + offset;
+            int position = (int) (pos % CHUNK_CHARS);
+            int count = Math.min(length - offset, CHUNK_CHARS - position);
+            state.buffers.get(Math.toIntExact(pos / CHUNK_CHARS)).get(position, chars, offset, count);
+            offset += count;
         }
         return new String(chars);
     }
@@ -121,7 +136,7 @@ final class MappedCache implements AutoCloseable {
         final Path path;
         final FileChannel channel;
         final List<Object> arenas = new ArrayList<>();
-        final List<ByteBuffer> buffers = new ArrayList<>();
+        final List<CharBuffer> buffers = new ArrayList<>();
         boolean closed;
         int owners = 1;
 
@@ -142,7 +157,7 @@ final class MappedCache implements AutoCloseable {
                 channel.write(ByteBuffer.wrap(new byte[1]), offset + CHUNK_BYTES - 1);
                 Object segment = Foreign.invoke(Foreign.MAP, channel,
                         FileChannel.MapMode.READ_WRITE, offset, (long) CHUNK_BYTES, arena);
-                buffers.add((ByteBuffer) Foreign.invoke(Foreign.AS_BUFFER, segment));
+                buffers.add(((ByteBuffer) Foreign.invoke(Foreign.AS_BUFFER, segment)).asCharBuffer());
                 arenas.add(arena);
             } catch (IOException | RuntimeException | Error e) {
                 Foreign.invoke(Foreign.CLOSE, arena);

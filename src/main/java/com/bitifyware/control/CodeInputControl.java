@@ -316,22 +316,37 @@ public abstract class CodeInputControl extends Control {
 
     private void updateSelectedText() {
         if (!blockSelectedTextUpdate) {
-            IndexRange sel = selection.get();
-            if (text.textIsNull || sel == null) {
-                selectedText.set("");
-            } else {
-                int start = sel.getStart();
-                int end = sel.getEnd();
-                int length = content.length();
-                if (end > length) {
-                    end = length;
-                }
-                if (start > length - 1) {
-                    start = end = 0;
-                }
-                selectedText.set(content.get(start, end));
+            selectedText.invalidate();
+        }
+    }
+
+    /** Lazy JavaFX property: change listeners may request values, selection alone does not. */
+    private final class SelectedTextProperty extends ReadOnlyStringPropertyBase {
+        private boolean valid = true;
+        private String value = "";
+
+        void invalidate() {
+            if (valid) {
+                valid = false;
+                value = null; // Do not retain a previously materialized large selection.
+                fireValueChangedEvent();
             }
         }
+
+        @Override public String get() {
+            if (!valid) {
+                IndexRange sel = selection.get();
+                int length = content.length();
+                int start = sel == null ? 0 : Math.min(sel.getStart(), length);
+                int end = sel == null ? 0 : Math.min(sel.getEnd(), length);
+                value = text.textIsNull || start == end ? "" : content.get(start, end);
+                valid = true;
+            }
+            return value;
+        }
+
+        @Override public Object getBean() { return CodeInputControl.this; }
+        @Override public String getName() { return "selectedText"; }
     }
 
     /* *************************************************************************
@@ -546,9 +561,9 @@ public abstract class CodeInputControl extends Control {
     /**
      * Defines the characters in the TextInputControl which are selected
      */
-    private ReadOnlyStringWrapper selectedText = new ReadOnlyStringWrapper(this, "selectedText");
+    private final SelectedTextProperty selectedText = new SelectedTextProperty();
     public final String getSelectedText() { return selectedText.get(); }
-    public final ReadOnlyStringProperty selectedTextProperty() { return selectedText.getReadOnlyProperty(); }
+    public final ReadOnlyStringProperty selectedTextProperty() { return selectedText; }
 
     /**
      * The <code>anchor</code> of the text selection.
