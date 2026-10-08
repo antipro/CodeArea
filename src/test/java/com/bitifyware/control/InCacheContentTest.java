@@ -18,6 +18,7 @@ import static org.junit.Assert.*;
 
 public class InCacheContentTest {
     @BeforeClass public static void initializeToolkit() throws Exception {
+        InCacheContent.initializeCacheDirectory(TestCacheDirectory.initialize());
         if (System.getProperty("os.name").toLowerCase().contains("linux")) {
             Assume.assumeTrue("JavaFX needs a display for Control initialization",
                     System.getenv("DISPLAY") != null || System.getenv("WAYLAND_DISPLAY") != null);

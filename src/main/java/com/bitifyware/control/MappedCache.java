@@ -141,7 +141,7 @@ final class MappedCache implements AutoCloseable {
         int owners = 1;
 
         State() throws IOException {
-            path = CacheDirectory.current().createCache();
+            path = CacheDirectory.initialized().createCache();
             try {
                 channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE);
             } catch (IOException e) {

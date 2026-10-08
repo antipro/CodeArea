@@ -29,8 +29,9 @@ public class CodeAreaViewportTest extends ApplicationTest {
     private CodeArea area;
     private StackPane root;
 
-    @BeforeClass public static void requireDisplay() {
+    @BeforeClass public static void requireDisplay() throws Exception {
         Assume.assumeFalse(Boolean.parseBoolean(System.getProperty("java.awt.headless", "true")));
+        TestCacheDirectory.initialize();
     }
 
     @Override public void start(Stage stage) {

@@ -36,7 +36,7 @@ public class CodeAreaTest extends ApplicationTest {
     private StackPane root;
 
     @BeforeClass
-    public static void checkPlatform() {
+    public static void checkPlatform() throws Exception {
         // Get OS name and headless property
         String osName = System.getProperty("os.name").toLowerCase();
         boolean isHeadless = Boolean.parseBoolean(System.getProperty("java.awt.headless", "true"));
@@ -61,6 +61,7 @@ public class CodeAreaTest extends ApplicationTest {
         // Assume.assumeFalse("Skipping tests on macOS", osName.contains("mac"));
 
         System.out.println("Running GUI tests on platform: " + osName);
+        TestCacheDirectory.initialize();
     }
 
     @Override

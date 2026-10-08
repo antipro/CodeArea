@@ -178,11 +178,6 @@
                                 <!--                                <option>-keepparameternames</option>-->
 
                                 <!-- 此选项将保存所有原始类文件（不混淆），一般是混淆领域或者服务包中的文件。 -->
-<!--                                <option>-keep-->
-<!--                                    class com.bitifyware.sqlife.DesktopApp {-->
-<!--                                    public static void main(java.lang.String[]);-->
-<!--                                    }-->
-<!--                                </option>-->
 
                                 <!-- 此选项忽略警告，例如重复的类定义和命名不正确的文件中的类 -->
                                 <option>-ignorewarnings</option>

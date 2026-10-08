@@ -1,6 +1,7 @@
 package com.bitifyware.control;
 
 import org.junit.Test;
+import org.junit.BeforeClass;
 
 import java.nio.file.Files;
 import java.util.Random;
@@ -8,6 +9,7 @@ import java.util.Random;
 import static org.junit.Assert.*;
 
 public class MappedCacheTest {
+    @BeforeClass public static void initializeCache() throws Exception { TestCacheDirectory.initialize(); }
     @Test public void bulkReadWriteCrossesMappingAndTransferBoundaries() throws Exception {
         Random random = new Random(731);
         char[] chars = new char[3 * 524288 + 137];
@@ -16,7 +18,7 @@ public class MappedCacheTest {
         java.nio.file.Path path;
         try (MappedCache cache = new MappedCache()) {
             path = cache.path();
-            assertEquals(java.nio.file.Path.of(System.getProperty("user.home"), ".sqlife", "mapfile"),
+            assertEquals(TestCacheDirectory.initialize(),
                     path.getParent().getParent());
             assertEquals(0, cache.append("prefix"));
             assertEquals(6, cache.append(text));

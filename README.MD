@@ -33,6 +33,13 @@ Cleaner provides fallback cleanup. The file is a disposable cache, not a saved
 document or a recovery journal. Readers use the same filtering as InMemoryContent
 (including removal of CR/control characters, preserving LF, tabs and UTF-16).
 
+Hosts must call `InCacheContent.initializeCacheDirectory(Path root)` before creating
+cached content or querying its available disk space. The component has no default
+cache location. Calling the initializer again with the same root is safe, but
+changing an initialized root is rejected so live mappings cannot be relocated.
+OS-held owner locks protect live process caches and allow later startup cleanup
+of crashed owners. Tests supply a shared temporary root instead of a user directory.
+
 The skin retains only viewport paragraphs plus eight paragraphs of overscan on
 each side, and reuses nodes in overlapping windows. Line numbers, selection,
 diff decorations and hit testing use document indices. Offscreen text is not

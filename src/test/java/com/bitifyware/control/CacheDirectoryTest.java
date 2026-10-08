@@ -35,6 +35,8 @@ public class CacheDirectoryTest {
     @Test public void preservesUnknownFilesAndUnrelatedDirectories() throws Exception {
         Path root = temporary.newFolder("mapfile").toPath();
         Path unrelated = Files.createDirectory(root.resolve("other"));
+        Path terminal = Files.createDirectory(root.resolve("terminal-process-123-" + UUID.randomUUID()));
+        Path terminalCache = Files.writeString(terminal.resolve("terminal-cache-data.bin"), "terminal data");
         Path data = Files.writeString(unrelated.resolve("important.bin"), "user data");
         Path unknown = Files.createDirectory(root.resolve("process-123-" + UUID.randomUUID()));
         Path unknownFile = Files.writeString(unknown.resolve("keep.txt"), "unknown");
@@ -42,6 +44,7 @@ public class CacheDirectoryTest {
         Files.writeString(partial.resolve("codearea-cache-partial.bin"), "crashed before lock publication");
         try (CacheDirectory owner = new CacheDirectory(root)) {
             assertTrue(Files.exists(data));
+            assertTrue(Files.exists(terminalCache));
             assertTrue(Files.exists(unknownFile));
             assertFalse(Files.exists(partial));
         }

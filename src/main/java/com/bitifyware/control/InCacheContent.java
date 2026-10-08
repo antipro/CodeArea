@@ -23,10 +23,11 @@ import java.util.Objects;
  * mapping lease until reclaimed, including across a cache installation.
  */
 public final class InCacheContent extends CodeAreaContent implements AutoCloseable {
-    /** Initializes the process cache owner and safely removes caches left by exited processes. */
-    public static void initializeCacheDirectory() {
+
+    /** Configure the cache root before creating any cached content. Repeated use of the same root is safe. */
+    public static void initializeCacheDirectory(java.nio.file.Path root) {
         try {
-            CacheDirectory.current();
+            CacheDirectory.current(Objects.requireNonNull(root));
         } catch (IOException e) {
             throw new java.io.UncheckedIOException(e);
         }
@@ -34,7 +35,7 @@ public final class InCacheContent extends CodeAreaContent implements AutoCloseab
 
     /** Available disk space on the mapped cache's actual filesystem. */
     public static long getCacheUsableSpace() throws IOException {
-        return java.nio.file.Files.getFileStore(CacheDirectory.current().directory()).getUsableSpace();
+        return java.nio.file.Files.getFileStore(CacheDirectory.initialized().directory()).getUsableSpace();
     }
 
     private record Entry(long offset, int length) { }

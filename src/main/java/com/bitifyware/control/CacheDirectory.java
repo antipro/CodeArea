@@ -19,14 +19,21 @@ final class CacheDirectory implements AutoCloseable {
     private final FileChannel channel;
     private final FileLock lock;
 
-    static synchronized CacheDirectory current() throws IOException {
-        if (current == null) {
-            current = new CacheDirectory(Path.of(System.getProperty("user.home"), ".sqlife", "mapfile"));
-        }
+    static synchronized CacheDirectory initialized() {
+        if (current == null)
+            throw new IllegalStateException("Initialize the CodeArea cache directory with an explicit path before use");
         return current;
     }
 
-    // Explicit root is for isolated tests; production always uses the fixed user-home directory.
+    static synchronized CacheDirectory current(Path root) throws IOException {
+        Path normalized = root.toAbsolutePath().normalize();
+        if (current == null) current = new CacheDirectory(normalized);
+        else if (!current.directory.getParent().toAbsolutePath().normalize().equals(normalized))
+            throw new IllegalStateException("CodeArea cache directory is already initialized at a different location");
+        return current;
+    }
+
+    // The cache location belongs to the host, never to this component.
     CacheDirectory(Path root) throws IOException {
         synchronized (CacheDirectory.class) {
             Files.createDirectories(root);
