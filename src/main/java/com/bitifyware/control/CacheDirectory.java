@@ -9,6 +9,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 
 /** Process-owned mapped caches. OS locks, not PID checks, determine whether an owner is alive. */
@@ -99,7 +100,7 @@ final class CacheDirectory implements AutoCloseable {
         Path ownerPath = directory.resolve(OWNER_LOCK);
         try (FileChannel owner = FileChannel.open(ownerPath, StandardOpenOption.CREATE,
                 StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
-            try (FileLock orphan = owner.tryLock()) {
+            try (FileLock orphan = acquireOrphanLock(owner)) {
                 if (orphan == null) return;
                 for (Path cache : caches) Files.deleteIfExists(cache);
             }
@@ -107,6 +108,25 @@ final class CacheDirectory implements AutoCloseable {
         // Close first for Windows. The root coordinator still excludes other startup cleanups.
         Files.deleteIfExists(ownerPath);
         Files.delete(directory);
+    }
+
+    private static FileLock acquireOrphanLock(FileChannel owner) throws IOException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
+        do {
+            try {
+                FileLock lock = owner.tryLock();
+                if (lock != null) return lock;
+            } catch (OverlappingFileLockException e) {
+                return null;
+            }
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Interrupted while checking mapped cache owner lock", e);
+            }
+        } while (System.nanoTime() < deadline);
+        return null;
     }
 
     // Production keeps the owner locked for the JVM lifetime, including retained mapping leases.
