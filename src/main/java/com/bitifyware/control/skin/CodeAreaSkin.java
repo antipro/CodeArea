@@ -190,7 +190,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         for (int i = from; i < to; i++) {
             Node node = existing.get(i);
             if (node != null) paragraphNodes.getChildren().add(node);
-            else addParagraphNode(i - from, codeArea.getParagraphs().get(i).toString());
+            else addParagraphNode(i - from, i, codeArea.getParagraphs().get(i).toString());
         }
         paragraphsDirty = false;
         invalidateMetrics();
@@ -416,7 +416,7 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         scrollSelectionFrames.add(new KeyFrame(Duration.millis(350), scrollSelectionHandler));
 
         // Add initial text content
-        addParagraphNode(0, control.getParagraphs().getFirst().toString());
+        addParagraphNode(0, 0, control.getParagraphs().getFirst().toString());
 
         registerChangeListener(control.selectionProperty(), e -> {
             // TODO Why do we need two calls here?
@@ -886,7 +886,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
             } else {
                 // Shape only selected offscreen rows on demand; never retain them
                 // in the scene graph or in the viewport node cache.
-                TextFlow flow = createParagraphNode(codeArea.getParagraphs().get(paragraph).toString());
+                TextFlow flow = createParagraphNode(paragraph,
+                        codeArea.getParagraphs().get(paragraph).toString());
                 double wrappingWidth = Math.max(1, contentView.getWidth()
                         - contentView.snappedLeftInset() - contentView.snappedRightInset());
                 layoutDetachedParagraph(flow, wrappingWidth);
@@ -1674,11 +1675,11 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
         }
     }
 
-    private void addParagraphNode(int i, String string) {
-        paragraphNodes.getChildren().add(i, createParagraphNode(string));
+    private void addParagraphNode(int i, int paragraphIndex, String string) {
+        paragraphNodes.getChildren().add(i, createParagraphNode(paragraphIndex, string));
     }
 
-    private TextFlow createParagraphNode(String string) {
+    private TextFlow createParagraphNode(int paragraphIndex, String string) {
         final CodeArea codeArea = getSkinnable();
 //        Text paragraphNode = new Text(string);
 //        paragraphNode.setTextOrigin(VPos.TOP);
@@ -1697,6 +1698,8 @@ public class CodeAreaSkin extends CodeInputControlSkin<CodeArea> {
 
         List<Text> texts = codeArea.getSyntaxHighlighter().decompose(
                 string,
+                paragraphIndex,
+                codeArea,
                 codeArea.tabSizeProperty(),
                 (observable, oldValue, newValue) -> {
                     invalidateMetrics();
